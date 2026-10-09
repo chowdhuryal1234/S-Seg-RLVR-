@@ -5,7 +5,8 @@ Nucleus segmentation research: learn a vision-language prompt policy while keepi
 ## Current work
 
 - [Iris's supervised baselines](baselines/iris/README.md): original notebook and saved outputs, copied with source provenance. They have not been rerun here.
-- [Prompt-policy pilot](OVERNIGHT_PLAN.md): Qwen2.5-VL-3B text-layer LoRA adapters, frozen SAM2.1 tiny, and only segmentation plus format rewards. GPU execution must be verified from run artifacts; having this code does not establish a completed experiment.
+- [Prompt-policy pilot](OVERNIGHT_PLAN.md): Qwen text-layer LoRA adapters, frozen SAM2.1 tiny, and only segmentation plus format rewards. The first 7B pilot completed 50 GPU optimizer steps with frozen-model checks. Validation instance PQ stayed unchanged; segmentation quality remains weak.
+- [Meeting brief and roadmap](MEETING_BRIEF.md), with [verified aggregate results](reports/2026-10-09/pilot_metrics.json). The initial 3B runs exposed an output-format failure; the 7B run produced a usable reward signal.
 - Small MoNuSeg crops are an engineering task. Their scores are not directly comparable with Iris's full-image scores.
 
 ```mermaid

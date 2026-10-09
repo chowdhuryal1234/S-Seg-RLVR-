@@ -1,6 +1,6 @@
 # One-night MoNuSeg prompt-policy pilot
 
-This is a preparation plan. A completed GPU run and performance improvement have not been established.
+This records the original bounded plan. Execution now includes a completed 50-step Qwen2.5-VL-7B run with changed text adapters and unchanged SAM/vision weights. Instance PQ did not improve. See [the meeting brief](MEETING_BRIEF.md) for actual outcomes and [aggregate metrics](reports/2026-10-09/pilot_metrics.json).
 
 ## Question for tomorrow
 
@@ -26,7 +26,7 @@ For the bounded engineering task, select 128-pixel crops with 1–8 visible anno
 
 ## Model and rewards
 
-- Policy: Qwen2.5-VL-3B-Instruct with language-layer LoRA adapters.
+- Initial policy: Qwen2.5-VL-3B-Instruct with language-layer LoRA adapters. Because its structured outputs usually failed validation, a Qwen2.5-VL-7B-Instruct pilot used the same processed-coordinate numeric-example contract and rewards. The model choice is recorded per run.
 - Segmenter: frozen SAM2.1 tiny, with image and prompt preprocessing checked.
 - Action: structured text containing a list of object boxes and foreground points.
 - Coordinates: Qwen's measured processed-image pixels, converted once to original crop pixels before SAM. The initial ten-step integration run used explicitly requested original coordinates; the longer pilot's before/after results use the consistent processed-coordinate convention. Do not compare them as a reward-method ablation.
@@ -48,7 +48,7 @@ Stop rather than run overnight blindly if data membership is unresolved for the 
 
 ## Resource request
 
-The user's existing Harvard allocation was verified on October 9: one A100 with 80 GB VRAM, 8 CPU cores, 64 GB system RAM, and a 14-hour allocation. This supplies the requested resources; measured model memory and throughput still require a GPU run. Ordinary Transformers generation avoids a separate inference GPU.
+The user's existing Harvard allocation was verified on October 9: one A100 with 80 GB VRAM, 8 CPU cores, 64 GB system RAM, and a 14-hour allocation. No extra GPU was requested. The completed 7B run peaked at 17.83 GiB reserved GPU memory, with 190 seconds of training and 250 seconds for training plus paired validation. These timings apply to the small crop/token configuration, not whole slides or larger batches. Ordinary Transformers generation avoids a separate inference GPU.
 
 Harvard is a user-authorized temporary pilot environment. Keep paths/configuration portable for the mentor's planned Databricks environment.
 

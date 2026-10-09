@@ -1,46 +1,49 @@
 # Prompt-policy pilot: meeting brief
 
-**We implemented and exercised the GRPO pipeline on an A100, including verified adapter updates and frozen-model checks. We have not demonstrated a held-out segmentation improvement. The immediate blocker is getting enough valid structured outputs to produce a useful reward signal.**
+**We completed a 50-step GRPO pilot with frozen SAM2. The training loop works, but instance segmentation quality is still weak and PQ did not improve.**
 
-## Pipeline and data
+```mermaid
+flowchart LR
+    A["Done: audit Iris's baseline"] --> B["Done: GPU GRPO + freeze checks"]
+    B --> C["Next: find all nuclei accurately"]
+    C --> D["Then: matched baseline comparison"]
+    D --> E["Later: weak labels + reward ablations"]
+```
 
-**Image → Qwen2.5-VL-3B text LoRA → boxes and points → frozen SAM2.1 tiny → masks → `R_seg + R_fmt` → GRPO.** Only the text adapters are trainable. `R_seg` uses foreground IoU against full reference masks; `R_fmt` checks the answer format and coordinates. Invalid outputs receive zero reward. PQ and count error are additional diagnostics: foreground IoU alone can hide incorrect instance separation. This pilot uses full-mask rewards; it is not yet a weak-supervision result.
+## Progress
 
-The current data preserve Iris's patient assignments while excluding six images with ambiguous/degenerate annotations. The selected **32 training / 16 validation crops** cover **19 / 4 patients**, respectively. Crops are 128×128 with at most eight visible nuclei; partial instances remain supervised. The official test set is untouched. These selected crops are not representative whole-image benchmarks.
+- Iris's original notebook is in the shared repository, with credit and source provenance. We audited her saved results without repeating her training.
+- **Image → Qwen2.5-VL-7B text adapters → boxes/points → frozen SAM2.1 tiny → masks → segmentation + format rewards → GRPO.** Segmentation reward uses foreground IoU against full masks. PQ and count error are diagnostics.
+- **50 steps, 49 nonzero-gradient steps, changed adapters, unchanged SAM and Qwen vision weights.** Training produced differing rewards in 42/50 groups.
+- The 3B model rarely followed the output contract. With the same numeric-example prompt, the 7B diagnostic produced 7/8 valid outputs, enabling training.
 
-## What the saved runs show
+## Result
 
-| Run | Verified outcome | Interpretation |
-|---|---|---|
-| Original-coordinate, 10-step smoke run | 10 optimizer steps; 9 nonzero-gradient steps; adapter hash changed. Only **1/20** training completions was valid, with reward variation in **1/10** groups. | Real optimization ran, but useful rewards were very sparse. |
-| Numeric-example prompt, processed coordinates | **0/8** valid completions across four training crops; no optimization. | Adding a concrete output example did not resolve formatting in this small diagnostic. |
-| Processed-coordinate pilot, configured for 50 steps | Automatically **stopped at step 10**: **0/20** valid training completions, all rewards zero, zero nonzero-gradient steps, adapter hash unchanged. | It did not complete 50 steps or produce a useful update. |
+Same 16 validation crops, before/after GRPO, using greedy decoding:
 
-Both training runs have unchanged **SAM and Qwen vision-encoder parameter hashes**. Their 16-crop validation evaluations were **0/16 valid before and after**, with pipeline PQ=0 and foreground IoU=0. These zeros reflect rejected outputs; they do not establish that a correctly prompted SAM cannot segment nuclei. **No held-out quality gain was observed.**
-
-The coordinate handling now measures Qwen's processed frame (224×224 for these 128×128 crops) and converts predicted coordinates back once for SAM. Format failures remain, including missing answer wrappers, malformed JSON, and coordinate violations. With all group rewards equal to zero, GRPO has no relative task-reward preference to learn from.
-
-**Qwen2.5-VL-7B format diagnostic: pending.** No outcome is included in this brief.
-
-Evidence: [original smoke result](runs/grpo_smoke_10/result.json), [training completions](runs/grpo_smoke_10/training_completions/summary.json), [numeric-example diagnostic](runs/base_policy_example/result.json), [stopped processed-coordinate run](runs/grpo_pilot_50/result.json).
-
-## What the oracle diagnostic establishes
-
-On **four training crops**, annotation-derived prompts gave frozen SAM2 mean foreground IoU **0.848 with tight boxes**, **0.717 with five-pixel padding**, and **0.180 with full-image boxes**. SAM stayed unchanged. This shows prompt sensitivity with privileged label information. **It is not learned-policy performance, held-out evaluation, or a performance ceiling:** no VLM or optimizer was used. [Saved oracle diagnostic](runs/oracle_iris_split_cpu/summary.json)
-
-## How this relates to Iris
-
-Iris's saved notebook uses **37 images, split 31/6 with seed 0**, a frozen SAM ViT-B image encoder, and a trained convolutional head. It reconstructs six full validation images from overlapping 512×512 tiles and averages per-image PQ with matching **IoU >0.5**.
-
-| Same postprocessing | Full-mask PQ | Weak-label PQ |
+| Metric | Before | After |
 |---|---:|---:|
-| Connected components | 0.464 | 0.299 |
-| Watershed | 0.492 | 0.289 |
+| Valid outputs | 15/16 | 16/16 |
+| Foreground IoU | 0.0704 | 0.0781 |
+| Instance PQ | 0.0131 | 0.0131 |
+| Mean absolute count error | 5.19 | 4.94 |
 
-These are **Iris's saved results, not our reproduction**. Our crop selection, rasterizer, annotation exclusions, backbone, and training method differ. We cannot compare the pilot's numbers directly with hers. [Notebook audit](baselines/iris/AUDIT.md)
+The pipeline returned **19 instances after training versus 98 annotated nuclei**. Finding too few nuclei is the main visible failure. The small IoU change does not establish a reliable quality gain.
 
-## Decisions for Alex
+## Scope and comparison
 
-1. Should we add a small **training-only supervised format warmup** before GRPO, reporting it separately from a pure-GRPO start?
-2. Should the prompt schema accept the model's native JSON style, or retain the strict answer wrapper and train toward it? Fix the acceptance rule before comparing runs.
-3. For the next milestone, should we first require reliable valid outputs and reward variation, then a paired validation improvement under an agreed rasterizer and evaluation protocol before adding weak/structural rewards?
+**S:** 32 full-mask training crops from 19 patients. **V:** 16 validation crops from four different patients. **W:** not used yet. **T:** official test set untouched. This is one seed on selected 128×128 crops, not a whole-image or weak-label benchmark.
+
+Iris's same-postprocessing full/weak PQ is **0.464/0.299 (connected components)** or **0.492/0.289 (watershed)**. Her saved results use a different model and whole-image protocol, so direct comparison needs alignment.
+
+A separate four-training-crop check gave frozen SAM IoU **0.848 with annotation-derived tight prompts**. This suggests useful masks are possible when locations are supplied; it uses privileged labels and is not learned-policy performance.
+
+## Questions for Alex
+
+1. Should we warm up nucleus localization with supervised box/point examples, or extend pure GRPO first?
+2. Should segmentation reward use instance matching instead of foreground IoU?
+3. Which shared split/evaluation protocol and success criterion should we adopt with Iris?
+
+[Detailed evidence](reports/2026-10-09/README.md) · [Aggregate metrics](reports/2026-10-09/pilot_metrics.json)
+
+The pilot used the existing A100 allocation, peaked at **17.83 GiB**, and took **250 seconds** including validation. Code checks: **66 tests passed**.

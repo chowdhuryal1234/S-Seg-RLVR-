@@ -1,0 +1,876 @@
+{
+  "source_split": "baselines/iris/split.json",
+  "source_notebook_commit": "1d8b70e4b8b09f7b8db6cb2d3b44bbe999c0b554",
+  "patient_assignment_preserved": true,
+  "retained_train_patients": 26,
+  "retained_validation_patients": 5,
+  "excluded_patients": [
+    "TCGA-50-5931",
+    "TCGA-E2-A1B5",
+    "TCGA-HE-7128",
+    "TCGA-HE-7129",
+    "TCGA-HE-7130",
+    "TCGA-XS-A8TJ"
+  ],
+  "baseline_comparison": "Not matched: crop selection, excluded slides, mask rasterizer, model and reward differ",
+  "preparation_argv": [
+    "scripts/prepare_monuseg.py",
+    "--train-archive",
+    "/path/MoNuSeg_2018_Training_data.zip",
+    "--out",
+    "data/monuseg_iris_pilot_v1",
+    "--border-policy",
+    "visible",
+    "--train-patient-ids",
+    "TCGA-18-5592,TCGA-21-5784,TCGA-38-6178,TCGA-49-4488,TCGA-A7-A13E,TCGA-A7-A13F,TCGA-AR-A1AK,TCGA-AY-A8YK,TCGA-B0-5698,TCGA-B0-5711,TCGA-BC-A217,TCGA-CH-5767,TCGA-DK-A2I6,TCGA-E2-A14V,TCGA-F9-A8NY,TCGA-FG-A87N,TCGA-G2-A2EK,TCGA-G9-6336,TCGA-G9-6348,TCGA-G9-6356,TCGA-G9-6362,TCGA-KB-A93J,TCGA-MH-A561,TCGA-NH-A8F7,TCGA-RD-A8N9,TCGA-UZ-A9PJ",
+    "--val-patient-ids",
+    "TCGA-UZ-A9PN,TCGA-B0-5710,TCGA-21-5786,TCGA-AR-A1AS,TCGA-G9-6363"
+  ],
+  "seed": 42,
+  "rasterizer": "Pillow inclusive polygons, vertices rounded floor(x+0.5), earliest XML region wins overlap. No MATLAB-parity claim.",
+  "crop_size": 128,
+  "selected_crops": {
+    "train": [
+      {
+        "id": "TCGA-AR-A1AK-01Z-00-DX1_x256_y384",
+        "patient_id": "TCGA-AR-A1AK",
+        "source_image_id": "TCGA-AR-A1AK-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          384,
+          384,
+          512
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          119,
+          251,
+          252,
+          302,
+          382
+        ]
+      },
+      {
+        "id": "TCGA-A7-A13E-01Z-00-DX1_x768_y384",
+        "patient_id": "TCGA-A7-A13E",
+        "source_image_id": "TCGA-A7-A13E-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          384,
+          896,
+          512
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          188,
+          191,
+          192,
+          194,
+          198,
+          204
+        ]
+      },
+      {
+        "id": "TCGA-B0-5711-01Z-00-DX1_x0_y0",
+        "patient_id": "TCGA-B0-5711",
+        "source_image_id": "TCGA-B0-5711-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          0,
+          128,
+          128
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          7,
+          218
+        ]
+      },
+      {
+        "id": "TCGA-AY-A8YK-01A-01-TS1_x0_y640",
+        "patient_id": "TCGA-AY-A8YK",
+        "source_image_id": "TCGA-AY-A8YK-01A-01-TS1",
+        "bbox_xyxy": [
+          0,
+          640,
+          128,
+          768
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          45,
+          46,
+          51,
+          53
+        ]
+      },
+      {
+        "id": "TCGA-CH-5767-01Z-00-DX1_x768_y128",
+        "patient_id": "TCGA-CH-5767",
+        "source_image_id": "TCGA-CH-5767-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          128,
+          896,
+          256
+        ],
+        "instance_count": 2,
+        "truncated_instance_ids": [
+          239,
+          241
+        ]
+      },
+      {
+        "id": "TCGA-G9-6336-01Z-00-DX1_x768_y256",
+        "patient_id": "TCGA-G9-6336",
+        "source_image_id": "TCGA-G9-6336-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          256,
+          896,
+          384
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          83,
+          84,
+          85
+        ]
+      },
+      {
+        "id": "TCGA-G9-6348-01Z-00-DX1_x512_y0",
+        "patient_id": "TCGA-G9-6348",
+        "source_image_id": "TCGA-G9-6348-01Z-00-DX1",
+        "bbox_xyxy": [
+          512,
+          0,
+          640,
+          128
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          39,
+          320,
+          383,
+          384
+        ]
+      },
+      {
+        "id": "TCGA-E2-A14V-01Z-00-DX1_x256_y384",
+        "patient_id": "TCGA-E2-A14V",
+        "source_image_id": "TCGA-E2-A14V-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          384,
+          384,
+          512
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          137,
+          154,
+          244
+        ]
+      },
+      {
+        "id": "TCGA-NH-A8F7-01A-01-TS1_x512_y0",
+        "patient_id": "TCGA-NH-A8F7",
+        "source_image_id": "TCGA-NH-A8F7-01A-01-TS1",
+        "bbox_xyxy": [
+          512,
+          0,
+          640,
+          128
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          38,
+          55,
+          56,
+          59,
+          356
+        ]
+      },
+      {
+        "id": "TCGA-A7-A13F-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-A7-A13F",
+        "source_image_id": "TCGA-A7-A13F-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          38,
+          43,
+          253
+        ]
+      },
+      {
+        "id": "TCGA-G9-6356-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-G9-6356",
+        "source_image_id": "TCGA-G9-6356-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          278,
+          282,
+          291,
+          335
+        ]
+      },
+      {
+        "id": "TCGA-B0-5698-01Z-00-DX1_x0_y256",
+        "patient_id": "TCGA-B0-5698",
+        "source_image_id": "TCGA-B0-5698-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          256,
+          128,
+          384
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          24,
+          25
+        ]
+      },
+      {
+        "id": "TCGA-38-6178-01Z-00-DX1_x256_y256",
+        "patient_id": "TCGA-38-6178",
+        "source_image_id": "TCGA-38-6178-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          256,
+          384,
+          384
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          219,
+          222
+        ]
+      },
+      {
+        "id": "TCGA-DK-A2I6-01A-01-TS1_x640_y512",
+        "patient_id": "TCGA-DK-A2I6",
+        "source_image_id": "TCGA-DK-A2I6-01A-01-TS1",
+        "bbox_xyxy": [
+          640,
+          512,
+          768,
+          640
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          103,
+          141,
+          148
+        ]
+      },
+      {
+        "id": "TCGA-21-5784-01Z-00-DX1_x512_y640",
+        "patient_id": "TCGA-21-5784",
+        "source_image_id": "TCGA-21-5784-01Z-00-DX1",
+        "bbox_xyxy": [
+          512,
+          640,
+          640,
+          768
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          219
+        ]
+      },
+      {
+        "id": "TCGA-49-4488-01Z-00-DX1_x640_y512",
+        "patient_id": "TCGA-49-4488",
+        "source_image_id": "TCGA-49-4488-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          512,
+          768,
+          640
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          134,
+          228,
+          442,
+          444,
+          548
+        ]
+      },
+      {
+        "id": "TCGA-18-5592-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-18-5592",
+        "source_image_id": "TCGA-18-5592-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          2,
+          5,
+          6,
+          256
+        ]
+      },
+      {
+        "id": "TCGA-G2-A2EK-01A-02-TSB_x640_y128",
+        "patient_id": "TCGA-G2-A2EK",
+        "source_image_id": "TCGA-G2-A2EK-01A-02-TSB",
+        "bbox_xyxy": [
+          640,
+          128,
+          768,
+          256
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          145,
+          290
+        ]
+      },
+      {
+        "id": "TCGA-G9-6362-01Z-00-DX1_x256_y384",
+        "patient_id": "TCGA-G9-6362",
+        "source_image_id": "TCGA-G9-6362-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          384,
+          384,
+          512
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          90,
+          164,
+          166
+        ]
+      },
+      {
+        "id": "TCGA-AR-A1AK-01Z-00-DX1_x640_y256",
+        "patient_id": "TCGA-AR-A1AK",
+        "source_image_id": "TCGA-AR-A1AK-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          256,
+          768,
+          384
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          151,
+          349,
+          392
+        ]
+      },
+      {
+        "id": "TCGA-A7-A13E-01Z-00-DX1_x0_y0",
+        "patient_id": "TCGA-A7-A13E",
+        "source_image_id": "TCGA-A7-A13E-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          0,
+          128,
+          128
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          295
+        ]
+      },
+      {
+        "id": "TCGA-B0-5711-01Z-00-DX1_x256_y256",
+        "patient_id": "TCGA-B0-5711",
+        "source_image_id": "TCGA-B0-5711-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          256,
+          384,
+          384
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          1,
+          20,
+          181,
+          206,
+          309
+        ]
+      },
+      {
+        "id": "TCGA-AY-A8YK-01A-01-TS1_x640_y768",
+        "patient_id": "TCGA-AY-A8YK",
+        "source_image_id": "TCGA-AY-A8YK-01A-01-TS1",
+        "bbox_xyxy": [
+          640,
+          768,
+          768,
+          896
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          129,
+          133,
+          161,
+          340
+        ]
+      },
+      {
+        "id": "TCGA-CH-5767-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-CH-5767",
+        "source_image_id": "TCGA-CH-5767-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          14,
+          16,
+          18,
+          19,
+          195,
+          274
+        ]
+      },
+      {
+        "id": "TCGA-G9-6336-01Z-00-DX1_x640_y256",
+        "patient_id": "TCGA-G9-6336",
+        "source_image_id": "TCGA-G9-6336-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          256,
+          768,
+          384
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          94,
+          95,
+          179
+        ]
+      },
+      {
+        "id": "TCGA-G9-6348-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-G9-6348",
+        "source_image_id": "TCGA-G9-6348-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          27,
+          123,
+          128
+        ]
+      },
+      {
+        "id": "TCGA-E2-A14V-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-E2-A14V",
+        "source_image_id": "TCGA-E2-A14V-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          2,
+          3,
+          160,
+          245,
+          299
+        ]
+      },
+      {
+        "id": "TCGA-NH-A8F7-01A-01-TS1_x768_y512",
+        "patient_id": "TCGA-NH-A8F7",
+        "source_image_id": "TCGA-NH-A8F7-01A-01-TS1",
+        "bbox_xyxy": [
+          768,
+          512,
+          896,
+          640
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          163,
+          169,
+          316
+        ]
+      },
+      {
+        "id": "TCGA-A7-A13F-01Z-00-DX1_x256_y384",
+        "patient_id": "TCGA-A7-A13F",
+        "source_image_id": "TCGA-A7-A13F-01Z-00-DX1",
+        "bbox_xyxy": [
+          256,
+          384,
+          384,
+          512
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          1,
+          154,
+          335
+        ]
+      },
+      {
+        "id": "TCGA-G9-6356-01Z-00-DX1_x768_y768",
+        "patient_id": "TCGA-G9-6356",
+        "source_image_id": "TCGA-G9-6356-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          768,
+          896,
+          896
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          238,
+          306
+        ]
+      },
+      {
+        "id": "TCGA-B0-5698-01Z-00-DX1_x128_y768",
+        "patient_id": "TCGA-B0-5698",
+        "source_image_id": "TCGA-B0-5698-01Z-00-DX1",
+        "bbox_xyxy": [
+          128,
+          768,
+          256,
+          896
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          58,
+          65
+        ]
+      },
+      {
+        "id": "TCGA-38-6178-01Z-00-DX1_x768_y768",
+        "patient_id": "TCGA-38-6178",
+        "source_image_id": "TCGA-38-6178-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          768,
+          896,
+          896
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          93,
+          113,
+          147,
+          163,
+          292
+        ]
+      }
+    ],
+    "validation": [
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          6,
+          174,
+          427
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y256",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          256,
+          128,
+          384
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          103,
+          298
+        ]
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          94,
+          108,
+          166,
+          195,
+          273
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          106,
+          191,
+          225
+        ]
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y512",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "bbox_xyxy": [
+          128,
+          512,
+          256,
+          640
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          67,
+          68,
+          253,
+          257,
+          258
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y640",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          640,
+          128,
+          768
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          20,
+          70
+        ]
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          43,
+          200,
+          341,
+          342,
+          402
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 7,
+        "truncated_instance_ids": [
+          100,
+          101,
+          102,
+          103
+        ]
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y640",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "bbox_xyxy": [
+          128,
+          640,
+          256,
+          768
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          115,
+          173,
+          257,
+          266,
+          426,
+          428
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x384_y640",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "bbox_xyxy": [
+          384,
+          640,
+          512,
+          768
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          10,
+          28,
+          222,
+          330
+        ]
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 1,
+        "truncated_instance_ids": [
+          208
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "bbox_xyxy": [
+          640,
+          384,
+          768,
+          512
+        ],
+        "instance_count": 5,
+        "truncated_instance_ids": [
+          115,
+          265
+        ]
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "bbox_xyxy": [
+          128,
+          768,
+          256,
+          896
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          174,
+          266,
+          377,
+          425,
+          428,
+          436
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 6,
+        "truncated_instance_ids": [
+          218,
+          227,
+          311
+        ]
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x768_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "bbox_xyxy": [
+          768,
+          0,
+          896,
+          128
+        ],
+        "instance_count": 8,
+        "truncated_instance_ids": [
+          164,
+          166,
+          195,
+          306
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x128_y128",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "bbox_xyxy": [
+          128,
+          128,
+          256,
+          256
+        ],
+        "instance_count": 4,
+        "truncated_instance_ids": [
+          170,
+          225
+        ]
+      }
+    ]
+  },
+  "scope": "Patient assignments reconstructed from Iris notebook; exclusions and crop protocol differ; not a matched baseline benchmark."
+}
