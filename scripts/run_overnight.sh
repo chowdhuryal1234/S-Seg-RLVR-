@@ -11,6 +11,15 @@ export PYTHONUNBUFFERED=1
 cd "$TASK_WORKSPACE"
 TASK_PYTHON="$RLVR_VENV/bin/python"
 TASK_DEADLINE=$(( $(date +%s) + 5400 ))
+TASK_RUN_DEADLINE=$(( $(date +%s) + ${RLVR_MAX_RUNTIME_SECONDS:-10800} ))
+run_bounded() {
+  local remaining=$(( TASK_RUN_DEADLINE - $(date +%s) ))
+  if (( remaining <= 0 )); then
+    echo 'The total pilot time budget has expired.' >&2
+    return 124
+  fi
+  timeout --signal=TERM --kill-after=60 "${remaining}s" "$@"
+}
 while ! grep -q 'GPU imports and GRPO configuration check passed' runs/bootstrap.log; do
   if [[ -n "${RLVR_BOOTSTRAP_PID:-}" ]] && ! kill -0 "$RLVR_BOOTSTRAP_PID" 2>/dev/null; then
     echo 'Bootstrap ended before its GPU checks passed; inspect runs/bootstrap.log.' >&2
@@ -27,21 +36,30 @@ TASK_REVISION=$("$TASK_PYTHON" -c 'import json; print(json.load(open("runs/polic
 TASK_DATA=data/monuseg_iris_pilot_v1
 TASK_SAM=checkpoints/sam2.1_hiera_tiny.pt
 
-"$TASK_PYTHON" scripts/prompt_diagnostic.py \
+run_bounded "$TASK_PYTHON" scripts/prompt_diagnostic.py \
   --manifest "$TASK_DATA/train.jsonl" --sam-checkpoint "$TASK_SAM" \
   --output runs/oracle_iris_split_cuda --device cuda --max-images 4 --threads 8 \
   --include-full-image-boxes
 
 # Keep this manifest beside the original so relative image paths remain valid.
 head -n 4 "$TASK_DATA/train.jsonl" > "$TASK_DATA/rollout_train4.jsonl"
-"$TASK_PYTHON" -m nucleus_rl.train --mode rollout \
+run_bounded "$TASK_PYTHON" -m nucleus_rl.train --mode rollout \
   --manifest "$TASK_DATA/rollout_train4.jsonl" --sam-checkpoint "$TASK_SAM" \
   --revision "$TASK_REVISION" --output runs/base_policy_rollouts
 
-"$TASK_PYTHON" -m nucleus_rl.train --mode train \
+if run_bounded "$TASK_PYTHON" -m nucleus_rl.train --mode train \
   --manifest "$TASK_DATA/train.jsonl" --eval-manifest "$TASK_DATA/validation.jsonl" \
   --sam-checkpoint "$TASK_SAM" --revision "$TASK_REVISION" \
   --output runs/grpo_smoke_10 --max-steps 10
+then
+  echo 'Ten-step training checks completed; reviewing the recorded update proof.'
+else
+  TASK_SMOKE_EXIT=$?
+  if [[ "$TASK_SMOKE_EXIT" != 2 ]]; then
+    exit "$TASK_SMOKE_EXIT"
+  fi
+  echo 'Ten-step run completed as a diagnostic without a useful update.'
+fi
 
 # A longer independent run starts from the same base, not from Iris's decoder.
 if "$TASK_PYTHON" - <<'PY'
@@ -55,7 +73,7 @@ passed=(r['status']=='verified_training_pilot' and r['adapter_changed']
 raise SystemExit(0 if passed else 1)
 PY
 then
-  "$TASK_PYTHON" -m nucleus_rl.train --mode train \
+  run_bounded "$TASK_PYTHON" -m nucleus_rl.train --mode train \
     --manifest "$TASK_DATA/train.jsonl" --eval-manifest "$TASK_DATA/validation.jsonl" \
     --sam-checkpoint "$TASK_SAM" --revision "$TASK_REVISION" \
     --output runs/grpo_pilot_50 --max-steps 50
