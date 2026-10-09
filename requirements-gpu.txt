@@ -1,0 +1,15 @@
+# Python 3.11. Install in an isolated GPU environment; no vLLM/DeepSpeed required.
+# Core API versions verified against TRL v0.23.1 source; GPU execution still needs a canary.
+-r requirements-cpu.txt
+torch==2.5.1
+torchvision==0.20.1
+transformers==4.56.2
+trl==0.23.1
+peft==0.17.1
+accelerate==1.10.1
+datasets==3.6.0
+safetensors==0.6.2
+huggingface-hub==0.34.4
+# Install torch first, then install this file with --no-build-isolation.
+# SAM2_BUILD_CUDA=0 skips optional mask-postprocessing CUDA extension compilation.
+SAM-2 @ git+https://github.com/facebookresearch/sam2.git@2b90b9f5ceec907a1c18123530e92e794ad901a4

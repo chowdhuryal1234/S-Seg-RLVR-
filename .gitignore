@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.safetensors
+.env
+references/
+*.tar.gz
