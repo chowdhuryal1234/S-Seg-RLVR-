@@ -29,6 +29,7 @@ For the bounded engineering task, select 128-pixel crops with 1–8 visible anno
 - Policy: Qwen2.5-VL-3B-Instruct with language-layer LoRA adapters.
 - Segmenter: frozen SAM2.1 tiny, with image and prompt preprocessing checked.
 - Action: structured text containing a list of object boxes and foreground points.
+- Coordinates: Qwen's measured processed-image pixels, converted once to original crop pixels before SAM. The initial ten-step integration run used explicitly requested original coordinates; the longer pilot's before/after results use the consistent processed-coordinate convention. Do not compare them as a reward-method ablation.
 - `R_fmt`: valid syntax and usable spatial coordinates.
 - `R_seg`: foreground IoU against dense reference masks.
 - Report instance PQ, precision/recall and count error separately. These do not become additional training rewards in this first experiment.

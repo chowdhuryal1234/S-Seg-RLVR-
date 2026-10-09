@@ -37,6 +37,8 @@ def build_parser():
     parser.add_argument("--save-steps", type=int, default=10)
     parser.add_argument("--min-pixels", type=int, default=224 * 224)
     parser.add_argument("--max-pixels", type=int, default=448 * 448)
+    parser.add_argument("--coordinate-frame", choices=("processed", "original"), default="processed",
+                        help="Model output pixel frame; processed follows Qwen2.5-VL's native grounding convention")
     return parser
 
 
@@ -115,7 +117,8 @@ def load_policy(args):
     metadata = {
         "model": args.model, "resolved_revision": revision,
         "processor_revision": revision, "adapter": args.adapter,
-        "image_coordinate_system": "original crop pixels; processor resizing does not change output coordinate contract",
+        "image_coordinate_system": args.coordinate_frame,
+        "sam_coordinate_system": "original crop pixels, obtained by one fixed scale conversion",
         "gpu": torch.cuda.get_device_name(),
         "gpu_total_bytes": torch.cuda.get_device_properties(0).total_memory,
         "packages": {name: importlib.metadata.version(name) for name in (
@@ -170,8 +173,10 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
 
     dataset_rows = []
     for row in rows:
-        with Image.open(row["image_path"]) as image:
-            prompt = prompt_for_image(*image.size, args.max_objects)
+        prompt = prompt_for_image(
+            row["prompt_width"], row["prompt_height"], args.max_objects,
+            coordinate_frame=row["coordinate_frame"],
+        )
         # TRL's multimodal helper inserts the image token for the 'image' column.
         dataset_rows.append({"id": row["id"], "image": row["image_path"], "prompt": prompt})
     dataset = Dataset.from_list(dataset_rows).cast_column("image", DatasetImage())
@@ -244,6 +249,11 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
     trainer.train()
     trainer.save_model(str(output / "adapter"))
     processor.save_pretrained(output / "adapter")
+    write_json(output / "adapter" / "coordinate_config.json", {
+        "coordinate_frame": args.coordinate_frame,
+        "min_pixels": args.min_pixels, "max_pixels": args.max_pixels,
+        "conversion": "x_original=x_prompt*original_width/prompt_width; likewise y",
+    })
     scorer.summary()
     after = run_evaluation(model, processor, validation, ArtifactScorer(segmenter, output / "after", args.max_objects), args.seed, args.max_completion_length)
     visual_hash_after = parameter_sha256(visual)
@@ -267,7 +277,7 @@ def main(argv=None):
         validate_args(args)
     except ValueError as error:
         parser.error(str(error))
-    from nucleus_rl.evaluate import ArtifactScorer, read_manifest, run_evaluation, write_json
+    from nucleus_rl.evaluate import ArtifactScorer, prepare_coordinate_rows, read_manifest, run_evaluation, write_json
     from nucleus_rl.segmenter import FrozenSAM2, file_sha256
 
     output = Path(args.output).resolve()
@@ -287,6 +297,13 @@ def main(argv=None):
             if {row["patient_id"] for row in rows} & {row["patient_id"] for row in validation}:
                 raise ValueError("Train/validation patient overlap")
         model, processor, metadata = load_policy(args)
+        rows = prepare_coordinate_rows(rows, processor, args.coordinate_frame)
+        validation = prepare_coordinate_rows(validation, processor, args.coordinate_frame)
+        frame_keys = ("id", "split", "coordinate_frame", "original_width", "original_height",
+                      "processed_width", "processed_height", "prompt_width", "prompt_height")
+        write_json(output / "coordinate_frames.json", [
+            {key: row[key] for key in frame_keys} for row in rows + validation
+        ])
         metadata["manifest_sha256"] = file_sha256(args.manifest)
         metadata["eval_manifest_sha256"] = file_sha256(args.eval_manifest) if args.eval_manifest else None
         write_json(output / "metadata.json", metadata)

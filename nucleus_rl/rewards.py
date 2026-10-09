@@ -1,8 +1,8 @@
 """Strict spatial-prompt parsing and CPU rewards for the first pilot.
 
 The only training rewards are output validity and foreground IoU. Instance
-metrics are diagnostics, not additional rewards. All coordinates refer to the
-original input crop, before any segmenter-specific resizing.
+metrics are diagnostics, not additional rewards. Coordinates use the explicitly
+supplied prompt dimensions; mask metrics always use the original crop pixels.
 """
 
 from __future__ import annotations
@@ -234,6 +234,7 @@ def instance_metrics(pred_instances: Any, gt_instances: Any) -> dict[str, float 
 def evaluate_prediction(
     text: str, pred_instances: Any, gt_instances: Any, *, max_objects: int = 8,
     seg_weight: float = 1.0, format_weight: float = 1.0,
+    prompt_size: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     """Return flat training rewards and separate instance diagnostics.
 
@@ -242,12 +243,23 @@ def evaluate_prediction(
     and segmentation rewards, including on empty GT. Empty valid objects likewise
     cannot claim a nonempty prediction. Default total is R_seg + R_fmt (range 0..2).
     Full GT masks are required for IoU: this function is not a weak-label reward.
+    prompt_size optionally declares the raw completion's (width,height) frame.
+    If omitted, parsing uses the GT image dimensions as before. This option only
+    changes coordinate validation: the caller must rescale prompts before SAM,
+    and both supplied instance maps remain in the original crop's pixel frame.
     """
     for name, weight in (("seg_weight", seg_weight), ("format_weight", format_weight)):
         if isinstance(weight, bool) or not math.isfinite(weight) or weight < 0:
             raise ValueError(f"{name} must be finite and nonnegative")
     pred, gt = _paired_labels(pred_instances, gt_instances)
-    parsed = parse_completion(text, width=gt.shape[1], height=gt.shape[0], max_objects=max_objects)
+    if prompt_size is None:
+        prompt_width, prompt_height = gt.shape[1], gt.shape[0]
+    else:
+        if not isinstance(prompt_size, tuple) or len(prompt_size) != 2:
+            raise ValueError("prompt_size must be a (width,height) tuple of positive integers")
+        prompt_width, prompt_height = prompt_size
+    # parse_completion also rejects nonpositive, fractional and boolean dimensions.
+    parsed = parse_completion(text, width=prompt_width, height=prompt_height, max_objects=max_objects)
     if not parsed.valid or not parsed.objects:
         pred = np.zeros_like(gt)
     fmt = float(parsed.valid)

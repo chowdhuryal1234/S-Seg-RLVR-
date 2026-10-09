@@ -143,6 +143,44 @@ class MaskAndMetricTests(unittest.TestCase):
 
 
 class RewardTests(unittest.TestCase):
+    def test_explicit_prompt_frame_preserves_original_mask_metrics(self):
+        gt = np.zeros((128, 128), dtype=np.uint16)
+        gt[80:115, 80:115] = 300
+        text = completion([{"box": [140, 140, 200, 200], "point": [168, 168]}])
+        result = evaluate_prediction(text, gt.copy(), gt, prompt_size=(224, 224))
+        self.assertTrue(result["format_valid"])
+        self.assertEqual(result["seg_reward"], 1.0)
+        self.assertEqual(result["pq"], 1.0)
+        self.assertEqual(result["total_reward"], 2.0)
+        self.assertEqual(result["gt_count"], 1)
+        default = evaluate_prediction(text, gt.copy(), gt)
+        self.assertFalse(default["format_valid"])
+        self.assertEqual(default["total_reward"], 0.0)
+
+    def test_outside_explicit_frame_is_invalid_even_with_perfect_mask(self):
+        gt = np.ones((128, 128), dtype=np.uint16)
+        for obj in [
+            {"box": [0, 0, 225, 224], "point": [168, 168]},
+            {"box": [0, 0, 224, 224], "point": [225, 168]},
+            {"box": [0, 0, 224, 224], "point": [168, 224]},
+        ]:
+            result = evaluate_prediction(completion([obj]), gt, gt, prompt_size=(224, 224))
+            self.assertFalse(result["format_valid"])
+            self.assertEqual(result["total_reward"], 0.0)
+
+    def test_prompt_dimensions_are_width_then_height(self):
+        gt = np.ones((64, 128), dtype=np.uint16)
+        text = completion([{"box": [140, 56, 224, 112], "point": [200, 100]}])
+        self.assertEqual(evaluate_prediction(text, gt, gt, prompt_size=(224, 112))["total_reward"], 2.0)
+        self.assertEqual(evaluate_prediction(text, gt, gt, prompt_size=(112, 224))["total_reward"], 0.0)
+
+    def test_invalid_prompt_size_is_a_caller_error(self):
+        gt = np.ones((3, 4), dtype=np.uint16)
+        for size in [(0, 224), (224, -1), (224.0, 224), (True, 224),
+                     (224,), (224, 224, 224), [224, 224], "224x224", (224, float("nan"))]:
+            with self.subTest(size=size), self.assertRaises(ValueError):
+                evaluate_prediction(completion([ONE]), gt, gt, prompt_size=size)
+
     def test_valid_perfect_prediction(self):
         gt = np.ones((3, 4), dtype=np.uint16)
         result = evaluate_prediction(completion([ONE]), gt, gt)

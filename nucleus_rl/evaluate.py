@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 import statistics
 
@@ -31,13 +32,99 @@ def read_manifest(path):
     return rows
 
 
-def prompt_for_image(width, height, max_objects=8):
+def processed_image_size(processor, inputs):
+    """Recover the actual processed W,H from Qwen's unmerged patch grid."""
+    grid = inputs["image_grid_thw"]
+    grid = grid.tolist() if hasattr(grid, "tolist") else grid
+    if len(grid) != 1 or len(grid[0]) != 3:
+        raise ValueError("Expected exactly one image grid for each crop")
+    patch_size = processor.image_processor.patch_size
+    if not isinstance(patch_size, int) or patch_size <= 0:
+        raise ValueError("Expected an integer Qwen image patch_size")
+    _, grid_height, grid_width = grid[0]
+    if grid_height <= 0 or grid_width <= 0:
+        raise ValueError("Image patch grid dimensions must be positive")
+    return int(grid_width * patch_size), int(grid_height * patch_size)
+
+
+def prepare_coordinate_rows(rows, processor, coordinate_frame):
+    """Measure preprocessing geometry without looking at reference masks."""
+    from PIL import Image
+
+    if coordinate_frame not in ("processed", "original"):
+        raise ValueError("coordinate_frame must be processed or original")
+    prepared = []
+    for row in rows:
+        with Image.open(row["image_path"]) as source:
+            image = source.convert("RGB")
+        original_width, original_height = image.size
+        image_inputs = processor.image_processor(images=image, return_tensors="pt")
+        processed_width, processed_height = processed_image_size(processor, image_inputs)
+        prompt_width, prompt_height = (
+            (processed_width, processed_height) if coordinate_frame == "processed" else image.size
+        )
+        prepared.append({
+            **row, "coordinate_frame": coordinate_frame,
+            "original_width": original_width, "original_height": original_height,
+            "processed_width": processed_width, "processed_height": processed_height,
+            "prompt_width": prompt_width, "prompt_height": prompt_height,
+        })
+    return prepared
+
+
+def prompt_size_for_row(row, original_size):
+    """Legacy oracle rows use original pixels; prepared policy rows are explicit."""
+    width, height = original_size
+    frame = row.get("coordinate_frame", "original")
+    if frame not in ("processed", "original"):
+        raise ValueError(f"Unsupported coordinate frame: {frame}")
+    if (row.get("original_width", width), row.get("original_height", height)) != original_size:
+        raise ValueError("Image dimensions differ from the recorded original coordinate frame")
+    if frame == "processed" and not all(key in row for key in (
+        "prompt_width", "prompt_height", "processed_width", "processed_height"
+    )):
+        raise ValueError("Processed coordinate rows require measured prompt and processed dimensions")
+    prompt_size = row.get("prompt_width", width), row.get("prompt_height", height)
+    if any(isinstance(value, bool) or not isinstance(value, int) or value <= 0 for value in prompt_size):
+        raise ValueError("Prompt dimensions must be positive integers")
+    expected = (row["processed_width"], row["processed_height"]) if frame == "processed" else original_size
+    if prompt_size != expected:
+        raise ValueError("Prompt dimensions do not match the declared coordinate frame")
+    return prompt_size
+
+
+def objects_to_original(objects, prompt_size, original_size):
+    """One declared linear conversion; no clipping, rounding, or frame guessing."""
+    from nucleus_rl.rewards import ObjectPrompt
+
+    scale_x = original_size[0] / prompt_size[0]
+    scale_y = original_size[1] / prompt_size[1]
+    converted = tuple(ObjectPrompt(
+        box=(obj.box[0] * scale_x, obj.box[1] * scale_y, obj.box[2] * scale_x, obj.box[3] * scale_y),
+        point=(obj.point[0] * scale_x, obj.point[1] * scale_y),
+    ) for obj in objects)
+    return converted, (scale_x, scale_y)
+
+
+def assert_processed_dimensions(processor, inputs, row):
+    actual = processed_image_size(processor, inputs)
+    if "processed_width" in row and actual != (row["processed_width"], row["processed_height"]):
+        raise ValueError(f"Actual processed dimensions {actual} differ from the recorded image frame")
+    if row.get("coordinate_frame") == "processed" and actual != (row["prompt_width"], row["prompt_height"]):
+        raise ValueError("Actual processed dimensions differ from the dimensions requested in the prompt")
+
+
+def prompt_for_image(width, height, max_objects=8, coordinate_frame="original"):
+    if coordinate_frame not in ("processed", "original"):
+        raise ValueError("coordinate_frame must be processed or original")
+    frame_description = "PROCESSED image shown to you" if coordinate_frame == "processed" else "ORIGINAL image before preprocessing"
     return [
         {"role": "system", "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."},
         {"role": "user", "content": (
-            f"Locate every visible nucleus in this {width} by {height} pixel image, at most {max_objects} objects. "
+            f"Locate every visible nucleus, at most {max_objects} objects. "
             "For each nucleus give a tight box [x0,y0,x1,y1] and an interior foreground point [x,y]. "
-            f"Use ORIGINAL image pixel coordinates: 0<=x0<x1<={width}, 0<=y0<y1<={height}; "
+            f"Use pixel coordinates of the {frame_description}, which is {width} pixels wide and {height} pixels high: "
+            f"0<=x0<x1<={width}, 0<=y0<y1<={height}; "
             "the point must be inside its box and inside the image. "
             "Do not use normalized coordinates. Respond exactly as "
             '<answer>{"objects":[{"box":[x0,y0,x1,y1],"point":[x,y]}]}</answer>. '
@@ -81,12 +168,14 @@ class ArtifactScorer:
         width, height = image.size
         if reference.shape != (height, width):
             raise ValueError(f"Image/reference shape mismatch for {row['id']}")
-        parsed = parse_completion(text, width=width, height=height, max_objects=self.max_objects)
+        prompt_size = prompt_size_for_row(row, image.size)
+        parsed = parse_completion(text, width=prompt_size[0], height=prompt_size[1], max_objects=self.max_objects)
+        converted_objects, scales = objects_to_original(parsed.objects, prompt_size, image.size)
         instances = (
-            self.segmenter.predict(image, parsed.objects, image_key=row["image_path"])
+            self.segmenter.predict(image, converted_objects, image_key=row["image_path"])
             if parsed.valid else np.zeros(reference.shape, dtype=np.int32)
         )
-        metrics = evaluate_prediction(text, instances, reference, max_objects=self.max_objects)
+        metrics = evaluate_prediction(text, instances, reference, max_objects=self.max_objects, prompt_size=prompt_size)
         self.counter += 1
         stem = f"{self.counter:06d}"
         np.save(self.output / f"{stem}.npy", instances, allow_pickle=False)
@@ -101,6 +190,11 @@ class ArtifactScorer:
         Image.fromarray(overlay).save(self.output / f"{stem}.png")
         result = {
             "id": row["id"], "patient_id": row["patient_id"], "step": step,
+            "coordinate_frame": row.get("coordinate_frame", "original"),
+            "prompt_size": list(prompt_size), "original_size": list(image.size),
+            "scale_to_original": list(scales),
+            "raw_objects": [asdict(obj) for obj in parsed.objects],
+            "converted_objects": [asdict(obj) for obj in converted_objects],
             "text": text, "prediction_path": str((self.output / f"{stem}.npy").resolve()),
             "overlay_path": str((self.output / f"{stem}.png").resolve()),
             **metrics,
@@ -142,10 +236,13 @@ def run_evaluation(model, processor, rows, scorer, seed, max_tokens=512, group_s
     model.eval()
     for row in rows:
         image = Image.open(row["image_path"]).convert("RGB")
-        prompt = prompt_for_image(*image.size, max_objects=scorer.max_objects)
+        prompt_size = prompt_size_for_row(row, image.size)
+        prompt = prompt_for_image(*prompt_size, max_objects=scorer.max_objects, coordinate_frame=row.get("coordinate_frame", "original"))
         prompt[-1]["content"] = [{"type": "image"}, {"type": "text", "text": prompt[-1]["content"]}]
         text = processor.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
-        inputs = processor(text=[text], images=[image], padding=True, return_tensors="pt").to(model.device)
+        inputs = processor(text=[text], images=[image], padding=True, return_tensors="pt")
+        assert_processed_dimensions(processor, inputs, row)
+        inputs = inputs.to(model.device)
         group = []
         for _ in range(group_size):
             with torch.inference_mode():

@@ -66,4 +66,6 @@ Obtain the official `sam2.1_hiera_tiny.pt` checkpoint from [SAM2's checkpoint in
 
 The runner saves before/after completions, masks and overlays, reward-group variation, gradients, adapter changes, frozen-model hashes, peak GPU memory and timing. A failed or constant-reward run is not an improvement result. Foreground IoU does not detect every merge or split; instance PQ and count errors are separate diagnostics, not additional training rewards.
 
+Qwen's spatial prompts use its measured processed-image pixels by default. The scorer converts them once to original crop pixels before calling SAM, and saves both representations. For these 128-pixel crops the processor produces 224-pixel images. This follows [Qwen's official grounding convention](https://github.com/QwenLM/Qwen3-VL/blob/2f25a646fb0f329647428eb8dacf19293de6f5d4/cookbooks/spatial_understanding.ipynb). `--coordinate-frame original` is available for an explicitly separate diagnostic.
+
 The official test archive is not used for training or model selection. This is research code, not a clinical system.
