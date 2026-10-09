@@ -35,7 +35,7 @@ python scripts/prepare_monuseg.py \
   --out data/monuseg_engineering_v1 --border-policy visible
 ```
 
-The explicit `visible` policy keeps partial nuclei, logs their IDs, and supervises all visible labeled pixels. The stricter default requires complete nuclei and may fail when too few eligible crops exist. The split is provisional until aligned with Iris's exact protocol.
+The explicit `visible` policy keeps partial nuclei, logs their IDs, and supervises all visible labeled pixels. The stricter default requires complete nuclei and may fail when too few eligible crops exist. The command above makes a provisional split. The overnight pilot instead preserves Iris's assignments from [split.json](baselines/iris/split.json), supplying eligible patient lists through `--train-patient-ids` and `--val-patient-ids`: 26 training / 5 validation source patients remain after conservative annotation exclusions. Crop scores still differ from her whole-image evaluation.
 
 ## Environment and checks
 
@@ -58,8 +58,8 @@ Obtain the official `sam2.1_hiera_tiny.pt` checkpoint from [SAM2's checkpoint in
 
 ```bash
 .venv/bin/python -m nucleus_rl.train --mode train \
-  --manifest data/monuseg_engineering_v1/train.jsonl \
-  --eval-manifest data/monuseg_engineering_v1/validation.jsonl \
+  --manifest data/monuseg_iris_pilot_v1/train.jsonl \
+  --eval-manifest data/monuseg_iris_pilot_v1/validation.jsonl \
   --sam-checkpoint checkpoints/sam2.1_hiera_tiny.pt \
   --output runs/pilot_10_steps --max-steps 10
 ```

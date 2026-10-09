@@ -67,7 +67,7 @@ class FrozenSAM2:
             device_type="cuda", dtype=self.torch.bfloat16, enabled=self.device.startswith("cuda")
         ):
             if image_key is None or image_key != self.current_image:
-                self.predictor.set_image(np.asarray(image.convert("RGB")))
+                self.predictor.set_image(np.asarray(image.convert("RGB")).copy())
                 self.current_image = image_key
             masks, scores = [], []
             for obj in objects:
