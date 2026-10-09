@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 
-from nucleus_rl.train import build_parser, validate_args, text_lora_targets, assert_text_adapters_only
+from nucleus_rl.train import build_parser, validate_args, restore_adapter_settings, text_lora_targets, assert_text_adapters_only
 
 
 class FakeParameter:
@@ -41,6 +41,77 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual((args.group_size, args.max_steps, args.beta), (2, 10, 0.04))
         self.assertEqual(args.coordinate_frame, "processed")
         self.assertEqual(args.prompt_style, "schema")
+
+    def test_adapter_replay_restores_nondefault_input_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            saved = {"coordinate_frame": "original", "prompt_style": "example",
+                     "min_pixels": 98 ** 2, "max_pixels": 196 ** 2}
+            (Path(directory) / "coordinate_config.json").write_text(json.dumps(saved))
+            args = self.args("--mode", "evaluate", "--adapter", directory)
+            self.assertEqual(args.coordinate_frame, "processed", "Base-model defaults remain unchanged")
+            restore_adapter_settings(args)
+            validate_args(args)
+            self.assertEqual({key: getattr(args, key) for key in saved}, saved)
+            self.assertEqual(args.adapter_replay_settings["effective"], saved)
+            self.assertEqual(args.adapter_replay_settings["explicit_legacy_fields"], [])
+            # This is the contract used by both image preparation and prompts.
+            from nucleus_rl.evaluate import prompt_for_image
+            prompt = prompt_for_image(128, 128, coordinate_frame=args.coordinate_frame, prompt_style=args.prompt_style)
+            self.assertIn("ORIGINAL image before preprocessing", prompt[-1]["content"])
+            self.assertIn("invented coordinates", prompt[-1]["content"])
+
+    def test_adapter_replay_rejects_explicit_conflicts_including_defaults(self):
+        with tempfile.TemporaryDirectory() as directory:
+            saved = {"coordinate_frame": "original", "prompt_style": "example",
+                     "min_pixels": 98 ** 2, "max_pixels": 196 ** 2}
+            (Path(directory) / "coordinate_config.json").write_text(json.dumps(saved))
+            for flag, value in (("--coordinate-frame", "processed"), ("--prompt-style", "schema"),
+                                ("--min-pixels", "50176"), ("--max-pixels", "200704")):
+                with self.subTest(flag=flag):
+                    args = self.args("--mode", "evaluate", "--adapter", directory, flag + "=" + value)
+                    with self.assertRaisesRegex(ValueError, "conflicts with saved adapter"):
+                        restore_adapter_settings(args)
+            args = self.args("--mode", "rollout", "--adapter", directory,
+                             "--coordinate-frame", "original", "--prompt-style", "example",
+                             "--min-pixels", "9604", "--max-pixels", "38416")
+            restore_adapter_settings(args)
+            self.assertEqual(args.adapter_replay_settings["effective"], saved)
+
+    def test_legacy_adapter_requires_explicit_missing_settings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            # Adapters preceding the example style did not save prompt_style.
+            saved = {"coordinate_frame": "original", "min_pixels": 50176, "max_pixels": 200704}
+            path = Path(directory) / "coordinate_config.json"
+            path.write_text(json.dumps(saved))
+            args = self.args("--mode", "evaluate", "--adapter", directory)
+            with self.assertRaisesRegex(ValueError, "missing --prompt-style"):
+                restore_adapter_settings(args)
+            args = self.args("--mode", "evaluate", "--adapter", directory, "--prompt-style", "schema")
+            restore_adapter_settings(args)
+            self.assertEqual(args.coordinate_frame, "original")
+            self.assertEqual(args.adapter_replay_settings["explicit_legacy_fields"], ["prompt_style"])
+        with tempfile.TemporaryDirectory() as directory:
+            args = self.args("--mode", "evaluate", "--adapter", directory)
+            with self.assertRaisesRegex(ValueError, "missing"):
+                restore_adapter_settings(args)
+            args = self.args("--mode", "evaluate", "--adapter", directory,
+                             "--coordinate-frame", "original", "--prompt-style", "schema",
+                             "--min-pixels", "50176", "--max-pixels", "200704")
+            restore_adapter_settings(args)
+            self.assertIsNone(args.adapter_replay_settings["config_path"])
+
+    def test_corrupt_adapter_settings_fail_before_model_loading(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "coordinate_config.json"
+            valid = {"coordinate_frame": "processed", "prompt_style": "schema",
+                     "min_pixels": 50176, "max_pixels": 200704}
+            for contents in ("{invalid", "[]", json.dumps({**valid, "min_pixels": True}),
+                             json.dumps({**valid, "max_pixels": 100})):
+                with self.subTest(contents=contents):
+                    path.write_text(contents)
+                    args = self.args("--mode", "evaluate", "--adapter", directory)
+                    with self.assertRaises(ValueError):
+                        restore_adapter_settings(args)
 
     def test_numeric_prompt_example_is_valid_in_declared_frame(self):
         import re

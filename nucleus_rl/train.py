@@ -15,6 +15,18 @@ import re
 import time
 
 
+REPLAY_SETTINGS = ("coordinate_frame", "prompt_style", "min_pixels", "max_pixels")
+
+
+class ReplaySettingAction(argparse.Action):
+    """Remember explicit CLI settings so adapter defaults cannot override them."""
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+        explicit = dict(getattr(namespace, "_explicit_replay_settings", None) or {})
+        explicit[self.dest] = values
+        namespace._explicit_replay_settings = explicit
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("rollout", "train", "evaluate"), required=True)
@@ -35,13 +47,65 @@ def build_parser():
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--beta", type=float, default=0.04)
     parser.add_argument("--save-steps", type=int, default=10)
-    parser.add_argument("--min-pixels", type=int, default=224 * 224)
-    parser.add_argument("--max-pixels", type=int, default=448 * 448)
+    parser.add_argument("--min-pixels", type=int, default=224 * 224, action=ReplaySettingAction)
+    parser.add_argument("--max-pixels", type=int, default=448 * 448, action=ReplaySettingAction)
     parser.add_argument("--coordinate-frame", choices=("processed", "original"), default="processed",
+                        action=ReplaySettingAction,
                         help="Model output pixel frame; processed follows Qwen2.5-VL's native grounding convention")
     parser.add_argument("--prompt-style", choices=("schema", "example"), default="schema",
+                        action=ReplaySettingAction,
                         help="Optional invented numeric formatting example; schema preserves the original pilot prompt")
     return parser
+
+
+def restore_adapter_settings(args):
+    """Replay the saved input contract, rejecting explicit CLI disagreements.
+
+    Older adapters may lack some metadata. Require those settings explicitly;
+    defaults are not evidence of the prompt or processor used for training.
+    This runs before GPU imports and before writing the effective arguments.
+    """
+    if not args.adapter:
+        return
+    path = Path(args.adapter) / "coordinate_config.json"
+    explicit = getattr(args, "_explicit_replay_settings", None) or {}
+    try:
+        saved = json.loads(path.read_text()) if path.is_file() else {}
+    except (OSError, ValueError) as error:
+        raise ValueError(f"Cannot read adapter coordinate settings at {path}: {error}") from error
+    if not isinstance(saved, dict):
+        raise ValueError("Adapter coordinate_config.json must contain an object")
+    missing = [key for key in REPLAY_SETTINGS if key not in saved and key not in explicit]
+    if missing:
+        flags = ", ".join("--" + key.replace("_", "-") for key in missing)
+        raise ValueError(f"Adapter metadata is missing {flags}; supply these explicitly for legacy replay")
+    effective = {}
+    for key in REPLAY_SETTINGS:
+        if key in saved:
+            value = saved[key]
+            valid = (
+                value in ("processed", "original") if key == "coordinate_frame"
+                else value in ("schema", "example") if key == "prompt_style"
+                else type(value) is int and value > 0
+            )
+            if not valid:
+                raise ValueError(f"Invalid saved adapter setting {key}={value!r}")
+            if key in explicit and explicit[key] != value:
+                flag = "--" + key.replace("_", "-")
+                raise ValueError(f"{flag}={explicit[key]!r} conflicts with saved adapter value {value!r}")
+            effective[key] = value
+        else:
+            effective[key] = explicit[key]
+    if effective["max_pixels"] < effective["min_pixels"]:
+        raise ValueError("Saved adapter pixel budgets require min_pixels <= max_pixels")
+    for key, value in effective.items():
+        setattr(args, key, value)
+    args.adapter_replay_settings = {
+        "config_path": str(path.resolve()) if path.is_file() else None,
+        "restored_fields": [key for key in REPLAY_SETTINGS if key in saved],
+        "explicit_legacy_fields": [key for key in REPLAY_SETTINGS if key not in saved],
+        "effective": effective,
+    }
 
 
 def validate_args(args):
@@ -121,6 +185,7 @@ def load_policy(args):
         "processor_revision": revision, "adapter": args.adapter,
         "image_coordinate_system": args.coordinate_frame,
         "prompt_style": args.prompt_style,
+        "adapter_replay_settings": getattr(args, "adapter_replay_settings", None),
         "sam_coordinate_system": "original crop pixels, obtained by one fixed scale conversion",
         "gpu": torch.cuda.get_device_name(),
         "gpu_total_bytes": torch.cuda.get_device_properties(0).total_memory,
@@ -279,6 +344,7 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        restore_adapter_settings(args)
         validate_args(args)
     except ValueError as error:
         parser.error(str(error))
