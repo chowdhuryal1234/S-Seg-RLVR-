@@ -40,6 +40,25 @@ class ConfigTests(unittest.TestCase):
         validate_args(args)
         self.assertEqual((args.group_size, args.max_steps, args.beta), (2, 10, 0.04))
         self.assertEqual(args.coordinate_frame, "processed")
+        self.assertEqual(args.prompt_style, "schema")
+
+    def test_numeric_prompt_example_is_valid_in_declared_frame(self):
+        import re
+        from nucleus_rl.evaluate import prompt_for_image
+        from nucleus_rl.rewards import parse_completion
+
+        for width, height in ((224, 224), (280, 224), (128, 128), (1, 1)):
+            schema = prompt_for_image(width, height, coordinate_frame="processed")
+            self.assertEqual(schema, prompt_for_image(width, height, coordinate_frame="processed", prompt_style="schema"))
+            example = prompt_for_image(width, height, coordinate_frame="processed", prompt_style="example")
+            blocks = re.findall(r"<answer>.*?</answer>", example[-1]["content"])
+            valid = [parse_completion(block, width=width, height=height) for block in blocks]
+            valid = [parsed for parsed in valid if parsed.valid]
+            self.assertEqual(len(valid), 1, "The example must contain one concrete valid numeric payload")
+            self.assertEqual(len(valid[0].objects), 1)
+            self.assertIn("invented coordinates", example[-1]["content"])
+            self.assertIn("do not copy the example", example[-1]["content"])
+            self.assertTrue(example[-1]["content"].startswith(schema[-1]["content"]))
 
     def test_wrong_group_rejected(self):
         with self.assertRaises(ValueError):

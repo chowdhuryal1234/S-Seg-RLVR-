@@ -39,6 +39,8 @@ def build_parser():
     parser.add_argument("--max-pixels", type=int, default=448 * 448)
     parser.add_argument("--coordinate-frame", choices=("processed", "original"), default="processed",
                         help="Model output pixel frame; processed follows Qwen2.5-VL's native grounding convention")
+    parser.add_argument("--prompt-style", choices=("schema", "example"), default="schema",
+                        help="Optional invented numeric formatting example; schema preserves the original pilot prompt")
     return parser
 
 
@@ -118,6 +120,7 @@ def load_policy(args):
         "model": args.model, "resolved_revision": revision,
         "processor_revision": revision, "adapter": args.adapter,
         "image_coordinate_system": args.coordinate_frame,
+        "prompt_style": args.prompt_style,
         "sam_coordinate_system": "original crop pixels, obtained by one fixed scale conversion",
         "gpu": torch.cuda.get_device_name(),
         "gpu_total_bytes": torch.cuda.get_device_properties(0).total_memory,
@@ -176,6 +179,7 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
         prompt = prompt_for_image(
             row["prompt_width"], row["prompt_height"], args.max_objects,
             coordinate_frame=row["coordinate_frame"],
+            prompt_style=row.get("prompt_style", "schema"),
         )
         # TRL's multimodal helper inserts the image token for the 'image' column.
         dataset_rows.append({"id": row["id"], "image": row["image_path"], "prompt": prompt})
@@ -251,6 +255,7 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
     processor.save_pretrained(output / "adapter")
     write_json(output / "adapter" / "coordinate_config.json", {
         "coordinate_frame": args.coordinate_frame,
+        "prompt_style": args.prompt_style,
         "min_pixels": args.min_pixels, "max_pixels": args.max_pixels,
         "conversion": "x_original=x_prompt*original_width/prompt_width; likewise y",
     })
@@ -299,7 +304,9 @@ def main(argv=None):
         model, processor, metadata = load_policy(args)
         rows = prepare_coordinate_rows(rows, processor, args.coordinate_frame)
         validation = prepare_coordinate_rows(validation, processor, args.coordinate_frame)
-        frame_keys = ("id", "split", "coordinate_frame", "original_width", "original_height",
+        for row in rows + validation:
+            row["prompt_style"] = args.prompt_style
+        frame_keys = ("id", "split", "coordinate_frame", "prompt_style", "original_width", "original_height",
                       "processed_width", "processed_height", "prompt_width", "prompt_height")
         write_json(output / "coordinate_frames.json", [
             {key: row[key] for key in frame_keys} for row in rows + validation

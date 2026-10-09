@@ -114,11 +114,13 @@ def assert_processed_dimensions(processor, inputs, row):
         raise ValueError("Actual processed dimensions differ from the dimensions requested in the prompt")
 
 
-def prompt_for_image(width, height, max_objects=8, coordinate_frame="original"):
+def prompt_for_image(width, height, max_objects=8, coordinate_frame="original", prompt_style="schema"):
     if coordinate_frame not in ("processed", "original"):
         raise ValueError("coordinate_frame must be processed or original")
+    if prompt_style not in ("schema", "example"):
+        raise ValueError("prompt_style must be schema or example")
     frame_description = "PROCESSED image shown to you" if coordinate_frame == "processed" else "ORIGINAL image before preprocessing"
-    return [
+    messages = [
         {"role": "system", "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."},
         {"role": "user", "content": (
             f"Locate every visible nucleus, at most {max_objects} objects. "
@@ -131,6 +133,24 @@ def prompt_for_image(width, height, max_objects=8, coordinate_frame="original"):
             "Use one object per nucleus, with no prose or markdown."
         )},
     ]
+    if prompt_style == "example":
+        # Geometry is invented solely from frame dimensions. No reference masks
+        # or nucleus locations enter this formatting demonstration.
+        x0, y0 = width // 4, height // 4
+        x1, y1 = max(x0 + 1, width // 2), max(y0 + 1, height // 2)
+        demonstration = {"objects": [{
+            "box": [x0, y0, x1, y1],
+            "point": [(x0 + x1) // 2, (y0 + y1) // 2],
+        }]}
+        example = "<answer>" + json.dumps(demonstration, separators=(",", ":")) + "</answer>"
+        messages[-1]["content"] += (
+            "\n\nFormatting example with invented coordinates, unrelated to the supplied image:\n"
+            + example
+            + "\n\nNow inspect the supplied image and return its actual nuclei using the same format. "
+            "Choose the objects and coordinates from this image; do not copy the example. "
+            "Return only one complete <answer>...</answer> block containing valid JSON, with numeric coordinates."
+        )
+    return messages
 
 
 def completion_text(completion):
@@ -191,6 +211,7 @@ class ArtifactScorer:
         result = {
             "id": row["id"], "patient_id": row["patient_id"], "step": step,
             "coordinate_frame": row.get("coordinate_frame", "original"),
+            "prompt_style": row.get("prompt_style", "schema"),
             "prompt_size": list(prompt_size), "original_size": list(image.size),
             "scale_to_original": list(scales),
             "raw_objects": [asdict(obj) for obj in parsed.objects],
@@ -237,7 +258,11 @@ def run_evaluation(model, processor, rows, scorer, seed, max_tokens=512, group_s
     for row in rows:
         image = Image.open(row["image_path"]).convert("RGB")
         prompt_size = prompt_size_for_row(row, image.size)
-        prompt = prompt_for_image(*prompt_size, max_objects=scorer.max_objects, coordinate_frame=row.get("coordinate_frame", "original"))
+        prompt = prompt_for_image(
+            *prompt_size, max_objects=scorer.max_objects,
+            coordinate_frame=row.get("coordinate_frame", "original"),
+            prompt_style=row.get("prompt_style", "schema"),
+        )
         prompt[-1]["content"] = [{"type": "image"}, {"type": "text", "text": prompt[-1]["content"]}]
         text = processor.apply_chat_template(prompt, tokenize=False, add_generation_prompt=True)
         inputs = processor(text=[text], images=[image], padding=True, return_tensors="pt")
