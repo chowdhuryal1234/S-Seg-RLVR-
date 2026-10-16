@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "dataset_id": "monuseg_official30_grpo_v1",
+  "frozen_utc": "2026-10-16T03:32:10.983344+00:00",
+  "scope": "Full-mask training/reward engineering dataset from official30 training sources only; no official test and no benchmark-equivalence claim.",
+  "source_archive_name": "MoNuSeg_2018_Training_data.zip",
+  "source_archive_sha256": "25d3d3185bb2970b397cafa72eb664c9b4d24294aee382e7e3df9885affce742",
+  "official30_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+  "official30_source_pdf_sha256": "212d8f53c88acfdcb35edf56ae7033af53c0b1a3e86baaf4b2c4d804b165521c",
+  "iris_split_path": "baselines/iris/split.json",
+  "iris_split_sha256": "71ac2e9e21ad04fa983ad5f51f0259bfc08cb105bf0f2d87b25f8a7f82603c87",
+  "iris_assignment_preserved_for_all_retained_patients": true,
+  "patient_groups": {
+    "train": [
+      "TCGA-18-5592",
+      "TCGA-21-5784",
+      "TCGA-38-6178",
+      "TCGA-49-4488",
+      "TCGA-A7-A13E",
+      "TCGA-A7-A13F",
+      "TCGA-AR-A1AK",
+      "TCGA-AY-A8YK",
+      "TCGA-B0-5698",
+      "TCGA-B0-5711",
+      "TCGA-CH-5767",
+      "TCGA-DK-A2I6",
+      "TCGA-E2-A14V",
+      "TCGA-G2-A2EK",
+      "TCGA-G9-6336",
+      "TCGA-G9-6348",
+      "TCGA-G9-6356",
+      "TCGA-G9-6362",
+      "TCGA-KB-A93J",
+      "TCGA-NH-A8F7",
+      "TCGA-RD-A8N9"
+    ],
+    "validation": [
+      "TCGA-21-5786",
+      "TCGA-AR-A1AS",
+      "TCGA-B0-5710",
+      "TCGA-G9-6363"
+    ]
+  },
+  "seed": 20261016,
+  "benchmark_seed": 20261017,
+  "train_crops": 256,
+  "validation_crops": 64,
+  "benchmark_crops": 8,
+  "sampling": {
+    "crop_size": 128,
+    "stride": 128,
+    "min_visible_nuclei": 1,
+    "max_visible_nuclei": 8,
+    "patient_balanced_round_robin": true,
+    "count_stratification": false,
+    "border_policy": "visible",
+    "partial_objects": "Retain and supervise every visible annotated pixel and ID, including tiny fragments; record truncation/source-clipping metadata; no ignored pixels or GT-based prompt locations.",
+    "selection_bias": "The 1-8 capacity excludes dense crops; no additional clarity/size/color/complete-nucleus filtering. Patient balancing reweights source prevalence. Grid excludes uncovered right/bottom tails."
+  },
+  "benchmark_selection": "Deterministic patient-balanced sample of frozen validation64, two crops from each of four patients, chosen before overnight model outputs. Same exact rows/pixels for 7B and 32B.",
+  "model_input_contract": "Only RGB image and fixed task instructions/format example. Full masks, counts, instance IDs, coordinates, patient metadata and validation annotations never enter Qwen prompts. Masks are used only by the reward/scorer. GT centroids are omitted from manifests.",
+  "excluded_noncanonical_image_ids": [
+    "TCGA-BC-A217-01Z-00-DX1",
+    "TCGA-F9-A8NY-01Z-00-DX1",
+    "TCGA-FG-A87N-01Z-00-DX1",
+    "TCGA-MH-A561-01Z-00-DX1",
+    "TCGA-UZ-A9PJ-01Z-00-DX1",
+    "TCGA-UZ-A9PN-01Z-00-DX1",
+    "TCGA-XS-A8TJ-01Z-00-DX1"
+  ],
+  "excluded_canonical_annotation_images": [
+    {
+      "id": "TCGA-50-5931-01Z-00-DX1",
+      "negative_region_entries": 0,
+      "degenerate_region_entries": 1
+    },
+    {
+      "id": "TCGA-E2-A1B5-01Z-00-DX1",
+      "negative_region_entries": 0,
+      "degenerate_region_entries": 1
+    },
+    {
+      "id": "TCGA-HE-7128-01Z-00-DX1",
+      "negative_region_entries": 0,
+      "degenerate_region_entries": 2
+    },
+    {
+      "id": "TCGA-HE-7129-01Z-00-DX1",
+      "negative_region_entries": 1,
+      "degenerate_region_entries": 0
+    },
+    {
+      "id": "TCGA-HE-7130-01Z-00-DX1",
+      "negative_region_entries": 0,
+      "degenerate_region_entries": 1
+    }
+  ],
+  "canonical_sources_with_zero_eligible_crops": [
+    "TCGA-KB-A93J-01A-01-TS1",
+    "TCGA-RD-A8N9-01A-01-TS1"
+  ],
+  "manifest_sha256": {
+    "train": "a49d484b4202ddd21f1ce34eda3859641fc38bbbd72b665e27fcf63190300dcc",
+    "validation": "1969cd648b83fa0d9f1bfcaa73d248a879e3f3156e2863e46c540cf7cce853f8",
+    "validation_benchmark8": "15520402033fafe5560b7b3f14dbc619686cec7b208d35990ee558e3185fd60c",
+    "manifest": "20b7cbb07e33dd4d01b51fa3e7acec75207904e707bcd3c751fc566b54bfd9f5"
+  },
+  "source_code_sha256": {
+    "scripts/prepare_official30_grpo.py": "24aa47b8aa651dac573c8c49b80c476bc4d203fba2e596e9fe2a43cfd12f9b0f",
+    "scripts/prepare_monuseg.py": "fe90bb659e366984a24b94fdc203ec0c56634b6033d0076c6a8332236d43d468",
+    "scripts/audit_monuseg.py": "9a192d7e8b31332a44a93095584e37706ee3ff4746cc49fdb2f574b221df9053",
+    "nucleus_rl/cohort.py": "b786678ecd1e1f56b5e45d9139c03cd7edac784b90bf97e91c0d89bea48c2d27"
+  },
+  "historical_reuse_limit": "The validation patient cohort and some crops have appeared in earlier engineering evaluation; not a new untouched test set. Do not initialize from an old adapter that trained on a current validation patient."
+}

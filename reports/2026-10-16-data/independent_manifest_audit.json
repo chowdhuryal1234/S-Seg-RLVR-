@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "method": "Independent post-save manifest resolution/hash and source-instance checks; no models or inference.",
+  "portable_manifests_resolve": true,
+  "all_saved_crop_hashes_match": true,
+  "all_frozen_manifest_and_source_code_hashes_match": true,
+  "benchmark8_is_exact_validation64_subset": true,
+  "all_train_validation_patients_and_source_instances_disjoint": true,
+  "gt_centroid_fields_absent": true,
+  "source_instance_repetition_within_splits": {
+    "train": {
+      "visible_instance_occurrences": 1584,
+      "unique_source_instance_ids": 1466,
+      "source_instances_visible_in_multiple_crops": 113,
+      "max_crops_sharing_one_source_instance": 3
+    },
+    "validation": {
+      "visible_instance_occurrences": 384,
+      "unique_source_instance_ids": 340,
+      "source_instances_visible_in_multiple_crops": 42,
+      "max_crops_sharing_one_source_instance": 3
+    },
+    "validation_benchmark8": {
+      "visible_instance_occurrences": 51,
+      "unique_source_instance_ids": 51,
+      "source_instances_visible_in_multiple_crops": 0,
+      "max_crops_sharing_one_source_instance": 1
+    }
+  },
+  "note": "A source nucleus can appear as visible partial instances in adjacent, non-overlapping crops within one split; crop-level counts are not counts of distinct source nuclei. No source instance crosses the train/validation split."
+}

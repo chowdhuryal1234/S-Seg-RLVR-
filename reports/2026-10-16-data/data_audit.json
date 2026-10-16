@@ -1,0 +1,1323 @@
+{
+  "status": "passed",
+  "created_utc": "2026-10-16T03:32:10.983344+00:00",
+  "original_test_accessed": false,
+  "dataset": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/data/monuseg_official30_grpo_v1",
+  "protocol": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/protocols/monuseg_official30_grpo_v1.json",
+  "cohort_membership": {
+    "cohort_id": "monuseg2018_official_training30",
+    "source": {
+      "title": "MoNuSeg 2018 Patient Organ information",
+      "filename": "Training_Patient_Organ_information.pdf",
+      "url": "https://drive.google.com/file/d/1xYyQ31CHFRnvTCTuuHdconlJCMk2SK7Z/view",
+      "download_url": "https://drive.google.com/uc?export=download&id=1xYyQ31CHFRnvTCTuuHdconlJCMk2SK7Z",
+      "challenge_data_url": "https://monuseg.grand-challenge.org/Data/",
+      "sha256": "212d8f53c88acfdcb35edf56ae7033af53c0b1a3e86baaf4b2c4d804b165521c",
+      "pages": 3,
+      "verified_on": "2026-10-15",
+      "extraction": "pypdf text extraction; exact TCGA image IDs in PDF row order; 30 unique images and patients. Organ and disease descriptions are not used to infer membership."
+    },
+    "image_ids_sha256": "0ee985fff547dd78dbd5dd3826c03d513a3f24477219149bc071f4c4684042a8",
+    "protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+    "archive_pair_count": 37,
+    "canonical_pair_count_before_annotation_exclusions": 30,
+    "canonical_image_ids": [
+      "TCGA-18-5592-01Z-00-DX1",
+      "TCGA-21-5784-01Z-00-DX1",
+      "TCGA-21-5786-01Z-00-DX1",
+      "TCGA-38-6178-01Z-00-DX1",
+      "TCGA-49-4488-01Z-00-DX1",
+      "TCGA-50-5931-01Z-00-DX1",
+      "TCGA-A7-A13E-01Z-00-DX1",
+      "TCGA-A7-A13F-01Z-00-DX1",
+      "TCGA-AR-A1AK-01Z-00-DX1",
+      "TCGA-AR-A1AS-01Z-00-DX1",
+      "TCGA-AY-A8YK-01A-01-TS1",
+      "TCGA-B0-5698-01Z-00-DX1",
+      "TCGA-B0-5710-01Z-00-DX1",
+      "TCGA-B0-5711-01Z-00-DX1",
+      "TCGA-CH-5767-01Z-00-DX1",
+      "TCGA-DK-A2I6-01A-01-TS1",
+      "TCGA-E2-A14V-01Z-00-DX1",
+      "TCGA-E2-A1B5-01Z-00-DX1",
+      "TCGA-G2-A2EK-01A-02-TSB",
+      "TCGA-G9-6336-01Z-00-DX1",
+      "TCGA-G9-6348-01Z-00-DX1",
+      "TCGA-G9-6356-01Z-00-DX1",
+      "TCGA-G9-6362-01Z-00-DX1",
+      "TCGA-G9-6363-01Z-00-DX1",
+      "TCGA-HE-7128-01Z-00-DX1",
+      "TCGA-HE-7129-01Z-00-DX1",
+      "TCGA-HE-7130-01Z-00-DX1",
+      "TCGA-KB-A93J-01A-01-TS1",
+      "TCGA-NH-A8F7-01A-01-TS1",
+      "TCGA-RD-A8N9-01A-01-TS1"
+    ],
+    "excluded_noncanonical_image_ids": [
+      "TCGA-BC-A217-01Z-00-DX1",
+      "TCGA-F9-A8NY-01Z-00-DX1",
+      "TCGA-FG-A87N-01Z-00-DX1",
+      "TCGA-MH-A561-01Z-00-DX1",
+      "TCGA-UZ-A9PJ-01Z-00-DX1",
+      "TCGA-UZ-A9PN-01Z-00-DX1",
+      "TCGA-XS-A8TJ-01Z-00-DX1"
+    ],
+    "excluded_known_extra_image_ids": [
+      "TCGA-BC-A217-01Z-00-DX1",
+      "TCGA-F9-A8NY-01Z-00-DX1",
+      "TCGA-FG-A87N-01Z-00-DX1",
+      "TCGA-MH-A561-01Z-00-DX1",
+      "TCGA-UZ-A9PJ-01Z-00-DX1",
+      "TCGA-UZ-A9PN-01Z-00-DX1",
+      "TCGA-XS-A8TJ-01Z-00-DX1"
+    ],
+    "excluded_other_image_ids": [],
+    "membership_rule": "Exact full image ID in the verified official PDF; annotation quality and crop eligibility are separate filters."
+  },
+  "patient_disjoint": true,
+  "unique_crop_ids": true,
+  "same_source_spatial_overlap_pairs": [],
+  "duplicate_rgb_pixel_hash_groups": [],
+  "all_rgb_crops_pixel_exact": true,
+  "all_masks_exact_source_raster_crops": true,
+  "all_crop_windows_contained_in_sources": true,
+  "all_partial_border_source_clipped_metadata_recomputed": true,
+  "portable_paths": "image_path, mask_path and gt_mask are relative to the manifest directory; absolute source_archive is provenance only.",
+  "splits": {
+    "train": {
+      "crops": 256,
+      "patients": 19,
+      "by_patient": {
+        "TCGA-18-5592": 6,
+        "TCGA-21-5784": 16,
+        "TCGA-38-6178": 15,
+        "TCGA-49-4488": 5,
+        "TCGA-A7-A13E": 16,
+        "TCGA-A7-A13F": 15,
+        "TCGA-AR-A1AK": 13,
+        "TCGA-AY-A8YK": 16,
+        "TCGA-B0-5698": 15,
+        "TCGA-B0-5711": 15,
+        "TCGA-CH-5767": 16,
+        "TCGA-DK-A2I6": 15,
+        "TCGA-E2-A14V": 15,
+        "TCGA-G2-A2EK": 15,
+        "TCGA-G9-6336": 10,
+        "TCGA-G9-6348": 15,
+        "TCGA-G9-6356": 13,
+        "TCGA-G9-6362": 10,
+        "TCGA-NH-A8F7": 15
+      },
+      "visible_instance_count_histogram": {
+        "1": 2,
+        "2": 5,
+        "3": 9,
+        "4": 30,
+        "5": 36,
+        "6": 41,
+        "7": 65,
+        "8": 68
+      },
+      "total_visible_instances": 1584,
+      "crops_with_truncated_instances": 250,
+      "truncated_visible_instances": 832,
+      "crops_with_border_touching_instances": 251,
+      "crops_with_source_clipped_instances": 5
+    },
+    "validation": {
+      "crops": 64,
+      "patients": 4,
+      "by_patient": {
+        "TCGA-21-5786": 6,
+        "TCGA-AR-A1AS": 17,
+        "TCGA-B0-5710": 21,
+        "TCGA-G9-6363": 20
+      },
+      "visible_instance_count_histogram": {
+        "1": 1,
+        "2": 2,
+        "3": 5,
+        "4": 5,
+        "5": 9,
+        "6": 12,
+        "7": 13,
+        "8": 17
+      },
+      "total_visible_instances": 384,
+      "crops_with_truncated_instances": 61,
+      "truncated_visible_instances": 217,
+      "crops_with_border_touching_instances": 62,
+      "crops_with_source_clipped_instances": 5
+    },
+    "validation_benchmark8": {
+      "crops": 8,
+      "patients": 4,
+      "by_patient": {
+        "TCGA-21-5786": 2,
+        "TCGA-AR-A1AS": 2,
+        "TCGA-B0-5710": 2,
+        "TCGA-G9-6363": 2
+      },
+      "visible_instance_count_histogram": {
+        "4": 1,
+        "5": 2,
+        "6": 1,
+        "7": 1,
+        "8": 3
+      },
+      "total_visible_instances": 51,
+      "crops_with_truncated_instances": 8,
+      "truncated_visible_instances": 30,
+      "crops_with_border_touching_instances": 8,
+      "crops_with_source_clipped_instances": 1
+    }
+  },
+  "candidate_population": {
+    "train": {
+      "grid_crops": 1029,
+      "eligible_1_to_8": 408,
+      "excluded_empty": 2,
+      "excluded_dense_over8": 619,
+      "visible_count_histogram": {
+        "0": 2,
+        "1": 5,
+        "2": 14,
+        "3": 16,
+        "4": 48,
+        "5": 65,
+        "6": 63,
+        "7": 100,
+        "8": 97,
+        "9": 108,
+        "10": 111,
+        "11": 83,
+        "12": 62,
+        "13": 55,
+        "14": 30,
+        "15": 30,
+        "16": 24,
+        "17": 7,
+        "18": 8,
+        "19": 8,
+        "20": 3,
+        "21": 2,
+        "22": 4,
+        "23": 4,
+        "24": 6,
+        "25": 5,
+        "26": 7,
+        "27": 6,
+        "28": 5,
+        "29": 10,
+        "30": 11,
+        "31": 6,
+        "32": 7,
+        "33": 6,
+        "34": 4,
+        "35": 3,
+        "36": 1,
+        "37": 1,
+        "38": 1,
+        "39": 1
+      }
+    },
+    "validation": {
+      "grid_crops": 196,
+      "eligible_1_to_8": 72,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 124,
+      "visible_count_histogram": {
+        "1": 1,
+        "2": 2,
+        "3": 5,
+        "4": 5,
+        "5": 9,
+        "6": 13,
+        "7": 14,
+        "8": 23,
+        "9": 23,
+        "10": 30,
+        "11": 19,
+        "12": 18,
+        "13": 14,
+        "14": 6,
+        "15": 7,
+        "16": 4,
+        "17": 3
+      }
+    }
+  },
+  "source_audits": [
+    {
+      "source_image_id": "TCGA-18-5592-01Z-00-DX1",
+      "patient_id": "TCGA-18-5592",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "6": 1,
+        "7": 1,
+        "8": 4,
+        "9": 3,
+        "10": 6,
+        "11": 8,
+        "12": 3,
+        "13": 10,
+        "14": 4,
+        "15": 4,
+        "16": 3,
+        "17": 1,
+        "18": 1
+      },
+      "eligible_1_to_8": 6,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 43,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 6
+    },
+    {
+      "source_image_id": "TCGA-21-5784-01Z-00-DX1",
+      "patient_id": "TCGA-21-5784",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 4,
+        "6": 4,
+        "7": 5,
+        "8": 3,
+        "9": 4,
+        "10": 5,
+        "11": 5,
+        "12": 2,
+        "13": 3,
+        "15": 2,
+        "16": 1,
+        "18": 1,
+        "19": 1
+      },
+      "eligible_1_to_8": 25,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 24,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 16
+    },
+    {
+      "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+      "patient_id": "TCGA-21-5786",
+      "split": "validation",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 3,
+        "9": 5,
+        "10": 5,
+        "11": 11,
+        "12": 11,
+        "13": 5,
+        "14": 1,
+        "15": 3,
+        "17": 2
+      },
+      "eligible_1_to_8": 6,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 43,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 6
+    },
+    {
+      "source_image_id": "TCGA-38-6178-01Z-00-DX1",
+      "patient_id": "TCGA-38-6178",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "1": 2,
+        "4": 1,
+        "5": 3,
+        "6": 6,
+        "7": 7,
+        "8": 5,
+        "9": 8,
+        "10": 5,
+        "11": 2,
+        "12": 1,
+        "13": 4,
+        "15": 2,
+        "17": 1,
+        "18": 1,
+        "19": 1
+      },
+      "eligible_1_to_8": 24,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 25,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-49-4488-01Z-00-DX1",
+      "patient_id": "TCGA-49-4488",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "5": 1,
+        "6": 2,
+        "7": 1,
+        "8": 1,
+        "9": 5,
+        "10": 5,
+        "11": 4,
+        "12": 6,
+        "13": 1,
+        "14": 2,
+        "15": 7,
+        "16": 7,
+        "17": 2,
+        "18": 1,
+        "19": 1,
+        "20": 1,
+        "21": 1,
+        "22": 1
+      },
+      "eligible_1_to_8": 5,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 44,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 5
+    },
+    {
+      "source_image_id": "TCGA-A7-A13E-01Z-00-DX1",
+      "patient_id": "TCGA-A7-A13E",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "2": 1,
+        "3": 2,
+        "4": 4,
+        "5": 6,
+        "6": 5,
+        "7": 7,
+        "8": 9,
+        "9": 8,
+        "10": 4,
+        "11": 1,
+        "14": 1,
+        "15": 1
+      },
+      "eligible_1_to_8": 34,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 15,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 16
+    },
+    {
+      "source_image_id": "TCGA-A7-A13F-01Z-00-DX1",
+      "patient_id": "TCGA-A7-A13F",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "4": 2,
+        "5": 7,
+        "6": 6,
+        "7": 3,
+        "8": 5,
+        "9": 7,
+        "10": 4,
+        "11": 3,
+        "12": 6,
+        "13": 2,
+        "14": 3,
+        "15": 1
+      },
+      "eligible_1_to_8": 23,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 26,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-AR-A1AK-01Z-00-DX1",
+      "patient_id": "TCGA-AR-A1AK",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "2": 1,
+        "3": 1,
+        "4": 2,
+        "5": 2,
+        "6": 1,
+        "7": 3,
+        "8": 3,
+        "9": 3,
+        "10": 6,
+        "11": 8,
+        "12": 7,
+        "13": 2,
+        "14": 6,
+        "15": 1,
+        "17": 2,
+        "21": 1
+      },
+      "eligible_1_to_8": 13,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 36,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 13
+    },
+    {
+      "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+      "patient_id": "TCGA-AR-A1AS",
+      "split": "validation",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "1": 1,
+        "2": 2,
+        "3": 2,
+        "5": 3,
+        "6": 3,
+        "7": 3,
+        "8": 3,
+        "9": 2,
+        "10": 4,
+        "11": 4,
+        "12": 5,
+        "13": 5,
+        "14": 4,
+        "15": 3,
+        "16": 4,
+        "17": 1
+      },
+      "eligible_1_to_8": 17,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 32,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 17
+    },
+    {
+      "source_image_id": "TCGA-AY-A8YK-01A-01-TS1",
+      "patient_id": "TCGA-AY-A8YK",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "3": 1,
+        "4": 4,
+        "5": 1,
+        "6": 3,
+        "7": 5,
+        "8": 4,
+        "9": 5,
+        "10": 11,
+        "11": 7,
+        "12": 1,
+        "13": 5,
+        "15": 1,
+        "18": 1
+      },
+      "eligible_1_to_8": 18,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 31,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 16
+    },
+    {
+      "source_image_id": "TCGA-B0-5698-01Z-00-DX1",
+      "patient_id": "TCGA-B0-5698",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "3": 1,
+        "4": 5,
+        "5": 6,
+        "6": 1,
+        "7": 8,
+        "8": 7,
+        "9": 5,
+        "10": 10,
+        "11": 4,
+        "13": 2
+      },
+      "eligible_1_to_8": 28,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 21,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+      "patient_id": "TCGA-B0-5710",
+      "split": "validation",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "3": 3,
+        "4": 1,
+        "5": 2,
+        "6": 7,
+        "7": 5,
+        "8": 11,
+        "9": 11,
+        "10": 6,
+        "11": 1,
+        "12": 1,
+        "13": 1
+      },
+      "eligible_1_to_8": 29,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 20,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 21
+    },
+    {
+      "source_image_id": "TCGA-B0-5711-01Z-00-DX1",
+      "patient_id": "TCGA-B0-5711",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "2": 4,
+        "3": 1,
+        "4": 1,
+        "5": 8,
+        "6": 10,
+        "7": 6,
+        "8": 4,
+        "9": 6,
+        "10": 4,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 1,
+        "16": 1
+      },
+      "eligible_1_to_8": 34,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 15,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-CH-5767-01Z-00-DX1",
+      "patient_id": "TCGA-CH-5767",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "0": 2,
+        "1": 2,
+        "2": 4,
+        "3": 3,
+        "4": 1,
+        "5": 3,
+        "6": 5,
+        "7": 6,
+        "8": 7,
+        "9": 5,
+        "10": 3,
+        "11": 2,
+        "12": 3,
+        "16": 1,
+        "19": 1,
+        "20": 1
+      },
+      "eligible_1_to_8": 31,
+      "excluded_empty": 2,
+      "excluded_dense_over8": 16,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 16
+    },
+    {
+      "source_image_id": "TCGA-DK-A2I6-01A-01-TS1",
+      "patient_id": "TCGA-DK-A2I6",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "4": 4,
+        "5": 4,
+        "6": 1,
+        "7": 12,
+        "8": 5,
+        "9": 4,
+        "10": 8,
+        "11": 5,
+        "12": 3,
+        "13": 2,
+        "16": 1
+      },
+      "eligible_1_to_8": 26,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 23,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-E2-A14V-01Z-00-DX1",
+      "patient_id": "TCGA-E2-A14V",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "3": 2,
+        "4": 8,
+        "5": 5,
+        "6": 4,
+        "7": 9,
+        "8": 8,
+        "9": 2,
+        "10": 2,
+        "11": 3,
+        "12": 3,
+        "16": 2,
+        "18": 1
+      },
+      "eligible_1_to_8": 36,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 13,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-G2-A2EK-01A-02-TSB",
+      "patient_id": "TCGA-G2-A2EK",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "1": 1,
+        "2": 1,
+        "4": 5,
+        "5": 5,
+        "6": 2,
+        "7": 3,
+        "8": 10,
+        "9": 4,
+        "10": 2,
+        "11": 6,
+        "12": 2,
+        "13": 3,
+        "14": 2,
+        "16": 2,
+        "17": 1
+      },
+      "eligible_1_to_8": 27,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 22,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-G9-6336-01Z-00-DX1",
+      "patient_id": "TCGA-G9-6336",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "3": 1,
+        "6": 4,
+        "7": 4,
+        "8": 1,
+        "9": 7,
+        "10": 10,
+        "11": 7,
+        "12": 4,
+        "13": 4,
+        "15": 4,
+        "16": 1,
+        "23": 1,
+        "24": 1
+      },
+      "eligible_1_to_8": 10,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 39,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 10
+    },
+    {
+      "source_image_id": "TCGA-G9-6348-01Z-00-DX1",
+      "patient_id": "TCGA-G9-6348",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "4": 3,
+        "5": 6,
+        "6": 3,
+        "7": 8,
+        "8": 5,
+        "9": 6,
+        "10": 6,
+        "11": 1,
+        "12": 6,
+        "14": 1,
+        "16": 2,
+        "20": 1,
+        "30": 1
+      },
+      "eligible_1_to_8": 25,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 24,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-G9-6356-01Z-00-DX1",
+      "patient_id": "TCGA-G9-6356",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "4": 1,
+        "6": 1,
+        "7": 6,
+        "8": 5,
+        "9": 10,
+        "10": 9,
+        "11": 6,
+        "12": 3,
+        "13": 5,
+        "14": 3
+      },
+      "eligible_1_to_8": 13,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 36,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 13
+    },
+    {
+      "source_image_id": "TCGA-G9-6362-01Z-00-DX1",
+      "patient_id": "TCGA-G9-6362",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "5": 1,
+        "6": 2,
+        "7": 2,
+        "8": 5,
+        "9": 7,
+        "10": 5,
+        "11": 5,
+        "12": 5,
+        "13": 9,
+        "14": 3,
+        "15": 3,
+        "16": 1,
+        "18": 1
+      },
+      "eligible_1_to_8": 10,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 39,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 10
+    },
+    {
+      "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+      "patient_id": "TCGA-G9-6363",
+      "split": "validation",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "4": 4,
+        "5": 3,
+        "6": 2,
+        "7": 5,
+        "8": 6,
+        "9": 5,
+        "10": 15,
+        "11": 3,
+        "12": 1,
+        "13": 3,
+        "14": 1,
+        "15": 1
+      },
+      "eligible_1_to_8": 20,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 29,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 20
+    },
+    {
+      "source_image_id": "TCGA-KB-A93J-01A-01-TS1",
+      "patient_id": "TCGA-KB-A93J",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "22": 1,
+        "23": 1,
+        "24": 2,
+        "25": 2,
+        "26": 3,
+        "27": 2,
+        "28": 3,
+        "29": 6,
+        "30": 7,
+        "31": 3,
+        "32": 5,
+        "33": 4,
+        "34": 3,
+        "35": 3,
+        "36": 1,
+        "37": 1,
+        "38": 1,
+        "39": 1
+      },
+      "eligible_1_to_8": 0,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 49,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 0
+    },
+    {
+      "source_image_id": "TCGA-NH-A8F7-01A-01-TS1",
+      "patient_id": "TCGA-NH-A8F7",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "2": 1,
+        "3": 1,
+        "4": 3,
+        "5": 3,
+        "6": 2,
+        "7": 4,
+        "8": 6,
+        "9": 9,
+        "10": 6,
+        "11": 6,
+        "12": 5,
+        "13": 1,
+        "14": 1,
+        "18": 1
+      },
+      "eligible_1_to_8": 20,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 29,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 15
+    },
+    {
+      "source_image_id": "TCGA-RD-A8N9-01A-01-TS1",
+      "patient_id": "TCGA-RD-A8N9",
+      "split": "train",
+      "source_size": [
+        1000,
+        1000
+      ],
+      "full_grid_crops": 49,
+      "grid_visible_count_histogram": {
+        "12": 1,
+        "13": 1,
+        "14": 3,
+        "15": 3,
+        "16": 2,
+        "19": 4,
+        "22": 2,
+        "23": 2,
+        "24": 3,
+        "25": 3,
+        "26": 4,
+        "27": 4,
+        "28": 2,
+        "29": 4,
+        "30": 3,
+        "31": 3,
+        "32": 2,
+        "33": 2,
+        "34": 1
+      },
+      "eligible_1_to_8": 0,
+      "excluded_empty": 0,
+      "excluded_dense_over8": 49,
+      "grid_covered_pixels": 802816,
+      "uncovered_right_bottom_pixels": 197184,
+      "selected_crops": 0
+    }
+  ],
+  "source_member_hashes": {
+    "TCGA-18-5592-01Z-00-DX1": {
+      "image_sha256": "3ee2928f2ccc375f96c9159c1c84cab0cc8e9d3b759c87d620b8e40ffd230f7a",
+      "xml_sha256": "8469f1b03b866a87d9704baa22897f3d65bdff5fc5acf22c89d1727a4e5517c2",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-18-5592-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-18-5592-01Z-00-DX1.xml"
+    },
+    "TCGA-21-5784-01Z-00-DX1": {
+      "image_sha256": "8e05b6f3c92f33f7f2606bee2fdb223db92f3b94559d2748b67d0b2d62960100",
+      "xml_sha256": "d49690dad9d115ef5b4651521effa31dc2849ce307e0527d9a6d9de49a5350d6",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-21-5784-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-21-5784-01Z-00-DX1.xml"
+    },
+    "TCGA-21-5786-01Z-00-DX1": {
+      "image_sha256": "fbee9258bc8df706b9bba8b30a8064b4aede797a54224715af28564c342296ef",
+      "xml_sha256": "a02e0eea799db7d65ec4a4e6ed87262b304e3d043cb1e2cb22a6eaba667a128e",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-21-5786-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-21-5786-01Z-00-DX1.xml"
+    },
+    "TCGA-38-6178-01Z-00-DX1": {
+      "image_sha256": "be1e5978ec6d27d861ac4a998d50f261d9ab1c114a827c74c549ffe464e091f7",
+      "xml_sha256": "a26ef2cc5a8fecedf27d9697fc90c2e731a6941b2008b23e60b0f75ba5081380",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-38-6178-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-38-6178-01Z-00-DX1.xml"
+    },
+    "TCGA-49-4488-01Z-00-DX1": {
+      "image_sha256": "8763d9c40ff6f8611cd126bc571ca6e369d391bb885bf32a607ac8cd170b5416",
+      "xml_sha256": "0bab56a35ecd1408d3c38d30d59e9f65c24180c24fee7a413a96fa472c5968a2",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-49-4488-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-49-4488-01Z-00-DX1.xml"
+    },
+    "TCGA-50-5931-01Z-00-DX1": {
+      "image_sha256": "143c39a3f6925f4df146f4f90d07c5035838cdc365fb64963c61624844fb0f77",
+      "xml_sha256": "548fa69925df3500c02ccf218547c028f33e7594c570717bfefcf29d42bb5c1e",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-50-5931-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-50-5931-01Z-00-DX1.xml"
+    },
+    "TCGA-A7-A13E-01Z-00-DX1": {
+      "image_sha256": "132bcb7f423a1f82aa24a46526bbc7cd494cd02a87992df4c1dc35e9925c3532",
+      "xml_sha256": "2ec624361299072295cf9cdff99e010e31a5edd20817da409d492b0aa66c4607",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-A7-A13E-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-A7-A13E-01Z-00-DX1.xml"
+    },
+    "TCGA-A7-A13F-01Z-00-DX1": {
+      "image_sha256": "481330bb533db475e5ed2f36575594329fa1c63ace893634e768e52de2c84a6d",
+      "xml_sha256": "8650da623ea3c992bd02ad39f7b29791b0b0b26443a04d46b7d1b39af8d94248",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-A7-A13F-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-A7-A13F-01Z-00-DX1.xml"
+    },
+    "TCGA-AR-A1AK-01Z-00-DX1": {
+      "image_sha256": "d60ce260a27d5f4bfac1e1e5dd3aefb7c2bb79b8ff070029d4bd293ae564fb0f",
+      "xml_sha256": "893609de156b908222db4fc81f5a5b6af1b1426aef75438db9c5fa8fc0290917",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-AR-A1AK-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-AR-A1AK-01Z-00-DX1.xml"
+    },
+    "TCGA-AR-A1AS-01Z-00-DX1": {
+      "image_sha256": "8944c2bcd11ff7c8b9ac35e2e7fbddb380f000586306ec47e15cad6f7a0441a5",
+      "xml_sha256": "14a64ebc8d07e016de14be9f3312b27e1d2ddaeb4387f9096bb3b2b8496bf4bb",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-AR-A1AS-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-AR-A1AS-01Z-00-DX1.xml"
+    },
+    "TCGA-AY-A8YK-01A-01-TS1": {
+      "image_sha256": "7482e9182274d5a3a1d119dc66c7009fa55b2958cc0d0c464eb616da91f94352",
+      "xml_sha256": "f4fdbacddf34cfb127b72f0fdf52938310e5d0390db29195fb5a911ca7f70e5c",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-AY-A8YK-01A-01-TS1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-AY-A8YK-01A-01-TS1.xml"
+    },
+    "TCGA-B0-5698-01Z-00-DX1": {
+      "image_sha256": "c64a9d2838d8a16f6ba5cc93a5fc021cedf069da1c347262237ae1af7448131d",
+      "xml_sha256": "618b62e43ef762fefea5c1e8f148c119107e9ba85c64719552c4718b2a0196a3",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-B0-5698-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-B0-5698-01Z-00-DX1.xml"
+    },
+    "TCGA-B0-5710-01Z-00-DX1": {
+      "image_sha256": "0eb115e1aee44ff1fc3ee9cc496319d02212215a30922bb2e65da778fa7c611a",
+      "xml_sha256": "78f0dd170aa1bb3c8282837fd10ab37bfa618067d468f9dd252fe4638a401562",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-B0-5710-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-B0-5710-01Z-00-DX1.xml"
+    },
+    "TCGA-B0-5711-01Z-00-DX1": {
+      "image_sha256": "7384ad4fe3ae9bab49dc7df10d7158ca7767e1c46c0a1661632ba090a4ec737d",
+      "xml_sha256": "88dad5dd2b7e3c19e18f1011eeb78d80c01fe375251ea39e2bc586e1a6709b60",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-B0-5711-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-B0-5711-01Z-00-DX1.xml"
+    },
+    "TCGA-CH-5767-01Z-00-DX1": {
+      "image_sha256": "aa2865bd0cd60617d9372659bd3284fee8d132d9c79c1008e1fae7e6aa87dfec",
+      "xml_sha256": "61e4caa06f0db2af412e819b6c6c1052a35ff855a80e0c3841f988b090f5eb96",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-CH-5767-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-CH-5767-01Z-00-DX1.xml"
+    },
+    "TCGA-DK-A2I6-01A-01-TS1": {
+      "image_sha256": "657f7438b8c6f65715c1e24b3f00ef0ee2a25eeb8276593ab7874cb67354a959",
+      "xml_sha256": "ba6a30c99340dfa5b6547a187339849f1e266a40a22d3dd92b2fbbc64bc73b95",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-DK-A2I6-01A-01-TS1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-DK-A2I6-01A-01-TS1.xml"
+    },
+    "TCGA-E2-A14V-01Z-00-DX1": {
+      "image_sha256": "c7c2e2b03cfedc1e59a6a94d9628ac60681b0e30024273c650d0b8a31974fb1f",
+      "xml_sha256": "f61be2e101fd813517bdea194ef792e6388da0c7ce7797f8a1f6d6c0b121b089",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-E2-A14V-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-E2-A14V-01Z-00-DX1.xml"
+    },
+    "TCGA-E2-A1B5-01Z-00-DX1": {
+      "image_sha256": "26e77a18d6ea4ee5224b84e5837a207e60c634ec4753e7ddfa248537d3907210",
+      "xml_sha256": "adbc0912327a3aff03b9d5fe156e58a93d560df583c6cf211088507d0bc12d3a",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-E2-A1B5-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-E2-A1B5-01Z-00-DX1.xml"
+    },
+    "TCGA-G2-A2EK-01A-02-TSB": {
+      "image_sha256": "31ae0d866e2b7a8902f690211ce08aaa8a3c59be31174ff16c6c6325a8dad0f9",
+      "xml_sha256": "9f5940d1ea479b05e386d13aaafa27eac8f7d0cce637bcf964fd7cb541ef3fa4",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G2-A2EK-01A-02-TSB.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G2-A2EK-01A-02-TSB.xml"
+    },
+    "TCGA-G9-6336-01Z-00-DX1": {
+      "image_sha256": "e01477011a116e5f8f0e4fcca4228deafdea29f6eeb8b94546686bbff857e374",
+      "xml_sha256": "d0e2655a2cc08048967af2fb9d45c654bd61e3ed56c99d4fb54a63de580f3046",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G9-6336-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G9-6336-01Z-00-DX1.xml"
+    },
+    "TCGA-G9-6348-01Z-00-DX1": {
+      "image_sha256": "af682aeba0a59e1f80046adfb3d11f294c944eb7f7eb97e456b91e2118707e68",
+      "xml_sha256": "8099de246a1a3c9d2d4f28aea201804ca5f1fb7692288d3d95c9091d319c69cf",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G9-6348-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G9-6348-01Z-00-DX1.xml"
+    },
+    "TCGA-G9-6356-01Z-00-DX1": {
+      "image_sha256": "9be746c61fb9e599db8dd189edcf0fd23679f2cc4244b669e7543fcd643670a9",
+      "xml_sha256": "0062da5a37e9797bc694e5899262c291e9cae4b5c8a530b0f0b0f843184ee9c6",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G9-6356-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G9-6356-01Z-00-DX1.xml"
+    },
+    "TCGA-G9-6362-01Z-00-DX1": {
+      "image_sha256": "4be4e6d71053eee0408fcffe8a7ca40d758a03053d9a3302d395a2a247276423",
+      "xml_sha256": "12bf75d35b745fd73aa8a159fa082616f3001fe1a8d355fc17a0292d882fa2e3",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G9-6362-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G9-6362-01Z-00-DX1.xml"
+    },
+    "TCGA-G9-6363-01Z-00-DX1": {
+      "image_sha256": "65ac77c38f189b5d86f417990b44224ca658e5e726e6260450152bbdc3735f81",
+      "xml_sha256": "d6912189a596c01f79a36b83be3514f6d76fab203933655400f609a339ade6d2",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-G9-6363-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-G9-6363-01Z-00-DX1.xml"
+    },
+    "TCGA-HE-7128-01Z-00-DX1": {
+      "image_sha256": "389f81a97bc558e8b1276bbce780af860d526fee4c212fd41e3d88c007b94ffa",
+      "xml_sha256": "0b2f0de1e6dca812363028e006500fe309f4b0255cb774ec46690812b7ed87a8",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-HE-7128-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-HE-7128-01Z-00-DX1.xml"
+    },
+    "TCGA-HE-7129-01Z-00-DX1": {
+      "image_sha256": "9159397a2b210ef2d70c6562bc71b88853e295f0ad2f3173c38c277861e4fd5c",
+      "xml_sha256": "500859a73bbb252065ddd0814f12962a3eea5d8e3e0b9b9189f558cb28c6b077",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-HE-7129-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-HE-7129-01Z-00-DX1.xml"
+    },
+    "TCGA-HE-7130-01Z-00-DX1": {
+      "image_sha256": "f0c65c63b31cb00ec8ff1416f7b85f21feb156ae2205cb4f11c73c8ae7ce7b4e",
+      "xml_sha256": "a437dbf2e570ccd6c89509415eb07fbddcb47484a8672fe01270cf1645212159",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-HE-7130-01Z-00-DX1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-HE-7130-01Z-00-DX1.xml"
+    },
+    "TCGA-KB-A93J-01A-01-TS1": {
+      "image_sha256": "a5306d53283b4224c63742108f5c340c6e5de52c685c39f15a434c30fcc3baba",
+      "xml_sha256": "8674cd8efa632c7f92722d10bbdce06cc43f4e5142dae7a00182ee9a8bd4571e",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-KB-A93J-01A-01-TS1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-KB-A93J-01A-01-TS1.xml"
+    },
+    "TCGA-NH-A8F7-01A-01-TS1": {
+      "image_sha256": "be919c53a36bc39f084888587acb5afc2aec22fc57367a3ebe3a26f76f2e0c81",
+      "xml_sha256": "3906362573759fa8f4cec1cc6670c485560aa0d5cca1fb403a8902d27b1e7941",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-NH-A8F7-01A-01-TS1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-NH-A8F7-01A-01-TS1.xml"
+    },
+    "TCGA-RD-A8N9-01A-01-TS1": {
+      "image_sha256": "bfc46bb91292a951bc167401e74f589c27d864fbd4bcb0333efd21320a19563d",
+      "xml_sha256": "a998fcf45705efb0953b1dff715e4e7e0e33ae1979fc167dfc39d2d7bc3f19d6",
+      "image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-RD-A8N9-01A-01-TS1.tif",
+      "xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-RD-A8N9-01A-01-TS1.xml"
+    }
+  },
+  "prior_manifest_overlap": {
+    "monuseg_iris_pilot_v1": {
+      "identical_crop_ids": [
+        "TCGA-18-5592-01Z-00-DX1_x0_y128",
+        "TCGA-21-5784-01Z-00-DX1_x512_y640",
+        "TCGA-21-5786-01Z-00-DX1_x0_y768",
+        "TCGA-21-5786-01Z-00-DX1_x128_y512",
+        "TCGA-21-5786-01Z-00-DX1_x128_y640",
+        "TCGA-21-5786-01Z-00-DX1_x128_y768",
+        "TCGA-38-6178-01Z-00-DX1_x256_y256",
+        "TCGA-38-6178-01Z-00-DX1_x768_y768",
+        "TCGA-49-4488-01Z-00-DX1_x640_y512",
+        "TCGA-A7-A13E-01Z-00-DX1_x0_y0",
+        "TCGA-A7-A13E-01Z-00-DX1_x768_y384",
+        "TCGA-A7-A13F-01Z-00-DX1_x256_y384",
+        "TCGA-AR-A1AK-01Z-00-DX1_x256_y384",
+        "TCGA-AR-A1AK-01Z-00-DX1_x640_y256",
+        "TCGA-AR-A1AS-01Z-00-DX1_x0_y128",
+        "TCGA-AR-A1AS-01Z-00-DX1_x0_y768",
+        "TCGA-AR-A1AS-01Z-00-DX1_x640_y0",
+        "TCGA-AR-A1AS-01Z-00-DX1_x768_y0",
+        "TCGA-AY-A8YK-01A-01-TS1_x0_y640",
+        "TCGA-B0-5698-01Z-00-DX1_x0_y256",
+        "TCGA-B0-5698-01Z-00-DX1_x128_y768",
+        "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+        "TCGA-B0-5710-01Z-00-DX1_x0_y640",
+        "TCGA-B0-5711-01Z-00-DX1_x256_y256",
+        "TCGA-CH-5767-01Z-00-DX1_x256_y128",
+        "TCGA-G2-A2EK-01A-02-TSB_x640_y128",
+        "TCGA-G9-6336-01Z-00-DX1_x640_y256",
+        "TCGA-G9-6336-01Z-00-DX1_x768_y256",
+        "TCGA-G9-6356-01Z-00-DX1_x0_y768",
+        "TCGA-G9-6356-01Z-00-DX1_x768_y768",
+        "TCGA-G9-6362-01Z-00-DX1_x256_y384",
+        "TCGA-G9-6363-01Z-00-DX1_x0_y128",
+        "TCGA-G9-6363-01Z-00-DX1_x128_y128",
+        "TCGA-G9-6363-01Z-00-DX1_x640_y0",
+        "TCGA-G9-6363-01Z-00-DX1_x640_y384",
+        "TCGA-NH-A8F7-01A-01-TS1_x512_y0"
+      ],
+      "current_validation_prior_train_patient_overlap": [],
+      "current_train_prior_validation_patient_overlap": [],
+      "note": "Historical reuse is disclosed; this is frozen engineering validation, not a newly untouched test set. New train/validation are patient-disjoint; fresh base-policy starts must not reuse adapters trained under conflicting older splits."
+    },
+    "monuseg_engineering_v1": {
+      "identical_crop_ids": [
+        "TCGA-A7-A13E-01Z-00-DX1_x0_y384",
+        "TCGA-A7-A13F-01Z-00-DX1_x0_y640",
+        "TCGA-A7-A13F-01Z-00-DX1_x256_y384",
+        "TCGA-AY-A8YK-01A-01-TS1_x0_y256",
+        "TCGA-AY-A8YK-01A-01-TS1_x0_y640",
+        "TCGA-AY-A8YK-01A-01-TS1_x512_y384",
+        "TCGA-AY-A8YK-01A-01-TS1_x640_y128",
+        "TCGA-AY-A8YK-01A-01-TS1_x768_y512",
+        "TCGA-B0-5698-01Z-00-DX1_x0_y512",
+        "TCGA-B0-5698-01Z-00-DX1_x128_y768",
+        "TCGA-B0-5698-01Z-00-DX1_x256_y384",
+        "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+        "TCGA-B0-5710-01Z-00-DX1_x0_y640",
+        "TCGA-B0-5710-01Z-00-DX1_x768_y128",
+        "TCGA-B0-5711-01Z-00-DX1_x128_y384",
+        "TCGA-B0-5711-01Z-00-DX1_x512_y0",
+        "TCGA-CH-5767-01Z-00-DX1_x0_y768",
+        "TCGA-CH-5767-01Z-00-DX1_x256_y512",
+        "TCGA-DK-A2I6-01A-01-TS1_x0_y640",
+        "TCGA-DK-A2I6-01A-01-TS1_x128_y0",
+        "TCGA-DK-A2I6-01A-01-TS1_x256_y128",
+        "TCGA-DK-A2I6-01A-01-TS1_x384_y640",
+        "TCGA-G2-A2EK-01A-02-TSB_x384_y0",
+        "TCGA-G2-A2EK-01A-02-TSB_x640_y128",
+        "TCGA-G9-6363-01Z-00-DX1_x0_y0",
+        "TCGA-G9-6363-01Z-00-DX1_x0_y128",
+        "TCGA-G9-6363-01Z-00-DX1_x0_y384",
+        "TCGA-G9-6363-01Z-00-DX1_x640_y0",
+        "TCGA-NH-A8F7-01A-01-TS1_x0_y640",
+        "TCGA-NH-A8F7-01A-01-TS1_x512_y640",
+        "TCGA-NH-A8F7-01A-01-TS1_x640_y0",
+        "TCGA-NH-A8F7-01A-01-TS1_x768_y640"
+      ],
+      "current_validation_prior_train_patient_overlap": [
+        "TCGA-G9-6363"
+      ],
+      "current_train_prior_validation_patient_overlap": [
+        "TCGA-AY-A8YK",
+        "TCGA-DK-A2I6"
+      ],
+      "note": "Historical reuse is disclosed; this is frozen engineering validation, not a newly untouched test set. New train/validation are patient-disjoint; fresh base-policy starts must not reuse adapters trained under conflicting older splits."
+    }
+  },
+  "manifest_sha256": {
+    "train": "a49d484b4202ddd21f1ce34eda3859641fc38bbbd72b665e27fcf63190300dcc",
+    "validation": "1969cd648b83fa0d9f1bfcaa73d248a879e3f3156e2863e46c540cf7cce853f8",
+    "validation_benchmark8": "15520402033fafe5560b7b3f14dbc619686cec7b208d35990ee558e3185fd60c",
+    "manifest": "20b7cbb07e33dd4d01b51fa3e7acec75207904e707bcd3c751fc566b54bfd9f5"
+  }
+}
