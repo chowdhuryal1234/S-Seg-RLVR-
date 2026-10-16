@@ -1,0 +1,124 @@
+{
+  "source_run": "runs/coordinate_calibration_32b_20261015",
+  "source_result_sha256": "701c13ca077e013289470c678882f38b8b64e1d939949651692cec0569d14286",
+  "status": "completed_coordinate_calibration",
+  "created_utc": "2026-10-16T01:15:43.073904+00:00",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "adapter": null
+  },
+  "generation_controls": {
+    "seed": 42,
+    "do_sample": false,
+    "use_cache": true,
+    "max_new_tokens": 512,
+    "max_objects": 8,
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "optimizer_steps": 0,
+  "sam_used": false,
+  "scope": "One simple synthetic image; no pathology or general coordinate competence claim",
+  "source": {
+    "size": [
+      128,
+      128
+    ],
+    "image_sha256": "4cc145d4b9d96d6e018bdf84b40d033086bcc164f9a8f3d06b37bb0b46a5495f",
+    "blue_rgb": [
+      30,
+      100,
+      220
+    ]
+  },
+  "known_geometry": {
+    "original_box": [
+      72,
+      20,
+      112,
+      52
+    ],
+    "processed_box": [
+      126,
+      35,
+      196,
+      91
+    ]
+  },
+  "prompt": [
+    {
+      "role": "system",
+      "content": "You locate individual blue rectangles in images. Return only the requested answer."
+    },
+    {
+      "role": "user",
+      "content": "Locate every visible blue rectangle, at most 8 objects. For each blue rectangle give a tight box [x0,y0,x1,y1] and an interior foreground point [x,y]. Use pixel coordinates of the PROCESSED image shown to you, which is 224 pixels wide and 224 pixels high: 0<=x0<x1<=224, 0<=y0<y1<=224; the point must be inside its box and inside the image. Do not use normalized coordinates. Respond exactly as <answer>{\"objects\":[{\"box\":[x0,y0,x1,y1],\"point\":[x,y]}]}</answer>. Use one object per blue rectangle, with no prose or markdown.\n\nFormatting example with invented coordinates, unrelated to the supplied image:\n<answer>{\"objects\":[{\"box\":[56,56,112,112],\"point\":[84,84]}]}</answer>\n\nNow inspect the supplied image and return its actual blue rectangles using the same format. Choose the objects and coordinates from this image; do not copy the example. Return only one complete <answer>...</answer> block containing valid JSON, with numeric coordinates."
+    }
+  ],
+  "text": "<answer>{\"objects\":[{\"box\":[127,33,199,115],\"point\":[163,74]}]}</answer>",
+  "format_valid": true,
+  "parse_error": null,
+  "raw_objects": [
+    {
+      "box": [
+        127.0,
+        33.0,
+        199.0,
+        115.0
+      ],
+      "point": [
+        163.0,
+        74.0
+      ]
+    }
+  ],
+  "converted_objects": [
+    {
+      "box": [
+        72.57142857142857,
+        18.857142857142858,
+        113.71428571428571,
+        65.71428571428571
+      ],
+      "point": [
+        93.14285714285714,
+        42.285714285714285
+      ]
+    }
+  ],
+  "object_count": 1,
+  "object_checks": [
+    {
+      "index": 1,
+      "box_iou": 0.6483221476510067,
+      "edge_errors_processed_px": [
+        1.0,
+        -2.0,
+        3.0,
+        24.0
+      ],
+      "max_edge_error_processed_px": 24.0,
+      "box_center_error_processed_px": 11.180339887498949,
+      "point_inside_target": true,
+      "point_gt_id_floor_xy": 1
+    }
+  ],
+  "prompt_size": [
+    224,
+    224
+  ],
+  "original_size": [
+    128,
+    128
+  ],
+  "scale_to_original": [
+    0.5714285714285714,
+    0.5714285714285714
+  ],
+  "completion_tokens": 35,
+  "hit_token_cap": false,
+  "pixel_values_sha256": "a19881189d2fd79e2543489ecbed49c689f0a20821a7e12580163736cea86be4",
+  "input_ids_sha256": "9b774315d1203b95a94fcb04b2670cc452a3ba28996a9d46a33fdf3c9c56ecc4"
+}
