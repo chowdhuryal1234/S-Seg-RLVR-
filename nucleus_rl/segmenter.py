@@ -61,6 +61,7 @@ class FrozenSAM2:
         from nucleus_rl.rewards import masks_to_instances
 
         width, height = image.size
+        self.last_raw_masks = np.zeros((0, height, width), dtype=bool)
         if not objects:
             return np.zeros((height, width), dtype=np.int32)
         with self.torch.inference_mode(), self.torch.autocast(
@@ -80,7 +81,8 @@ class FrozenSAM2:
                 )
                 masks.append(predicted[0])
                 scores.append(float(quality[0]))
-        return masks_to_instances(np.stack(masks), scores=np.asarray(scores))
+        self.last_raw_masks = np.stack(masks).astype(bool, copy=False)
+        return masks_to_instances(self.last_raw_masks, scores=np.asarray(scores))
 
     def verify_unchanged(self):
         after = parameter_sha256(self.model)
