@@ -1,13 +1,28 @@
+# Local environments and caches
 .venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+.env
+
+# Data, generated outputs, and research notes remain local
 data/
 checkpoints/
 runs/
+reports/
+results/
+outputs/
+artifacts/
+local-notes/
+references/
+MEETING_BRIEF.md
+OVERNIGHT_PLAN.md
+protocols/*_grpo_v*.json
+
+# Model weights and packaged run artifacts
 *.pt
 *.pth
 *.safetensors
-.env
-references/
 *.tar.gz

@@ -4,7 +4,6 @@
   "notebook_git_ref": "1d8b70e4b8b09f7b8db6cb2d3b44bbe999c0b554",
   "git_ref_provenance": "Authenticated GitHub API retrieval; immutable Git blob cb640479c4092cce2add3286bd6fcbf3b4bca466 verified against original bytes.",
   "notebook_file": "Baseline1_and_2.ipynb",
-  "notebook_sha256": "9efc9237435fbebbb8f177f6fa51728909521856c4a5afec6962778b2780fe76",
   "source_notebook_filename_from_cell0": "Baseline1&2.ipynb",
   "seed": 0,
   "train": [
@@ -117,5 +116,7 @@
     "TSS groups overlap across train/validation by design; TCGA patient prefixes do not overlap.",
     "Our conservative preparation excludes six images, including Iris validation imageTCGA-HE-7129-01Z-00-DX1."
   ],
-  "source_url": "https://github.com/xukanz/RLVR/blob/1d8b70e4b8b09f7b8db6cb2d3b44bbe999c0b554/Baseline1%262.ipynb"
+  "source_url": "https://github.com/xukanz/RLVR/blob/1d8b70e4b8b09f7b8db6cb2d3b44bbe999c0b554/Baseline1%262.ipynb",
+  "source_notebook_sha256": "9efc9237435fbebbb8f177f6fa51728909521856c4a5afec6962778b2780fe76",
+  "source_notebook_hash_note": "Checksum of the original upstream notebook before local output stripping; not the checksum of the code-only copy."
 }
