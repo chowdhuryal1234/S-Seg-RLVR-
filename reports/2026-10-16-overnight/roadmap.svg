@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="940" viewBox="0 0 1680 940"><rect width="100%" height="100%" fill="#edf2f8"/>
+<text x="24" y="53.16" font-family="Arial,sans-serif" font-size="38" fill="#172438">From a working training loop to a better localization policy</text>
+<text x="24" y="94.86" font-family="Arial,sans-serif" font-size="23" fill="#526279">October 9 -&gt; October 15-16 | Completed diagnostics and timing checks; longer training RUNNING</text>
+<rect x="24" y="132" width="384" height="530" rx="14" fill="white" stroke="#d7e0eb" stroke-width="2"/>
+<rect x="40" y="148" width="352" height="39" rx="8" fill="#2467a6"/>
+<text x="52" y="171.94" font-family="Arial,sans-serif" font-size="17" fill="white">OCT 9 - COMPLETED</text>
+<text x="44" y="230.5" font-family="Arial,sans-serif" font-size="25" fill="#172438">1 TRAIN THE LOOP</text>
+<text x="44" y="277.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">SETUP</text>
+<text x="44" y="309.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">7B text LoRA + frozen SAM2.1 tiny;</text>
+<text x="44" y="338.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">50 GRPO updates.</text>
+<text x="44" y="382.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">OBSERVED</text>
+<text x="44" y="414.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">16 validation crops: valid answers</text>
+<text x="44" y="443.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">15/16 -&gt; 16/16; PQ 0.0131 -&gt;</text>
+<text x="44" y="472.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">0.0131.</text>
+<text x="44" y="516.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">MEANING</text>
+<text x="44" y="548.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">The update loop works. Reliable</text>
+<text x="44" y="577.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">nucleus detection remains</text>
+<text x="44" y="606.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">unresolved.</text>
+<path d="M413,393h22m-8,-6l8,6l-8,6" fill="none" stroke="#74869a" stroke-width="3"/>
+<rect x="440" y="132" width="384" height="530" rx="14" fill="white" stroke="#d7e0eb" stroke-width="2"/>
+<rect x="456" y="148" width="352" height="39" rx="8" fill="#2467a6"/>
+<text x="468" y="171.94" font-family="Arial,sans-serif" font-size="17" fill="white">OCT 15 - FROZEN INFERENCE</text>
+<text x="460" y="230.5" font-family="Arial,sans-serif" font-size="25" fill="#172438">2 ISOLATE COMPONENTS</text>
+<text x="460" y="277.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">PAIRED TEST</text>
+<text x="460" y="309.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">8 training crops / 41 nuclei.</text>
+<text x="460" y="338.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Three-object example: 7B matches</text>
+<text x="460" y="367.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">2/41.</text>
+<text x="460" y="411.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">SIZE CHANGES</text>
+<text x="460" y="443.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">32B: no qualified matches. Larger</text>
+<text x="460" y="472.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">SAM: same recall with saved</text>
+<text x="460" y="501.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">prompts.</text>
+<text x="460" y="545.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">ORACLE DIAGNOSTIC</text>
+<text x="460" y="577.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">GT prompts: tiny 40/41, large</text>
+<text x="460" y="606.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">41/41. Privileged inputs, not</text>
+<text x="460" y="635.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">automatic detection.</text>
+<path d="M829,393h22m-8,-6l8,6l-8,6" fill="none" stroke="#74869a" stroke-width="3"/>
+<rect x="856" y="132" width="384" height="530" rx="14" fill="white" stroke="#d7e0eb" stroke-width="2"/>
+<rect x="872" y="148" width="352" height="39" rx="8" fill="#2467a6"/>
+<text x="884" y="171.94" font-family="Arial,sans-serif" font-size="17" fill="white">OCT 15 - SELECTED EXAMPLES</text>
+<text x="876" y="230.5" font-family="Arial,sans-serif" font-size="25" fill="#172438">3 INSPECT THE FAILURES</text>
+<text x="876" y="277.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">COORDINATES</text>
+<text x="876" y="309.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Rectangle box IoU 0.648; one</text>
+<text x="876" y="338.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">nucleus 0.321. Three nuclei: 5</text>
+<text x="876" y="367.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">emitted, 0 accepted.</text>
+<text x="876" y="411.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">RECOGNITION</text>
+<text x="876" y="443.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Marked candidates: 2/6 correct.</text>
+<text x="876" y="472.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Isolated patches: 2/6 correct.</text>
+<text x="876" y="516.94" font-family="Arial,sans-serif" font-size="17" fill="#2467a6">MEANING</text>
+<text x="876" y="548.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Errors extend beyond output</text>
+<text x="876" y="577.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">format. These probes do not isolate</text>
+<text x="876" y="606.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">one internal cause.</text>
+<path d="M1245,393h22m-8,-6l8,6l-8,6" fill="none" stroke="#74869a" stroke-width="3"/>
+<rect x="1272" y="132" width="384" height="530" rx="14" fill="white" stroke="#d7e0eb" stroke-width="2"/>
+<rect x="1288" y="148" width="352" height="39" rx="8" fill="#a36718"/>
+<text x="1300" y="171.94" font-family="Arial,sans-serif" font-size="17" fill="white">TONIGHT - LONG RUNS RUNNING</text>
+<text x="1292" y="230.5" font-family="Arial,sans-serif" font-size="25" fill="#172438">4 TEST ADAPTATION</text>
+<text x="1292" y="277.94" font-family="Arial,sans-serif" font-size="17" fill="#a36718">20-STEP CHECKS COMPLETE</text>
+<text x="1292" y="309.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">7B: PQ 0.01584 -&gt; 0.01098.</text>
+<text x="1292" y="338.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">32B: PQ 0 -&gt; 0.01260.</text>
+<text x="1292" y="382.94" font-family="Arial,sans-serif" font-size="17" fill="#a36718">LONGER RUNS</text>
+<text x="1292" y="414.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">7B: 1,000 steps at each rate.</text>
+<text x="1292" y="443.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">32B: 400 planned; &lt;=2 hours.</text>
+<text x="1292" y="472.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Same reward / SAM; seed 42.</text>
+<text x="1292" y="516.94" font-family="Arial,sans-serif" font-size="17" fill="#a36718">STATUS</text>
+<text x="1292" y="548.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">7B (1e-5) is running.</text>
+<text x="1292" y="577.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">7B (5e-5), 32B: planned.</text>
+<text x="1292" y="606.04" font-family="Arial,sans-serif" font-size="22" fill="#172438">Optional best-7B seed-43 repeat.</text>
+<rect x="24" y="686" width="1632" height="106" rx="14" fill="#fff8e9" stroke="#ead3a8" stroke-width="2"/>
+<text x="44" y="722.68" font-family="Arial,sans-serif" font-size="24" fill="#805416">Why train tonight?</text>
+<text x="44" y="757.86" font-family="Arial,sans-serif" font-size="23" fill="#172438">Frozen prompt and checkpoint changes did not solve localization. Longer controlled adaptation tests a different intervention; improvement is not assumed.</text>
+<text x="24" y="838.04" font-family="Arial,sans-serif" font-size="22" fill="#526279">Data: 256 train / 64 validation crops, 19 / 4 disjoint patients; full-mask rewards. Timing subset: 8 crops / 51 nuclei.</text>
+<text x="24" y="876.04" font-family="Arial,sans-serif" font-size="22" fill="#526279">Scope: selected engineering diagnostics, not a shared benchmark, weak-label result, or clinical evaluation.</text>
+<text x="24" y="914.04" font-family="Arial,sans-serif" font-size="22" fill="#526279">Only the 20-step checks are complete. Longer-run results remain PENDING. Official test data stay outside tuning.</text>
+</svg>
