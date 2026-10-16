@@ -1,0 +1,298 @@
+{
+  "source_run": "runs/isolated_crop_probe_32b_20261015",
+  "source_result_sha256": "4b1ba4f02ba4067f1fa33e69d1eb1188c7a05c7313ab6094d55fda068ec28e1b",
+  "status": "completed_isolated_crop_probe",
+  "created_utc": "2026-10-16T02:29:21.942242+00:00",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "adapter": null
+  },
+  "generation_controls": {
+    "seed": 42,
+    "do_sample": false,
+    "use_cache": true,
+    "max_new_tokens": 512,
+    "max_objects": 8,
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "optimizer_steps": 0,
+  "sam_used": false,
+  "scope": "Six magnified local-patch classifications from one selected training-source image",
+  "prompt": [
+    {
+      "role": "system",
+      "content": "You classify microscopy image patches."
+    },
+    {
+      "role": "user",
+      "content": "Is the tissue at the center of this image patch inside a cell nucleus, or is it background tissue? A nucleus may extend beyond the edges of the patch; a complete nucleus outline is not required. Reply with exactly one lowercase word: nucleus or background. Do not add explanations, punctuation, coordinates, or other text."
+    }
+  ],
+  "records": [
+    {
+      "id": "A",
+      "image_file": "crops/01.png",
+      "mask_file": "masks/01.png",
+      "crop_box": [
+        35,
+        10,
+        55,
+        30
+      ],
+      "gt_label": "background",
+      "gt_instance_id": null,
+      "gt_foreground_fraction": 0.0,
+      "retained_nucleus_fraction": null,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "c35b03251c98119c3b911aca5d59646e89fb767db35e6525fe61423af0fdc33a",
+      "mask_sha256": "a33682b49caac03a7de19ce35b02fd7ae26bfd5607bffb6040fc88b568649b0e",
+      "raw_text": "nucleus",
+      "predicted_label": "nucleus",
+      "format_valid": true,
+      "correct": false,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "481888bcfc97f6867a98b7b052175a465fb86b1a11974ac46b28676982fd5bdf",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 4,
+      "hit_token_cap": false,
+      "generation_seconds": 0.9076264251489192,
+      "fresh_context": true
+    },
+    {
+      "id": "B",
+      "image_file": "crops/02.png",
+      "mask_file": "masks/02.png",
+      "crop_box": [
+        78,
+        10,
+        98,
+        30
+      ],
+      "gt_label": "nucleus",
+      "gt_instance_id": 276,
+      "gt_foreground_fraction": 0.9475,
+      "retained_nucleus_fraction": 0.7672064777327935,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "71841b3b14ccb6cb9507b5569413a51f1ee6a53c889980b03f5eb03f5282f937",
+      "mask_sha256": "21a03f2a27190b77214da49cd3e1ab77ea17012b1fd8fa4550880b2f33be4f98",
+      "raw_text": "nucleus",
+      "predicted_label": "nucleus",
+      "format_valid": true,
+      "correct": true,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "e601cb8a97545b814b268a933bd8f123c469608d88b79250df72074357c135f3",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 4,
+      "hit_token_cap": false,
+      "generation_seconds": 0.2638440509326756,
+      "fresh_context": true
+    },
+    {
+      "id": "C",
+      "image_file": "crops/03.png",
+      "mask_file": "masks/03.png",
+      "crop_box": [
+        8,
+        30,
+        28,
+        50
+      ],
+      "gt_label": "nucleus",
+      "gt_instance_id": 157,
+      "gt_foreground_fraction": 0.99,
+      "retained_nucleus_fraction": 0.7485822306238186,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "be53029a19b81b74eebe16115bc766fca0630e3b5eda352d9a21a38688071c36",
+      "mask_sha256": "659c265f921f6d2352bcc95bf69474b32d668faae9bece61429bba7ff880a649",
+      "raw_text": "background",
+      "predicted_label": "background",
+      "format_valid": true,
+      "correct": false,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "29a33710b69d7580095c4f625da36d2f4223b52e174d97196f83120e60cc04a7",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 2,
+      "hit_token_cap": false,
+      "generation_seconds": 0.16054262383840978,
+      "fresh_context": true
+    },
+    {
+      "id": "D",
+      "image_file": "crops/04.png",
+      "mask_file": "masks/04.png",
+      "crop_box": [
+        100,
+        50,
+        120,
+        70
+      ],
+      "gt_label": "background",
+      "gt_instance_id": null,
+      "gt_foreground_fraction": 0.0,
+      "retained_nucleus_fraction": null,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "a966166349780c98901d2cae32f1c89688768c5514287bcd5a57668b287903c3",
+      "mask_sha256": "a33682b49caac03a7de19ce35b02fd7ae26bfd5607bffb6040fc88b568649b0e",
+      "raw_text": "nucleus",
+      "predicted_label": "nucleus",
+      "format_valid": true,
+      "correct": false,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "ba4b683837d3bb00e292f6e1b1532a1bf30ee904f7a1a7871a1d4844ea53d3fd",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 4,
+      "hit_token_cap": false,
+      "generation_seconds": 0.26189082697965205,
+      "fresh_context": true
+    },
+    {
+      "id": "E",
+      "image_file": "crops/05.png",
+      "mask_file": "masks/05.png",
+      "crop_box": [
+        35,
+        83,
+        55,
+        103
+      ],
+      "gt_label": "background",
+      "gt_instance_id": null,
+      "gt_foreground_fraction": 0.0,
+      "retained_nucleus_fraction": null,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "ee97b7f5da01df58ecfcaa3f597d8ae1527c6f3fc90c365d9793f012dbdfc6fe",
+      "mask_sha256": "a33682b49caac03a7de19ce35b02fd7ae26bfd5607bffb6040fc88b568649b0e",
+      "raw_text": "nucleus",
+      "predicted_label": "nucleus",
+      "format_valid": true,
+      "correct": false,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "8b50fa1e9861f0034017df0ee7abca7e7d4d0a47b9fd8267481c6a6670706d9d",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 4,
+      "hit_token_cap": false,
+      "generation_seconds": 0.26252062898129225,
+      "fresh_context": true
+    },
+    {
+      "id": "F",
+      "image_file": "crops/06.png",
+      "mask_file": "masks/06.png",
+      "crop_box": [
+        72,
+        83,
+        92,
+        103
+      ],
+      "gt_label": "nucleus",
+      "gt_instance_id": 228,
+      "gt_foreground_fraction": 0.83,
+      "retained_nucleus_fraction": 0.7186147186147186,
+      "native_size": [
+        20,
+        20
+      ],
+      "image_sha256": "20b1749d1cf767e69005ef458f03edf09f0d75eee2db93bee3169752eada50da",
+      "mask_sha256": "7916a956628ec89c70568c753565c049d861dea16375a22bb2780b9d4e14cdc4",
+      "raw_text": "nucleus",
+      "predicted_label": "nucleus",
+      "format_valid": true,
+      "correct": true,
+      "input_size": [
+        20,
+        20
+      ],
+      "processed_size": [
+        224,
+        224
+      ],
+      "pixel_values_sha256": "d69c933bd8a1bb31a74400631db28e70328c3517557490ca8c645007e83b6ea3",
+      "input_ids_sha256": "33e70b7ac4c7ddf7b0cfd301a0d0909d24d39cd024d9ae403aa16aed48088789",
+      "input_tokens": 149,
+      "completion_tokens": 4,
+      "hit_token_cap": false,
+      "generation_seconds": 0.26311021391302347,
+      "fresh_context": true
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "valid_count": 6,
+    "invalid_count": 0,
+    "correct_count": 2,
+    "overall_correct_fraction": 0.3333333333333333,
+    "tp": 2,
+    "tn": 0,
+    "fp": 3,
+    "fn": 1,
+    "invalid_positive_count": 0,
+    "invalid_background_count": 0,
+    "positive_total": 3,
+    "background_total": 3,
+    "scope": "Six selected local patches from one image; invalid output is separate from biological misclassification. Not dataset accuracy."
+  },
+  "reference_result_sha256": "f1cfd85f3aacd06b4110a57e42c821bd9991b9e9e79fadd6998ae3eb25632c6e",
+  "source_image_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+  "source_mask_sha256": "db03f92be954226490d276e51d8f2d8754177f18db6e9c2f321e376f417bb495",
+  "all_task_token_hashes_identical": true,
+  "interpretation_limits": "Positive crops contain partial nuclei. Cropping changes context, attention, prompt and effective object magnification (6.4x versus the prior full128 view); it cannot isolate the cause of prior failure or estimate benchmark performance.",
+  "plan_sha256": "f6ea3f8362dd02a7e67985afecc44c6427901eae42656fb07f351e404166aa95"
+}
