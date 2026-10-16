@@ -1,0 +1,441 @@
+{
+  "schema_version": 1,
+  "run_name": "benchmark_32b_20",
+  "status": "verified_training_pilot",
+  "purpose": "Twenty-step timing and engineering check; separate from validation64 main experiments.",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "gpu": "NVIDIA H200",
+    "gpu_total_bytes": 150101688320,
+    "packages": {
+      "torch": "2.5.1",
+      "transformers": "4.56.2",
+      "trl": "0.23.1",
+      "peft": "0.17.1",
+      "accelerate": "1.10.1",
+      "datasets": "3.6.0",
+      "SAM-2": "1.0"
+    }
+  },
+  "settings": {
+    "seed": 42,
+    "max_steps": 20,
+    "group_size": 2,
+    "max_completion_length": 512,
+    "max_objects": 8,
+    "lora_rank": 8,
+    "learning_rate": 1e-05,
+    "beta": 0.04,
+    "save_steps": 10,
+    "eval_every": 0,
+    "coordinate_frame": "processed",
+    "prompt_style": "example",
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "fresh_base": true,
+  "reward": "R_fmt + binary foreground IoU against full instance masks; no count, separation or topology reward.",
+  "optimizer_evidence": {
+    "optimizer_steps": 20,
+    "optimizer_steps_this_run": 20,
+    "finite_gradient_steps": 20,
+    "nonzero_gradient_steps": 20,
+    "adapter_changed_steps": 20,
+    "completed_requested_steps": true,
+    "adapter_changed": true,
+    "adapter_sha256_before": "853a2f6582f2aa7b2112e1b9904eb1742fe0677242a29cb768b0ebf4e237283b",
+    "adapter_sha256_after": "ec29ee943b220186ad8d9e49a37c9ca684e1848887bce706c12594ce1037e81a",
+    "visual_sha256_before": "75e8fc974d56216ba356f899a495a8bf332876c09649568cf03231061672aabf",
+    "visual_sha256_after": "75e8fc974d56216ba356f899a495a8bf332876c09649568cf03231061672aabf",
+    "reference_uses_disabled_adapter": true
+  },
+  "sam": {
+    "checkpoint_sha256": "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
+    "config": "configs/sam2.1/sam2.1_hiera_t.yaml",
+    "source_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "parameters_before": "eb052b402dfa702df22aea28d0bb72a33e9e9f2d430a783c36eec319be0b61ed",
+    "parameters_after": "eb052b402dfa702df22aea28d0bb72a33e9e9f2d430a783c36eec319be0b61ed",
+    "trainable_parameters": 0,
+    "unchanged": true
+  },
+  "resources": {
+    "training_elapsed_seconds": 152.65481532597914,
+    "before_evaluation_seconds": 43.48081907792948,
+    "after_evaluation_seconds": 41.47840765095316,
+    "elapsed_seconds": 270.7183644589968,
+    "peak_gpu_allocated_bytes": 68367784960,
+    "peak_gpu_reserved_bytes": 69524783104
+  },
+  "data": {
+    "train_manifest_sha256": "a49d484b4202ddd21f1ce34eda3859641fc38bbbd72b665e27fcf63190300dcc",
+    "evaluation_manifest_sha256": "15520402033fafe5560b7b3f14dbc619686cec7b208d35990ee558e3185fd60c",
+    "training_pool_crops": 256,
+    "training_pool_patients": 19,
+    "evaluation_crops": 8,
+    "evaluation_patients": 4,
+    "evaluation_gt_nuclei": 51,
+    "selection": "Official-30 MoNuSeg training sources, patient-disjoint train/validation partition; selected native 128x128 crops with 1-8 annotated nuclei. Benchmark8 is a fixed subset of validation64.",
+    "evaluation_crop_provenance": [
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 6,
+        "image_sha256": "6743f26b882f846f2c969048ffa71efd7c32f97116bd81df390521e6c585dceb",
+        "mask_sha256": "e20628a184929a433498d62ec0da359c4dc83833305cca425007bbd6d317b9cc",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          218,
+          227,
+          311
+        ],
+        "border_touching_instance_ids": [
+          218,
+          227,
+          311
+        ],
+        "source_clipped_instance_ids": [
+          311
+        ]
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 8,
+        "image_sha256": "059b7e5a9271b601d887147cc574f20c9f2282d07b7ee5d7b6fdcf1e1dbd4189",
+        "mask_sha256": "5fb6690067c63a9d4b8736de5ac826ae8eb1eeaad69e34152d6dd74b94db5b43",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          11,
+          61,
+          114,
+          379,
+          382
+        ],
+        "border_touching_instance_ids": [
+          11,
+          61,
+          114,
+          379,
+          382
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x128_y640",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          640,
+          256,
+          768
+        ],
+        "instance_count": 8,
+        "image_sha256": "d0693c4a95f61039ed88a8e9b7102c5a47ba2959c1e7b0c395f62c7ece2e58cc",
+        "mask_sha256": "2ded8919bcf8d7e83ecbd79e1afb691a9cfa9005b7af6767ce91d8edfc3362ec",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          128,
+          131,
+          221,
+          317,
+          355
+        ],
+        "border_touching_instance_ids": [
+          55,
+          128,
+          131,
+          221,
+          317,
+          355
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x512_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          0,
+          640,
+          128
+        ],
+        "instance_count": 4,
+        "image_sha256": "a56c45f4ef6a49baacea94b645bee338f143e87c5f16a3d7b3890676e0175def",
+        "mask_sha256": "b02a8a8c6c638afaa7f8df71ee5c650439ed2221eaa035011ff58f74cba3a315",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          100,
+          169,
+          217,
+          218
+        ],
+        "border_touching_instance_ids": [
+          100,
+          169,
+          217,
+          218
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x768_y384",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          384,
+          896,
+          512
+        ],
+        "instance_count": 8,
+        "image_sha256": "96f4f219c4ebc534b5116a84197c7447590c3e3f3b8ca7dfe334710e0adf71fd",
+        "mask_sha256": "1e6c97e5809d25708a9ea653bf56da4b8eb8d51e1136fab378d2fbb578967c01",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          68,
+          265
+        ],
+        "border_touching_instance_ids": [
+          55,
+          68,
+          265
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 7,
+        "image_sha256": "0665a46a1030b121d442ce1141248918f7489eceb4b5b5d88fd1975bced79206",
+        "mask_sha256": "f892fd064f606e9eb0f93c7e3ee79ce01a7a463518ada88192540d3f7ab9fbc2",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          6,
+          174,
+          427
+        ],
+        "border_touching_instance_ids": [
+          6,
+          174,
+          427
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y384",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          384,
+          128,
+          512
+        ],
+        "instance_count": 5,
+        "image_sha256": "63aa91e4c76f9a67c99af0a90ee825a1c25ae4c9bff941a4959baf110ce378bb",
+        "mask_sha256": "6e0a1912d76196b3af860335fa574aace6c6e058366f245d879ec6d4234174ad",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          314,
+          358,
+          359,
+          360
+        ],
+        "border_touching_instance_ids": [
+          314,
+          358,
+          359,
+          360
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          384,
+          768,
+          512
+        ],
+        "instance_count": 5,
+        "image_sha256": "697b5a0dc5e1ee5a01bd829fde02cff31e9fe8bcca42ae08f4720acc7cb0c70e",
+        "mask_sha256": "9b6501d817208f4d4c482c31cf8e0fbe9375de7db2121be299728a37511bd416",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          115,
+          265
+        ],
+        "border_touching_instance_ids": [
+          115,
+          265
+        ],
+        "source_clipped_instance_ids": []
+      }
+    ]
+  },
+  "before": {
+    "n_records": 8,
+    "macro_pq": 0.0,
+    "macro_recall": 0.0,
+    "micro_recall": 0.0,
+    "count_mae": 5.75,
+    "total_tp": 0,
+    "total_gt_count": 51,
+    "total_pred_count": 17,
+    "format_valid_count": 6,
+    "mean_foreground_iou": 0.0449503634127717,
+    "mean_total_reward": 0.7949503634127717,
+    "total_same_gt_duplicate_count": 0,
+    "total_raw_overlap_pair_count": 0
+  },
+  "after": {
+    "n_records": 8,
+    "macro_pq": 0.012596899224806201,
+    "macro_recall": 0.03125,
+    "micro_recall": 0.0196078431372549,
+    "count_mae": 5.625,
+    "total_tp": 1,
+    "total_gt_count": 51,
+    "total_pred_count": 14,
+    "format_valid_count": 6,
+    "mean_foreground_iou": 0.04807094731620874,
+    "mean_total_reward": 0.7980709473162088,
+    "total_same_gt_duplicate_count": 0,
+    "total_raw_overlap_pair_count": 0
+  },
+  "example_selection": {
+    "single": null,
+    "multiple": "TCGA-21-5786-01Z-00-DX1_x0_y512"
+  },
+  "example_selection_rule": "Lexicographically first ID with GT count exactly 1 and first with GT count >1; no output-based selection",
+  "single_example_unavailable": "There is no GT-count=1 crop in the evaluated benchmark8 cohort; no unevaluated prediction was substituted.",
+  "evidence": {
+    "source_result_sha256": "b317b548b9a4d290f0312f7a75db5306d111e093aefd8f181b5cae0f3e2faebc",
+    "source_arguments_sha256": "fd0615e0ba39b2f5ee6e48f2ba52edeab150d5253a0790548e4eb53c72196954",
+    "source_metadata_sha256": "e5aab75c63485c00ae171c405458bc7f6709abfe0ea39432a48ee01bcee4ecc7",
+    "before": {
+      "complete": true,
+      "expected_crops": 8,
+      "verified_final_maps": 8,
+      "verified_raw_masks": 8,
+      "missing_artifacts": [],
+      "file_sha256": {
+        "000001.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000001_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000001.txt": "621d3daa74abe53f409e132e5b0aa344985ce2af787c824aa42b47e3a3d8d120",
+        "000002.npy": "53f085ec80613458b90cb6ccd500677c6254301a312e667b1b52849c43917f16",
+        "000002_raw_masks.npz": "bd093ee8333c6658f265c5037d6902d540078ca493fd9c803601228a234c70e9",
+        "000002.txt": "01a225d3f5fe2653b200adbb1fbc3b3fc0614c84d379657a60f6b3fcb35723f4",
+        "000003.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000003_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000003.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000004.npy": "55ab3c421d54aee643be6b8a0fdf9e612e664912afbd234d64d74a8abf39464c",
+        "000004_raw_masks.npz": "cfeb2cad12ad17201b8923b46e8cf4a2d36e25cdeedaa8f9de623917681e2257",
+        "000004.txt": "f431165360a12f51b8028d4b82c4846cf49aa004c4ffd4a6f01bd8d1fe883678",
+        "000005.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000005_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000005.txt": "8eb909a4fa663969bbd1fd33619b59558a8482e7c6b6e37bbb34816e1f323af3",
+        "000006.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000006_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000006.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000007.npy": "9e831785bffbb2391df20894bfca41a9dad961acd8ba249a6981411481befeff",
+        "000007_raw_masks.npz": "bd500637580d4ca50af2b34f0a5e218148486e4d8e42213dce47667d0e4e0556",
+        "000007.txt": "d886319c17b8b6386def268164b6c4293e59be2000b3e0a7ae180d1d21b73cb0",
+        "000008.npy": "aca70ad25fee6b915f9168cac125b01e8562f93bd88f17da54c2725fedd237c8",
+        "000008_raw_masks.npz": "81292543238bce74ed89420badd41882bed683bb2691673ed23548f95354a6eb",
+        "000008.txt": "5c9d266831ab59ab8f3344f0984fd0ee0423a03ff4ee026973eed9c6f9e28826",
+        "summary.json": "0e9bd2f29aad0647b6328550e7d7c1ff784d4a0f6163ff506b3787995f744526",
+        "completions.jsonl": "c184de24e83057c2560e2aff60321c98cfec1a3c90e795d636b2c0b05019ba5c"
+      }
+    },
+    "after": {
+      "complete": true,
+      "expected_crops": 8,
+      "verified_final_maps": 8,
+      "verified_raw_masks": 8,
+      "missing_artifacts": [],
+      "file_sha256": {
+        "000001.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000001_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000001.txt": "e188cabf360e9ad069b56bcbf832b869fd1bcfd4c7e6e7534d4f154f78e0965a",
+        "000002.npy": "d9410f572feeac055ee4f2ce2a508d99feb90868ea9090d3bd803873c859893f",
+        "000002_raw_masks.npz": "5fa7282d85112ca2b0b67a10c59d575590538022d204dc52c073f9130c0b08cd",
+        "000002.txt": "a7225a60b721317aa977b7b6132761dd1b956dc9e51a2dde38ca330e6df6e480",
+        "000003.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000003_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000003.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000004.npy": "9f90248531ad7ae4af764ae0dcba1f980999a55c11607ee05cbe73930713bde1",
+        "000004_raw_masks.npz": "ad090de45726d851d3eaae49bfedd075f649d9f1f2316b9950df1e5000e55f57",
+        "000004.txt": "12388b80d8ee989a0fb6780fe36b35420810e6e6280e7f9ebb5c18bd1203df04",
+        "000005.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000005_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000005.txt": "20096a88b665a9980100ee7585ac7e3a415f3e66e7b842f5dbaed0fc2352c841",
+        "000006.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000006_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000006.txt": "698669ed841f9b90c3cfa758ad60cd36ce0d49fb2d76147301dd854e7048c0ee",
+        "000007.npy": "6ed6eb267718d8b9a949e3de6dac23a96069d5287255325c48d5bafe5f7c845f",
+        "000007_raw_masks.npz": "edb6aabe9cbd18062b16bc76f3f002abb61c99616ef74fb87905c02242e62dfa",
+        "000007.txt": "15b453a7c2a4dd453765350cf6ceb41c8ffbf0649499c7c6156ab0e42034981b",
+        "000008.npy": "1677defda15ec8b610e28b4cbe6b47911d84a1d698e63acc7d8fe95f26040d3a",
+        "000008_raw_masks.npz": "a44d1162a1938eb368c3b87a524682196b23a32fbc1214ff4868dca22cea6fec",
+        "000008.txt": "be411995bb7d453accbb7a85b8c7748323dfa0f1e3ad4f325b05c14d572f48b3",
+        "summary.json": "208ab012ee3073c621ad2c398e7145d218f7d001ce7b18cad933dd6d15d0fc64",
+        "completions.jsonl": "3d7449891c12dbfb398407c2e6d6d3431547ac13300c15182efd14b20e1fd9e5"
+      }
+    },
+    "raw_answers": "before_records.jsonl and after_records.jsonl preserve all source completion records byte-for-byte."
+  },
+  "conclusion": "The short run completed 20 real LoRA optimizer steps and added one matched nucleus (0 to 1 of 51). Two answers remain invalid in each phase. This small selected subset does not establish a robust improvement or an advantage from model size.",
+  "limitations": [
+    "Eight selected validation crops are a timing subset, not an untouched final test or representative benchmark.",
+    "Twenty optimizer steps do not establish the effect of longer training.",
+    "Do not pool these eight-crop scores with main validation64 scores.",
+    "Full-mask reward engineering; no weak-label, SOTA or clinical claim."
+  ],
+  "invalid_answer_handling": "Two of eight answers in each phase violate box bounds and are rejected as whole responses. Their final masks are empty and remain in all evaluation denominators; exact unmodified emitted text is preserved in the JSONL records."
+}

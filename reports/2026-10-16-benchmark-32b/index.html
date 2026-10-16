@@ -1,0 +1,80 @@
+<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>benchmark_32b_20</title><style>body{font:17px/1.6 system-ui,sans-serif;color:#172438;background:#eef3f8;
+max-width:1450px;margin:28px auto;padding:0 20px}section,details{background:white;
+padding:20px;border-radius:12px;margin:18px 0}h1{line-height:1.2}h2{font-size:24px}
+img{max-width:100%;height:auto}table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:9px;border-bottom:1px solid #dce3eb;vertical-align:top}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5f9;padding:16px}
+a{color:#075da8}.warning{border-left:5px solid #bc7d22}.scroll{overflow-x:auto}</style><h1>benchmark_32b_20</h1><p>Benchmark timing subset: 8 crops, 4 patients · Status: <b>verified_training_pilot</b></p><section class='warning'>Benchmark8 measures runtime and early behavior; do not pool or rank these scores against validation64.<p>before: 8/8 final maps verified, 8/8 raw-mask files verified; after: 8/8 final maps verified, 8/8 raw-mask files verified</p></section><section><h2>Observed outcome</h2><p>The run completed 20 optimizer steps with nonzero gradients and adapter changes at every step. Matching rose from 0 to 1 of 51 annotated nuclei. Two of eight answers remained invalid in each phase and remain in the metric denominators. One additional match on this selected subset does not establish a robust improvement or a model-size advantage.</p></section><section><h2>Before and after</h2><div class='scroll'><table><tr><th>Metric</th><th>Before</th><th>After</th></tr><tr><td>Macro PQ</td><td>0.0000</td><td>0.0126</td></tr><tr><td>Macro recall</td><td>0.0000</td><td>0.0312</td></tr><tr><td>Micro recall</td><td>0.0000</td><td>0.0196</td></tr><tr><td>Count MAE</td><td>5.7500</td><td>5.6250</td></tr><tr><td>Matched nuclei (TP)</td><td>0</td><td>1</td></tr><tr><td>Annotated nuclei</td><td>51</td><td>51</td></tr><tr><td>Final instances</td><td>17</td><td>14</td></tr><tr><td>Same-GT duplicate extras</td><td>0</td><td>0</td></tr><tr><td>Raw-mask overlap pairs</td><td>0</td><td>0</td></tr><tr><td>Valid answers</td><td>6</td><td>6</td></tr><tr><td>Foreground IoU</td><td>0.0450</td><td>0.0481</td></tr><tr><td>Reward (supporting diagnostic)</td><td>0.7950</td><td>0.7981</td></tr></table></div><p>Macro metrics weight crops equally; micro recall is total TP / total GT. Count MAE uses final instance counts. Invalid answers remain in the denominator. Duplicate extras refer to raw SAM masks matching the same GT above IoU 0.5; overlap pairs are a separate proxy.</p></section><section><h2>Training and resources</h2><div class='scroll'><table><tr><th>Item</th><th>Observed or planned value</th></tr><tr><td>Planned steps</td><td>20</td></tr><tr><td>Completed updates this run</td><td>20</td></tr><tr><td>Requested steps completed</td><td>Yes</td></tr><tr><td>Learning rate</td><td>1e-05</td></tr><tr><td>Seed</td><td>42</td></tr><tr><td>Training seconds</td><td>152.655</td></tr><tr><td>Before / after evaluation seconds</td><td>43.48 / 41.48</td></tr><tr><td>Total runner seconds</td><td>270.718</td></tr><tr><td>Training-step peak allocated GiB</td><td>63.672</td></tr><tr><td>Training-step peak reserved GiB</td><td>64.750</td></tr><tr><td>Adapter changed</td><td>Yes</td></tr><tr><td>Nonzero-gradient steps</td><td>20</td></tr><tr><td>Stop reason</td><td>None reported</td></tr></table></div><p>Unavailable means no saved value; it does not mean zero. Training time may include periodic evaluation and checkpoint work; total time also includes load, before/after evaluation and final saving.</p></section><section><h2>Single-nucleus example unavailable</h2><p>This evaluated cohort contains no crop in this GT-count category. No unevaluated example is substituted.</p></section><section><h2>Multiple-nucleus example</h2><p>TCGA-21-5786-01Z-00-DX1_x0_y512; 8 visible GT instances, including any edge fragments.</p><img src='multiple_example.png' alt='Same input and GT, with before/after parsed prompts, individual raw masks and final instances'><details><summary>Exact answers and provenance</summary><h3>Before exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[137,109,195,162],&quot;point&quot;:[163,135]}]}&lt;/answer&gt;</pre><h3>After exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[137,109,224,224],&quot;point&quot;:[180,160]}]}&lt;/answer&gt;</pre><pre>{
+  &quot;bbox_xyxy&quot;: [
+    0,
+    512,
+    128,
+    640
+  ],
+  &quot;instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    380,
+    381,
+    382,
+    383
+  ],
+  &quot;instance_count&quot;: 8,
+  &quot;truncated_instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    382
+  ],
+  &quot;border_touching_instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    382
+  ],
+  &quot;source_clipped_instance_ids&quot;: [],
+  &quot;source_image_id&quot;: &quot;TCGA-21-5786-01Z-00-DX1&quot;,
+  &quot;patient_id&quot;: &quot;TCGA-21-5786&quot;,
+  &quot;split&quot;: &quot;validation&quot;,
+  &quot;source_image_member&quot;: &quot;MoNuSeg 2018 Training Data/Tissue Images/TCGA-21-5786-01Z-00-DX1.tif&quot;,
+  &quot;source_xml_member&quot;: &quot;MoNuSeg 2018 Training Data/Annotations/TCGA-21-5786-01Z-00-DX1.xml&quot;,
+  &quot;physical_spacing&quot;: {
+    &quot;um_per_pixel&quot;: null,
+    &quot;source&quot;: &quot;not_verified&quot;,
+    &quot;tiff_resolution_tags&quot;: {},
+    &quot;note&quot;: &quot;TIFF display resolution is not assumed to be physical tissue spacing; no resizing performed.&quot;
+  },
+  &quot;id&quot;: &quot;TCGA-21-5786-01Z-00-DX1_x0_y512&quot;,
+  &quot;image_path&quot;: &quot;images/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;mask_path&quot;: &quot;masks/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;gt_mask&quot;: &quot;masks/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;path_base&quot;: &quot;manifest_directory&quot;,
+  &quot;source_archive&quot;: &quot;/Users/conny/Desktop/RLVR/RLVR/data/pathology/monuseg/MoNuSeg_2018_Training_data.zip&quot;,
+  &quot;instance_count_definition&quot;: &quot;Distinct nonzero IDs with at least one visible pixel; includes partial objects, not centroid-in-crop filtering.&quot;,
+  &quot;sampling_condition&quot;: {
+    &quot;crop_size&quot;: 128,
+    &quot;grid_stride&quot;: 128,
+    &quot;min_nuclei&quot;: 1,
+    &quot;max_nuclei&quot;: 8,
+    &quot;border_policy&quot;: &quot;visible&quot;,
+    &quot;zero_foreground_border&quot;: false,
+    &quot;all_visible_instances_complete_in_source_mask&quot;: false,
+    &quot;clipped_to_source_image_instances_excluded&quot;: false,
+    &quot;ignored_pixels&quot;: 0,
+    &quot;negative_roa_images_excluded&quot;: true,
+    &quot;degenerate_polygon_images_excluded&quot;: true,
+    &quot;partial_instance_policy&quot;: &quot;All visible pixels of every included instance remain supervised; truncated IDs are listed per crop.&quot;,
+    &quot;selection_bias&quot;: &quot;At most 8 visible nuclei and selected engineering patients; not representative whole-slide performance.&quot;
+  },
+  &quot;cohort_id&quot;: &quot;monuseg2018_official_training30&quot;,
+  &quot;cohort_protocol_sha256&quot;: &quot;cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87&quot;,
+  &quot;image_sha256&quot;: &quot;059b7e5a9271b601d887147cc574f20c9f2282d07b7ee5d7b6fdcf1e1dbd4189&quot;,
+  &quot;mask_sha256&quot;: &quot;5fb6690067c63a9d4b8736de5ac826ae8eb1eeaad69e34152d6dd74b94db5b43&quot;,
+  &quot;image_pixels_sha256&quot;: &quot;a7fde1f90832c9ed25d72234f3369a2995613229a9d77fb240aad1be8ac26d2f&quot;,
+  &quot;source_image_sha256&quot;: &quot;fbee9258bc8df706b9bba8b30a8064b4aede797a54224715af28564c342296ef&quot;,
+  &quot;source_xml_sha256&quot;: &quot;a02e0eea799db7d65ec4a4e6ed87262b304e3d043cb1e2cb22a6eaba667a128e&quot;
+}</pre></details></section><section><h2>Scope and evidence</h2><p>Full-mask engineering validation, selected 1-8-nucleus crops; validation reused and used for model selection; no official test or clinical/SOTA claim. Partial scores are not full-cohort estimates.</p><p><a href='summary.json'>Verified summary and provenance</a> · <a href='before_records.jsonl'>Every before answer</a> · <a href='after_records.jsonl'>Every after answer</a></p><p>No model was run to create this report. Source records remain unchanged; accepted masks and duplicates were recomputed from saved artifacts where available. Raw-mask tiles show every saved mask, including empty masks.</p></section></html>
