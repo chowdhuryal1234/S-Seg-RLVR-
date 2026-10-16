@@ -1,0 +1,853 @@
+{
+  "source_run": "runs/multi_nucleus_probe_32b_20261015",
+  "source_result_sha256": "11a9c43df8163aa3048c46b0fd3467ff57f615bd4eff3821bf4c3fac9d1dc10a",
+  "status": "completed_multi_nucleus_probe",
+  "created_utc": "2026-10-16T01:54:08.155444+00:00",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "adapter": null
+  },
+  "generation_controls": {
+    "seed": 42,
+    "do_sample": false,
+    "use_cache": true,
+    "max_new_tokens": 512,
+    "max_objects": 8,
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "optimizer_steps": 0,
+  "sam_used": false,
+  "scope": "One selected multi-nucleus training-source crop; diagnostic, not held-out performance",
+  "source": {
+    "size": [
+      128,
+      128
+    ],
+    "image_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+    "mask_sha256": "db03f92be954226490d276e51d8f2d8754177f18db6e9c2f321e376f417bb495",
+    "selection": {
+      "source_image_id": "TCGA-B0-5711-01Z-00-DX1",
+      "patient_id": "TCGA-B0-5711",
+      "split": "train",
+      "crop_bbox_source": [
+        664,
+        296,
+        792,
+        424
+      ],
+      "instance_ids": [
+        157,
+        228,
+        276
+      ],
+      "instance_count": 3,
+      "outside_gt_dark_pixels": 2222,
+      "nuclei": [
+        {
+          "instance_id": 157,
+          "area": 529,
+          "bbox_original": [
+            7,
+            27,
+            30,
+            54
+          ]
+        },
+        {
+          "instance_id": 228,
+          "area": 462,
+          "bbox_original": [
+            68,
+            84,
+            98,
+            105
+          ]
+        },
+        {
+          "instance_id": 276,
+          "area": 494,
+          "bbox_original": [
+            76,
+            6,
+            99,
+            35
+          ]
+        }
+      ],
+      "contact_sheet_index": 2,
+      "crop_image_png_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+      "crop_mask_png_sha256": "db03f92be954226490d276e51d8f2d8754177f18db6e9c2f321e376f417bb495",
+      "id": "TCGA-B0-5711-01Z-00-DX1_x664_y296",
+      "bbox_xyxy": [
+        664,
+        296,
+        792,
+        424
+      ],
+      "crop_bbox_original": [
+        664,
+        296,
+        792,
+        424
+      ],
+      "crop_bbox_original_definition": "Half-open XYXY crop window in original 1000x1000 source image; nuclei[].bbox_original and geometry[].bbox_original are local to native 128x128 crop.",
+      "created_utc": "2026-10-16T01:50:54.641153+00:00",
+      "selection_status": "Locked before inference; parent visually approved contact-sheet candidate 2.",
+      "selection_method": "Enumerated fixed 8-pixel-grid native 128x128 crops in same source image used for single-nucleus probe; accepted 2-4 full, non-source-clipped annotated nuclei with >=5 px crop margins, each area >=100 px and bounding-box sides 8-60 px. Preferred exactly 3; ranked by outside-GT dark-pixel heuristic and deduplicated identical instance groups. Team visually reviewed 8 candidates and selected candidate 2 for three dark spatially separated nuclei. No model outputs inspected.",
+      "scope": "One visually selected few-nucleus training-source diagnostic; not a held-out benchmark or representative sample.",
+      "source_archive": "/Users/conny/Desktop/RLVR/RLVR/data/pathology/monuseg/MoNuSeg_2018_Training_data.zip",
+      "source_archive_sha256": "25d3d3185bb2970b397cafa72eb664c9b4d24294aee382e7e3df9885affce742",
+      "source_image_member": "MoNuSeg 2018 Training Data/Tissue Images/TCGA-B0-5711-01Z-00-DX1.tif",
+      "source_xml_member": "MoNuSeg 2018 Training Data/Annotations/TCGA-B0-5711-01Z-00-DX1.xml",
+      "source_image_sha256": "7384ad4fe3ae9bab49dc7df10d7158ca7767e1c46c0a1661632ba090a4ec737d",
+      "source_xml_sha256": "88dad5dd2b7e3c19e18f1011eeb78d80c01fe375251ea39e2bc586e1a6709b60",
+      "image_path": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/runs/multi_nucleus_selection_20261015/input.png",
+      "mask_path": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/runs/multi_nucleus_selection_20261015/gt_mask.png",
+      "gt_mask": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/runs/multi_nucleus_selection_20261015/gt_mask.png",
+      "image_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+      "mask_sha256": "db03f92be954226490d276e51d8f2d8754177f18db6e9c2f321e376f417bb495",
+      "original_size": [
+        128,
+        128
+      ],
+      "source_size": [
+        1000,
+        1000
+      ],
+      "native_pixels_preserved": true,
+      "resizing_performed": false,
+      "geometry": [
+        {
+          "instance_id": 157,
+          "xml_id": "558",
+          "area": 529,
+          "area_in_source": 529,
+          "bbox_original": [
+            7,
+            27,
+            30,
+            54
+          ],
+          "bbox_processed224": [
+            12.25,
+            47.25,
+            52.5,
+            94.5
+          ],
+          "bbox_source": [
+            671,
+            323,
+            694,
+            350
+          ],
+          "interior_point_original": [
+            18,
+            40
+          ],
+          "interior_point_processed224": [
+            31.5,
+            70.0
+          ],
+          "visible_centroid_original_xy": [
+            18.001890359168243,
+            40.0226843100189
+          ],
+          "minimum_crop_margin_pixels": 7,
+          "full_xml_polygon_inside_crop": true,
+          "source_instance_raster_log": {
+            "instance_id": 157,
+            "xml_id": "558",
+            "clipped_to_image": false,
+            "input_polygon_pixels": 529,
+            "overlap_pixels_removed": 0,
+            "assigned_pixels": 529,
+            "fragments_4_connected": 1,
+            "dropped": false
+          }
+        },
+        {
+          "instance_id": 228,
+          "xml_id": "643",
+          "area": 462,
+          "area_in_source": 462,
+          "bbox_original": [
+            68,
+            84,
+            98,
+            105
+          ],
+          "bbox_processed224": [
+            119.0,
+            147.0,
+            171.5,
+            183.75
+          ],
+          "bbox_source": [
+            732,
+            380,
+            762,
+            401
+          ],
+          "interior_point_original": [
+            82,
+            93
+          ],
+          "interior_point_processed224": [
+            143.5,
+            162.75
+          ],
+          "visible_centroid_original_xy": [
+            81.5995670995671,
+            93.0909090909091
+          ],
+          "minimum_crop_margin_pixels": 23,
+          "full_xml_polygon_inside_crop": true,
+          "source_instance_raster_log": {
+            "instance_id": 228,
+            "xml_id": "643",
+            "clipped_to_image": false,
+            "input_polygon_pixels": 462,
+            "overlap_pixels_removed": 0,
+            "assigned_pixels": 462,
+            "fragments_4_connected": 1,
+            "dropped": false
+          }
+        },
+        {
+          "instance_id": 276,
+          "xml_id": "704",
+          "area": 494,
+          "area_in_source": 494,
+          "bbox_original": [
+            76,
+            6,
+            99,
+            35
+          ],
+          "bbox_processed224": [
+            133.0,
+            10.5,
+            173.25,
+            61.25
+          ],
+          "bbox_source": [
+            740,
+            302,
+            763,
+            331
+          ],
+          "interior_point_original": [
+            88,
+            20
+          ],
+          "interior_point_processed224": [
+            154.0,
+            35.0
+          ],
+          "visible_centroid_original_xy": [
+            88.08502024291498,
+            20.163967611336034
+          ],
+          "minimum_crop_margin_pixels": 6,
+          "full_xml_polygon_inside_crop": true,
+          "source_instance_raster_log": {
+            "instance_id": 276,
+            "xml_id": "704",
+            "clipped_to_image": false,
+            "input_polygon_pixels": 494,
+            "overlap_pixels_removed": 0,
+            "assigned_pixels": 494,
+            "fragments_4_connected": 1,
+            "dropped": false
+          }
+        }
+      ],
+      "geometry_coordinate_convention": "Half-open XYXY tight boxes from rasterized masks; listed interior points are integer coordinates of a foreground pixel nearest the visible-pixel centroid. Expected 224-frame coordinates scale each value by 224/128; the actual processor frame must be verified independently.",
+      "training_membership": {
+        "manifest": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/data/monuseg_iris_pilot_v1/train.jsonl",
+        "sha256": "2c1218d6b78af1de96476c8b73ae48c365469258aa1537bf5109923d75f2c0de",
+        "existing_training_rows_same_source": [
+          "TCGA-B0-5711-01Z-00-DX1_x0_y0",
+          "TCGA-B0-5711-01Z-00-DX1_x256_y256"
+        ],
+        "split": "train"
+      },
+      "validation_patient_checks": [
+        {
+          "manifest": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/data/monuseg_engineering_v1/validation.jsonl",
+          "sha256": "488ff10b4bc656d4aecc9149b1cdac6b6b1c49584809f6beb11d7c18ee5ca7ad",
+          "patient_present": false
+        },
+        {
+          "manifest": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/data/monuseg_iris_pilot_v1/validation.jsonl",
+          "sha256": "7edccf130d74b1f2604998e7f4cb0c35d2adf40814fd7b9950fb9929ead54466",
+          "patient_present": false
+        }
+      ],
+      "official30_membership": {
+        "cohort_id": "monuseg2018_official_training30",
+        "protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "source_image_present": true
+      },
+      "annotation_checks": {
+        "all_included_instances_complete": true,
+        "all_full_xml_polygons_inside_crop": true,
+        "instance_areas_in_crop": {
+          "157": 529,
+          "228": 462,
+          "276": 494
+        },
+        "instance_areas_in_source": {
+          "157": 529,
+          "228": 462,
+          "276": 494
+        },
+        "other_instance_ids": [],
+        "foreground_border_pixels": 0,
+        "source_clipped_instance_ids": [],
+        "negative_roa_present": false,
+        "degenerate_polygon_present": false,
+        "original_rgb_crop_pixel_exact": true,
+        "original_raster_mask_crop_pixel_exact": true,
+        "rasterizer": "scripts.prepare_monuseg.rasterize_regions; stable original ordinal IDs; nearest-integer polygon vertices, PIL inclusive fill, earliest region wins overlaps",
+        "rasterizer_source_sha256": "fe90bb659e366984a24b94fdc203ec0c56634b6033d0076c6a8332236d43d468"
+      },
+      "visual_review": "Three prominent dark-purple annotated nuclei separated spatially, selected over fainter candidates. A dark elongated tissue structure is also visible; visual review is by the team, not a pathologist re-annotation or proof that all biologically plausible nuclei are annotated.",
+      "geometry_use": "GT mask, boxes, interior points, selection metadata and annotated contact sheet are for verification/overlay/scoring only. Model input must be the unannotated input.png plus the agreed task prompt."
+    }
+  },
+  "known_geometry": {
+    "original_size": [
+      128,
+      128
+    ],
+    "processed_size": [
+      224,
+      224
+    ],
+    "gt_count": 3,
+    "instances": [
+      {
+        "display_id": "G1",
+        "instance_id": 157,
+        "original_box": [
+          7,
+          27,
+          30,
+          54
+        ],
+        "processed_box": [
+          12.25,
+          47.25,
+          52.5,
+          94.5
+        ],
+        "centroid_original": [
+          18.001890359168243,
+          40.0226843100189
+        ],
+        "centroid_processed": [
+          31.503308128544425,
+          70.03969754253308
+        ],
+        "area": 529
+      },
+      {
+        "display_id": "G2",
+        "instance_id": 228,
+        "original_box": [
+          68,
+          84,
+          98,
+          105
+        ],
+        "processed_box": [
+          119.0,
+          147.0,
+          171.5,
+          183.75
+        ],
+        "centroid_original": [
+          81.5995670995671,
+          93.0909090909091
+        ],
+        "centroid_processed": [
+          142.7992424242424,
+          162.9090909090909
+        ],
+        "area": 462
+      },
+      {
+        "display_id": "G3",
+        "instance_id": 276,
+        "original_box": [
+          76,
+          6,
+          99,
+          35
+        ],
+        "processed_box": [
+          133.0,
+          10.5,
+          173.25,
+          61.25
+        ],
+        "centroid_original": [
+          88.08502024291498,
+          20.163967611336034
+        ],
+        "centroid_processed": [
+          154.1487854251012,
+          35.28694331983806
+        ],
+        "area": 494
+      }
+    ]
+  },
+  "prompt": [
+    {
+      "role": "system",
+      "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."
+    },
+    {
+      "role": "user",
+      "content": "Locate every visible nucleus, at most 8 objects. For each nucleus give a tight box [x0,y0,x1,y1] and an interior foreground point [x,y]. Use pixel coordinates of the PROCESSED image shown to you, which is 224 pixels wide and 224 pixels high: 0<=x0<x1<=224, 0<=y0<y1<=224; the point must be inside its box and inside the image. Do not use normalized coordinates. Respond exactly as <answer>{\"objects\":[{\"box\":[x0,y0,x1,y1],\"point\":[x,y]}]}</answer>. Use one object per nucleus, with no prose or markdown.\n\nFormatting example with invented coordinates, unrelated to the supplied image:\n<answer>{\"objects\":[{\"box\":[56,56,112,112],\"point\":[84,84]}]}</answer>\n\nNow inspect the supplied image and return its actual nuclei using the same format. Choose the objects and coordinates from this image; do not copy the example. Return only one complete <answer>...</answer> block containing valid JSON, with numeric coordinates."
+    }
+  ],
+  "text": "<answer>{\"objects\":[{\"box\":[37,39,85,87],\"point\":[57,63]},{\"box\":[144,10,196,60],\"point\":[168,35]},{\"box\":[-1,156,55,202],\"point\":[25,178]},{\"box\":[144,156,196,202],\"point\":[170,178]},{\"box\":[196,156,224,202],\"point\":[209,178]}]}</answer>",
+  "format_valid": false,
+  "parse_error": "Box must have positive area and lie inside the image",
+  "object_count": 0,
+  "analysis": {
+    "metric_scope": "Box/point localization only; no mask PQ or segmentation reward.",
+    "box_match_rule": "One-to-one box IoU > 0.5; maximize match count, then summed IoU; exact ties use P/G order.",
+    "gt_count": 3,
+    "prediction_count": 0,
+    "absolute_count_error": 3,
+    "predictions": [],
+    "box_iou_matrix": [],
+    "box_iou_matrix_prediction_ids": [],
+    "box_iou_matrix_gt_ids": [
+      "G1",
+      "G2",
+      "G3"
+    ],
+    "box_matches": [],
+    "box_true_positive_count": 0,
+    "matched_gt_ids": [],
+    "missed_gt_ids": [
+      "G1",
+      "G2",
+      "G3"
+    ],
+    "unmatched_prediction_ids": [],
+    "box_recall": 0.0,
+    "best_box_duplicate_count": 0,
+    "best_box_duplicate_groups": [],
+    "point_duplicate_count": 0,
+    "point_duplicate_groups": [],
+    "predicted_box_overlap_pair_count": 0,
+    "predicted_box_overlap_pairs": [],
+    "translation_diagnostic": {
+      "status": "insufficient_associations",
+      "association_rule": "Unique positive-IoU best GT box per prediction; exclude tied bests and all GT collisions; require at least two associations.",
+      "diagnostic_associations_not_true_positive_matches": true,
+      "does_not_establish_global_shift": true,
+      "offset_definition": "Predicted box center minus GT bounding-box center, in processed pixels.",
+      "association_count": 0,
+      "associations": [],
+      "center_offsets_processed_xy": [],
+      "mean_offset_processed_xy": null,
+      "rms_residual_processed": null,
+      "rms_residual_processed_xy": null
+    }
+  },
+  "prompt_size": [
+    224,
+    224
+  ],
+  "original_size": [
+    128,
+    128
+  ],
+  "scale_to_original": [
+    0.5714285714285714,
+    0.5714285714285714
+  ],
+  "completion_tokens": 141,
+  "hit_token_cap": false,
+  "pixel_values_sha256": "90cad443724bfda6013c767cb2d8abde514d6e59ec2d44758e7e13ee1eb07117",
+  "independent_audit_sha256": "4fcbae1e086bcc49df2acb2b22086dd9dc36fffe01e48fd8f5604a7c250adfb7",
+  "strict_result": {
+    "format_valid": false,
+    "parse_error": "Box must have positive area and lie inside the image",
+    "accepted_object_count": 0,
+    "box_recall": 0.0,
+    "saved_analysis_verified": true
+  },
+  "raw_forensic_analysis": {
+    "scope": "ALL raw JSON entries in a strictly REJECTED response, inspected without clipping, repair or acceptance. This is not the official accepted-prediction result.",
+    "metric_scope": "Box/point localization only; no SAM, masks, PQ, training rewards or model update.",
+    "box_match_rule": "Unclipped continuous boxes; strict IoU > 0.5; exhaustive maximum cardinality then summed IoU; ties use P/G order.",
+    "gt_count": 3,
+    "prediction_count": 5,
+    "absolute_count_error": 2,
+    "predictions": [
+      {
+        "display_id": "P1",
+        "raw_box": [
+          37,
+          39,
+          85,
+          87
+        ],
+        "raw_point": [
+          57,
+          63
+        ],
+        "original_box": [
+          21.142857142857142,
+          22.285714285714285,
+          48.57142857142857,
+          49.714285714285715
+        ],
+        "original_point": [
+          32.57142857142857,
+          36.0
+        ],
+        "point_floor_xy": [
+          32,
+          36
+        ],
+        "point_gt_id": null,
+        "point_gt_instance_id": null,
+        "point_status": "background",
+        "distance_to_nearest_foreground_pixel_index_original": 3.5714285714285694,
+        "distance_definition": "For background points, Euclidean distance from continuous original point to nearest foreground pixel index; zero for actual foreground membership. Descriptive, no near/far threshold.",
+        "best_box_gt_id": "G1",
+        "best_box_gt_instance_id": 157,
+        "best_box_iou": 0.17163750326455993,
+        "best_box_iou_tied": false,
+        "center_offset_processed_xy": [
+          28.625,
+          -7.875
+        ],
+        "edge_errors_processed_xyxy": [
+          24.75,
+          -8.25,
+          32.5,
+          -7.5
+        ],
+        "per_entry_contract_valid": true,
+        "contract_violations": [],
+        "accepted_by_strict_parser": false
+      },
+      {
+        "display_id": "P2",
+        "raw_box": [
+          144,
+          10,
+          196,
+          60
+        ],
+        "raw_point": [
+          168,
+          35
+        ],
+        "original_box": [
+          82.28571428571429,
+          5.714285714285714,
+          112.0,
+          34.285714285714285
+        ],
+        "original_point": [
+          96.0,
+          20.0
+        ],
+        "point_floor_xy": [
+          96,
+          20
+        ],
+        "point_gt_id": "G3",
+        "point_gt_instance_id": 276,
+        "point_status": "foreground",
+        "distance_to_nearest_foreground_pixel_index_original": 0.0,
+        "distance_definition": "For background points, Euclidean distance from continuous original point to nearest foreground pixel index; zero for actual foreground membership. Descriptive, no near/far threshold.",
+        "best_box_gt_id": "G3",
+        "best_box_gt_instance_id": 276,
+        "best_box_iou": 0.45319561007101355,
+        "best_box_iou_tied": false,
+        "center_offset_processed_xy": [
+          16.875,
+          -0.875
+        ],
+        "edge_errors_processed_xyxy": [
+          11.0,
+          -0.5,
+          22.75,
+          -1.25
+        ],
+        "per_entry_contract_valid": true,
+        "contract_violations": [],
+        "accepted_by_strict_parser": false
+      },
+      {
+        "display_id": "P3",
+        "raw_box": [
+          -1,
+          156,
+          55,
+          202
+        ],
+        "raw_point": [
+          25,
+          178
+        ],
+        "original_box": [
+          -0.5714285714285714,
+          89.14285714285714,
+          31.428571428571427,
+          115.42857142857143
+        ],
+        "original_point": [
+          14.285714285714286,
+          101.71428571428571
+        ],
+        "point_floor_xy": [
+          14,
+          101
+        ],
+        "point_gt_id": null,
+        "point_gt_instance_id": null,
+        "point_status": "background",
+        "distance_to_nearest_foreground_pixel_index_original": 48.74443976663661,
+        "distance_definition": "For background points, Euclidean distance from continuous original point to nearest foreground pixel index; zero for actual foreground membership. Descriptive, no near/far threshold.",
+        "best_box_gt_id": null,
+        "best_box_gt_instance_id": null,
+        "best_box_iou": 0.0,
+        "best_box_iou_tied": false,
+        "center_offset_processed_xy": null,
+        "edge_errors_processed_xyxy": null,
+        "per_entry_contract_valid": false,
+        "contract_violations": [
+          "box_outside_processed_image_bounds"
+        ],
+        "accepted_by_strict_parser": false
+      },
+      {
+        "display_id": "P4",
+        "raw_box": [
+          144,
+          156,
+          196,
+          202
+        ],
+        "raw_point": [
+          170,
+          178
+        ],
+        "original_box": [
+          82.28571428571429,
+          89.14285714285714,
+          112.0,
+          115.42857142857143
+        ],
+        "original_point": [
+          97.14285714285714,
+          101.71428571428571
+        ],
+        "point_floor_xy": [
+          97,
+          101
+        ],
+        "point_gt_id": null,
+        "point_gt_instance_id": null,
+        "point_status": "background",
+        "distance_to_nearest_foreground_pixel_index_original": 7.0580681868774935,
+        "distance_definition": "For background points, Euclidean distance from continuous original point to nearest foreground pixel index; zero for actual foreground membership. Descriptive, no near/far threshold.",
+        "best_box_gt_id": "G2",
+        "best_box_gt_instance_id": 228,
+        "best_box_iou": 0.2144663809456896,
+        "best_box_iou_tied": false,
+        "center_offset_processed_xy": [
+          24.75,
+          13.625
+        ],
+        "edge_errors_processed_xyxy": [
+          25.0,
+          9.0,
+          24.5,
+          18.25
+        ],
+        "per_entry_contract_valid": true,
+        "contract_violations": [],
+        "accepted_by_strict_parser": false
+      },
+      {
+        "display_id": "P5",
+        "raw_box": [
+          196,
+          156,
+          224,
+          202
+        ],
+        "raw_point": [
+          209,
+          178
+        ],
+        "original_box": [
+          112.0,
+          89.14285714285714,
+          128.0,
+          115.42857142857143
+        ],
+        "original_point": [
+          119.42857142857143,
+          101.71428571428571
+        ],
+        "point_floor_xy": [
+          119,
+          101
+        ],
+        "point_gt_id": null,
+        "point_gt_instance_id": null,
+        "point_status": "background",
+        "distance_to_nearest_foreground_pixel_index_original": 24.85632182552112,
+        "distance_definition": "For background points, Euclidean distance from continuous original point to nearest foreground pixel index; zero for actual foreground membership. Descriptive, no near/far threshold.",
+        "best_box_gt_id": null,
+        "best_box_gt_instance_id": null,
+        "best_box_iou": 0.0,
+        "best_box_iou_tied": false,
+        "center_offset_processed_xy": null,
+        "edge_errors_processed_xyxy": null,
+        "per_entry_contract_valid": true,
+        "contract_violations": [],
+        "accepted_by_strict_parser": false
+      }
+    ],
+    "box_iou_matrix": [
+      [
+        0.17163750326455993,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.45319561007101355
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.2144663809456896,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "box_iou_matrix_prediction_ids": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "box_iou_matrix_gt_ids": [
+      "G1",
+      "G2",
+      "G3"
+    ],
+    "box_matches": [],
+    "box_true_positive_count": 0,
+    "matched_gt_ids": [],
+    "missed_gt_ids": [
+      "G1",
+      "G2",
+      "G3"
+    ],
+    "unmatched_prediction_ids": [
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5"
+    ],
+    "box_recall": 0.0,
+    "best_box_duplicate_count": 0,
+    "best_box_duplicate_groups": [],
+    "point_duplicate_count": 0,
+    "point_duplicate_groups": [],
+    "predicted_box_overlap_pair_count": 0,
+    "predicted_box_overlap_pairs": [],
+    "translation_diagnostic": {
+      "status": "supported_associations",
+      "association_rule": "Unique positive-IoU best GT box; exclude tied bests and all GT collisions; at least two associations. Includes unaccepted raw entries only for forensic inspection.",
+      "diagnostic_associations_not_true_positive_matches": true,
+      "does_not_establish_global_shift": true,
+      "offset_definition": "Predicted box center minus GT bounding-box center in processed pixels.",
+      "association_count": 3,
+      "associations": [
+        {
+          "prediction_id": "P1",
+          "gt_id": "G1",
+          "box_iou": 0.17163750326455993,
+          "center_offset_processed_xy": [
+            28.625,
+            -7.875
+          ]
+        },
+        {
+          "prediction_id": "P2",
+          "gt_id": "G3",
+          "box_iou": 0.45319561007101355,
+          "center_offset_processed_xy": [
+            16.875,
+            -0.875
+          ]
+        },
+        {
+          "prediction_id": "P4",
+          "gt_id": "G2",
+          "box_iou": 0.2144663809456896,
+          "center_offset_processed_xy": [
+            24.75,
+            13.625
+          ]
+        }
+      ],
+      "center_offsets_processed_xy": [
+        [
+          28.625,
+          -7.875
+        ],
+        [
+          16.875,
+          -0.875
+        ],
+        [
+          24.75,
+          13.625
+        ]
+      ],
+      "mean_offset_processed_xy": [
+        23.416666666666668,
+        1.625
+      ],
+      "rms_residual_processed": 10.201273068701877,
+      "rms_residual_processed_xy": [
+        4.888691599554583,
+        8.95358401237553
+      ]
+    }
+  }
+}
