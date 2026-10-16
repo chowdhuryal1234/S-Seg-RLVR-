@@ -44,3 +44,9 @@ These explicit cross-branch GitHub links allow this standalone roadmap report to
 - The historical translation audit SHA-256 remains `22ffc1504ef2d99d1e6befb968d56ddf02b8eee6fba8bb6f86c720c4465755c0`.
 
 This final artifact update performs no GPU/model launch, Git operation, raw-data edit, frozen-code edit, reward change or protocol change. Publication and model-checkpoint backups are handled separately.
+
+## Final preservation and publication verification
+
+[Final verification record](final-verification.json) confirms 37,946 backed-up files (2,412,020,844 bytes) match the remote SHA-256 inventory exactly. All six sealed final checkpoints passed verification, and each final adapter matches its checkpoint. Persistent remote results and the complete local backup are retained. Checkpoint loading/resume on a GPU was not exercised by this audit.
+
+All 18 experiment/infrastructure/report PRs are open drafts, attached to the project chat and unmerged; 103 expected report/code paths were verified at their live heads. The H200 allocation was released after training completed and backup verification passed, with 4h48m10s total allocation time. The existing A100 was retained. No additional allocation, extension or usage reset was used.

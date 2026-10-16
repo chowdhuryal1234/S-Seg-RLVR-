@@ -1,0 +1,165 @@
+{
+  "verified_utc": "2026-10-16T08:18:33.201416+00:00",
+  "completion": "All six planned runs finished; reports and checkpoints preserved.",
+  "training": {
+    "completed_runs": 6,
+    "benchmark_steps": [
+      20,
+      20
+    ],
+    "main_steps": [
+      1000,
+      1000,
+      400
+    ],
+    "selected_setting_repeat_steps": 1000,
+    "sam_and_vision_frozen": true,
+    "reward": "R_fmt + full-mask binary foreground union IoU",
+    "official_test_used": false
+  },
+  "backup": {
+    "file_count": 37946,
+    "bytes": 2412020844,
+    "all_sha256_match": true,
+    "final_checkpoints_verified": 6,
+    "final_adapters_match_checkpoints": true,
+    "remote_persistent_suite": "/n/home01/jzhou1125/rlvr-overnight-20261016/runs/experiment_suite",
+    "local_suite": "runs/h200_overnight_20261016",
+    "inventory_sha256": "21f0fcab4e938a337db630f5c5cdac59293cb432c9b438233a3a9987cecc6fdf",
+    "resume_execution_tested": false
+  },
+  "preservation": {
+    "protected_files": 811,
+    "all_hashes_match": true,
+    "translated_existing_files": 14,
+    "chinese_characters_in_translated_existing_files": 0,
+    "historical_audit_sha256": "22ffc1504ef2d99d1e6befb968d56ddf02b8eee6fba8bb6f86c720c4465755c0"
+  },
+  "publication": {
+    "pull_requests": [
+      {
+        "number": 1,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/1",
+        "branch": "codex/official30-data-20261016",
+        "base": "main"
+      },
+      {
+        "number": 2,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/2",
+        "branch": "codex/evaluation-infrastructure-20261016",
+        "base": "codex/official30-data-20261016"
+      },
+      {
+        "number": 3,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/3",
+        "branch": "codex/prompt-ablation-20261016",
+        "base": "codex/evaluation-infrastructure-20261016"
+      },
+      {
+        "number": 4,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/4",
+        "branch": "codex/followup-cd-20261016",
+        "base": "codex/prompt-ablation-20261016"
+      },
+      {
+        "number": 5,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/5",
+        "branch": "codex/coordinate-calibration-20261016",
+        "base": "codex/prompt-ablation-20261016"
+      },
+      {
+        "number": 6,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/6",
+        "branch": "codex/single-nucleus-20261016",
+        "base": "codex/coordinate-calibration-20261016"
+      },
+      {
+        "number": 7,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/7",
+        "branch": "codex/multi-nucleus-20261016",
+        "base": "codex/single-nucleus-20261016"
+      },
+      {
+        "number": 8,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/8",
+        "branch": "codex/recognition-coordinate-20261016",
+        "base": "codex/multi-nucleus-20261016"
+      },
+      {
+        "number": 9,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/9",
+        "branch": "codex/isolated-crop-20261016",
+        "base": "codex/recognition-coordinate-20261016"
+      },
+      {
+        "number": 10,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/10",
+        "branch": "codex/bounded-grpo-training-20261016",
+        "base": "codex/evaluation-infrastructure-20261016"
+      },
+      {
+        "number": 11,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/11",
+        "branch": "codex/training-report-generator-20261016",
+        "base": "codex/bounded-grpo-training-20261016"
+      },
+      {
+        "number": 12,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/12",
+        "branch": "codex/benchmark-7b-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 13,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/13",
+        "branch": "codex/benchmark-32b-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 14,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/14",
+        "branch": "codex/morning-roadmap-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 15,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/15",
+        "branch": "codex/main-7b-lr1e-5-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 16,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/16",
+        "branch": "codex/main-7b-lr5e-5-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 17,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/17",
+        "branch": "codex/main-32b-lr1e-5-20261016",
+        "base": "codex/training-report-generator-20261016"
+      },
+      {
+        "number": 18,
+        "url": "https://github.com/chowdhuryal1234/S-Seg-RLVR-/pull/18",
+        "branch": "codex/repeat-7b-seed43-20261016",
+        "base": "codex/training-report-generator-20261016"
+      }
+    ],
+    "all_open_draft_unmerged": true,
+    "all_attached_to_root_chat": true,
+    "expected_report_code_paths_checked": 103,
+    "missing_paths": 0
+  },
+  "compute": {
+    "h200_job": "53344394",
+    "h200_release_requested_after_backup": true,
+    "a100_job": "53253742",
+    "a100_retained": true,
+    "additional_allocations_or_extensions": false,
+    "h200_state": "CANCELLED by owner after all six runs finished and backups passed",
+    "h200_elapsed": "04:48:10",
+    "a100_state_at_final_check": "RUNNING"
+  },
+  "interpretation": "Limited engineering-validation improvement; severe multi-object under-detection remains. No SOTA or clinical claim."
+}
