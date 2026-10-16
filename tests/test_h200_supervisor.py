@@ -51,7 +51,7 @@ class SupervisorTests(unittest.TestCase):
         plan = runner.plan_main({"7b": timing, "32b": timing}, 18000)
         n, large = plan["7b_equal_steps"], plan["32b_steps"]
         self.assertGreater(n, 0)
-        self.assertGreaterEqual(large, 500)
+        self.assertGreaterEqual(large, 100)
         total = 2 * runner.forecast(timing, n)["hard_seconds"] + runner.forecast(timing, large)["hard_seconds"]
         self.assertLessEqual(total, 18000)
         self.assertLessEqual(runner.forecast(timing, large)["hard_seconds"], 7200)
@@ -63,10 +63,19 @@ class SupervisorTests(unittest.TestCase):
         self.assertEqual(plan["32b_steps"], 0)
         self.assertGreater(plan["7b_equal_steps"], 0)
 
-    def test_insufficient_time_never_invents_short_32b_or_negative_budget(self):
+    def test_insufficient_time_never_invents_sub100_32b_or_negative_budget(self):
         timing = runner.timing_from_benchmark(benchmark())
         self.assertEqual(runner.plan_main({"7b": timing, "32b": timing}, -1)["7b_equal_steps"], 0)
-        self.assertEqual(runner.affordable_steps(timing, 500, minimum=500), 0)
+        self.assertEqual(runner.affordable_steps(timing, 500, minimum=100), 0)
+
+    def test_measured_32b_can_receive_300_steps_when_500_cannot_fit(self):
+        small = runner.timing_from_benchmark(benchmark())
+        large = {**small, "seconds_per_step": 15}
+        plan = runner.plan_main({"7b": small, "32b": large}, 24000)
+        self.assertEqual(plan["32b_steps"], 300)
+        self.assertEqual(plan["7b_equal_steps"], 900)
+        self.assertLessEqual(runner.forecast(large, 300)["hard_seconds"], 7200)
+        self.assertGreater(runner.forecast(large, 500)["hard_seconds"], 7200)
 
     def test_lr_pair_changes_only_lr_and_output(self):
         args = self.args(Path("/tmp/suite"))

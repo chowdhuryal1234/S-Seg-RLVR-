@@ -169,7 +169,7 @@ def affordable_steps(timing, budget, minimum=100):
 
 def plan_main(timings, available):
     """Give 32B at most two hours, and give both 7B LR arms equal steps."""
-    large_steps = affordable_steps(timings.get("32b"), min(7200, max(0, available)), minimum=500)
+    large_steps = affordable_steps(timings.get("32b"), min(7200, max(0, available)), minimum=100)
     large_cost = forecast(timings["32b"], large_steps)["hard_seconds"] if large_steps else 0
     pair_steps = affordable_steps(timings.get("7b"), max(0, available - large_cost) / 2)
     if timings.get("7b") and not pair_steps and large_steps:
@@ -178,7 +178,7 @@ def plan_main(timings, available):
     return {"available_seconds_excluding_final_reserve": max(0, available),
             "7b_equal_steps": pair_steps, "32b_steps": large_steps,
             "32b_reserved_seconds": large_cost, "intended_7b_steps": 1000,
-            "policy": "7B equal-step LR comparison has priority; 32B requires >=500 steps within two hours; no automatic failed-model retry."}
+            "policy": "7B equal-step LR comparison has priority; 32B allows 100-1000 steps in increments of 100 within two hours; no automatic failed-model retry."}
 
 
 def command(args, model, name, steps, learning_rate, seed, soft_seconds, benchmark=False):
@@ -313,7 +313,7 @@ class Suite:
             timings[model] = None if self.args.dry_run else timing_from_benchmark(record)
         if self.args.dry_run:
             self.decide({"status": "main_stages_deferred_until_measured_benchmarks", "intended_7b_pair": [1000, 1000],
-                         "32b_steps_range": [500, 1000], "synthetic_timing_used": False})
+                         "32b_steps_range": [100, 1000], "synthetic_timing_used": False})
             # Validate intended full commands too, clearly marked as unbudgeted templates.
             for model, name, lr in (("7b", "main_7b_lr1e-5_seed42", 1e-5),
                                     ("7b", "main_7b_lr5e-5_seed42", 5e-5),
@@ -330,7 +330,7 @@ class Suite:
             for name, lr in (("main_7b_lr1e-5_seed42", 1e-5), ("main_7b_lr5e-5_seed42", 5e-5)):
                 pair.append(self.launch("7b", name, n, lr, 42, estimate))
         if plan["32b_steps"]:
-            n = affordable_steps(timings["32b"], min(7200, self.available()), minimum=500)
+            n = affordable_steps(timings["32b"], min(7200, self.available()), minimum=100)
             self.decide({"stage": "32b_recheck", "steps": n, "reason": "Recheck remaining wall time after both 7B arms"})
             if n:
                 self.launch("32b", "main_32b_lr1e-5_seed42", n, 1e-5, 42, forecast(timings["32b"], n))
