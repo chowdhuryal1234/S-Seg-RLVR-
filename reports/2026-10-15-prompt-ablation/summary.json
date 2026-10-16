@@ -1,0 +1,204 @@
+{
+  "status": "completed_paired_inference",
+  "variants": {
+    "one_example": {
+      "n_records": 8,
+      "format_valid_count": 8,
+      "format_valid_rate": 1.0,
+      "macro_pq": 0.0,
+      "macro_recall": 0.0,
+      "micro_recall": 0.0,
+      "count_mae": 4.125,
+      "total_pred_count": 8,
+      "total_gt_count": 41,
+      "total_tp": 0,
+      "total_fp": 8,
+      "total_fn": 41,
+      "total_same_gt_duplicate_count": 0,
+      "total_raw_overlap_pair_count": 0,
+      "token_cap_hits": 0
+    },
+    "three_examples": {
+      "n_records": 8,
+      "format_valid_count": 5,
+      "format_valid_rate": 0.625,
+      "macro_pq": 0.025306961326288006,
+      "macro_recall": 0.040625,
+      "micro_recall": 0.04878048780487805,
+      "count_mae": 3.375,
+      "total_pred_count": 26,
+      "total_gt_count": 41,
+      "total_tp": 2,
+      "total_fp": 24,
+      "total_fn": 39,
+      "total_same_gt_duplicate_count": 0,
+      "total_raw_overlap_pair_count": 1,
+      "token_cap_hits": 0
+    }
+  },
+  "selected_crops": [
+    {
+      "id": "TCGA-CH-5767-01Z-00-DX1_x768_y128",
+      "patient_id": "TCGA-CH-5767",
+      "source_image_id": "TCGA-CH-5767-01Z-00-DX1",
+      "gt_count": 2,
+      "image_sha256": "17ab5723036c2d82407191c41ba8cb0b54405ad7ad01a5a5ba47fab55becd4b7",
+      "mask_sha256": "1262f3e0414dd54b8b8a43808f28f4db5de7d865a2b1b2bbc149b012df8b32a2"
+    },
+    {
+      "id": "TCGA-AR-A1AK-01Z-00-DX1_x640_y256",
+      "patient_id": "TCGA-AR-A1AK",
+      "source_image_id": "TCGA-AR-A1AK-01Z-00-DX1",
+      "gt_count": 4,
+      "image_sha256": "e23877db39d0c642c311122e44e489c7ad3e7ddb0754e1fe1b9f71763d494f65",
+      "mask_sha256": "684e3fa35d6fc15135053675e3948e08dfabd216d234ebe6a20b1569483523e7"
+    },
+    {
+      "id": "TCGA-49-4488-01Z-00-DX1_x640_y512",
+      "patient_id": "TCGA-49-4488",
+      "source_image_id": "TCGA-49-4488-01Z-00-DX1",
+      "gt_count": 5,
+      "image_sha256": "11b509486e6128a800e783f78b0c00566fca7663554ba8815f1c32a1dee2fa0b",
+      "mask_sha256": "9298c0eb8da70661856c8293495b57fb6b80952c68e180cda0f65d29377b8154"
+    },
+    {
+      "id": "TCGA-21-5784-01Z-00-DX1_x512_y640",
+      "patient_id": "TCGA-21-5784",
+      "source_image_id": "TCGA-21-5784-01Z-00-DX1",
+      "gt_count": 6,
+      "image_sha256": "c3991e688e72ddce5422d184e07917156d477a61c4e6fb82dec7f5da5f7213e8",
+      "mask_sha256": "5c9442421090cb2deb7e6bb60b54618dad376c34cc29a23acc50a00b70853a12"
+    },
+    {
+      "id": "TCGA-18-5592-01Z-00-DX1_x0_y128",
+      "patient_id": "TCGA-18-5592",
+      "source_image_id": "TCGA-18-5592-01Z-00-DX1",
+      "gt_count": 7,
+      "image_sha256": "fb97517398dea172ccc2f170737d0697fdb2cd295f59a86d466e8ffe4bd2c73c",
+      "mask_sha256": "87c8bc4463c5b69148f5ca285370d77cc8ff11051b36c21149f736bdfebefb3b"
+    },
+    {
+      "id": "TCGA-38-6178-01Z-00-DX1_x768_y768",
+      "patient_id": "TCGA-38-6178",
+      "source_image_id": "TCGA-38-6178-01Z-00-DX1",
+      "gt_count": 8,
+      "image_sha256": "d5da5dca81ebfb11204923cf6635ed34cefe3a18b95acb3f58bee2c2eabab64b",
+      "mask_sha256": "aa2820e8ef0d04f986483c71d0a2699b7a88f3d7c7549a55648fa7e607d932e5"
+    },
+    {
+      "id": "TCGA-AY-A8YK-01A-01-TS1_x0_y640",
+      "patient_id": "TCGA-AY-A8YK",
+      "source_image_id": "TCGA-AY-A8YK-01A-01-TS1",
+      "gt_count": 4,
+      "image_sha256": "d2715862d423298273ebdf85d938979454b832cf436b152d544825464f971b26",
+      "mask_sha256": "4c3c06979624ecb8ec5817725aa3ce603b8aa02a3cd6badda5d024c7442dc0b5"
+    },
+    {
+      "id": "TCGA-A7-A13E-01Z-00-DX1_x0_y0",
+      "patient_id": "TCGA-A7-A13E",
+      "source_image_id": "TCGA-A7-A13E-01Z-00-DX1",
+      "gt_count": 5,
+      "image_sha256": "7eb18ea8d7e9552dc1b6a902798c1357b1d3e4f05b38b0d6725d5d9882a4013a",
+      "mask_sha256": "3200eba619a08eba4dc4a7c9b5461d0956479ea7dba20c6da53d1585cb5f3dea"
+    }
+  ],
+  "optimizer_steps": 0,
+  "policy_trainable_parameters": 0,
+  "all_paired_pixels_identical": true,
+  "peak_gpu_reserved_gib": 16.267578125,
+  "elapsed_seconds": 52.313216890906915,
+  "scope": "Inference-only diagnostic on 8 preselected TRAIN crops from 8 official30 patients, 41 visible nuclei; includes border-truncated nuclei. Not a held-out or whole-image benchmark.",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "resolved_revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+    "gpu": "NVIDIA A100-SXM4-80GB",
+    "packages": {
+      "torch": "2.5.1",
+      "transformers": "4.56.2",
+      "trl": "0.23.1",
+      "peft": "0.17.1",
+      "accelerate": "1.10.1",
+      "datasets": "3.6.0",
+      "SAM-2": "1.0"
+    }
+  },
+  "sam": {
+    "checkpoint_sha256": "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
+    "config": "configs/sam2.1/sam2.1_hiera_t.yaml",
+    "source_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "unchanged": true
+  },
+  "cohort_audit": {
+    "cohort_id": "monuseg2018_official_training30",
+    "source": {
+      "title": "MoNuSeg 2018 Patient Organ information",
+      "filename": "Training_Patient_Organ_information.pdf",
+      "url": "https://drive.google.com/file/d/1xYyQ31CHFRnvTCTuuHdconlJCMk2SK7Z/view",
+      "download_url": "https://drive.google.com/uc?export=download&id=1xYyQ31CHFRnvTCTuuHdconlJCMk2SK7Z",
+      "challenge_data_url": "https://monuseg.grand-challenge.org/Data/",
+      "sha256": "212d8f53c88acfdcb35edf56ae7033af53c0b1a3e86baaf4b2c4d804b165521c",
+      "pages": 3,
+      "verified_on": "2026-10-15",
+      "extraction": "pypdf text extraction; exact TCGA image IDs in PDF row order; 30 unique images and patients. Organ and disease descriptions are not used to infer membership."
+    },
+    "image_ids_sha256": "0ee985fff547dd78dbd5dd3826c03d513a3f24477219149bc071f4c4684042a8",
+    "protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+    "status": "official30_training_membership_verified",
+    "selected_rows": 8,
+    "selected_row_ids": [
+      "TCGA-CH-5767-01Z-00-DX1_x768_y128",
+      "TCGA-AR-A1AK-01Z-00-DX1_x640_y256",
+      "TCGA-49-4488-01Z-00-DX1_x640_y512",
+      "TCGA-21-5784-01Z-00-DX1_x512_y640",
+      "TCGA-18-5592-01Z-00-DX1_x0_y128",
+      "TCGA-38-6178-01Z-00-DX1_x768_y768",
+      "TCGA-AY-A8YK-01A-01-TS1_x0_y640",
+      "TCGA-A7-A13E-01Z-00-DX1_x0_y0"
+    ],
+    "selected_source_image_ids": [
+      "TCGA-18-5592-01Z-00-DX1",
+      "TCGA-21-5784-01Z-00-DX1",
+      "TCGA-38-6178-01Z-00-DX1",
+      "TCGA-49-4488-01Z-00-DX1",
+      "TCGA-A7-A13E-01Z-00-DX1",
+      "TCGA-AR-A1AK-01Z-00-DX1",
+      "TCGA-AY-A8YK-01A-01-TS1",
+      "TCGA-CH-5767-01Z-00-DX1"
+    ],
+    "selected_patient_ids": [
+      "TCGA-18-5592",
+      "TCGA-21-5784",
+      "TCGA-38-6178",
+      "TCGA-49-4488",
+      "TCGA-A7-A13E",
+      "TCGA-AR-A1AK",
+      "TCGA-AY-A8YK",
+      "TCGA-CH-5767"
+    ],
+    "all_rows_train": true,
+    "scope": "Source identity and split metadata only; no validation/test rows, pixel-content verification, or performance claim."
+  },
+  "source_sha256": {
+    "nucleus_rl/__init__.py": "88fe7c879456b9c47329cd6dd0fd41b47b72881327a26959f57f41628b6b7507",
+    "nucleus_rl/ablation_metrics.py": "e152f31a776d9a3e24788caabe4a8f99101b0ca22ff38fb7ef8e2f37fcda9ee1",
+    "nucleus_rl/cohort.py": "b786678ecd1e1f56b5e45d9139c03cd7edac784b90bf97e91c0d89bea48c2d27",
+    "nucleus_rl/evaluate.py": "40f072744fb7e5e9c443f3393c8b6c89950ba016800e33a6cf3e879439fa1620",
+    "nucleus_rl/prompt_ablation.py": "cb40b98cb9c77150ea0528cee0fd43dc12bd3953bba2a8bb3224cf8c4abae4dc",
+    "nucleus_rl/rewards.py": "d7366cb99b5563422d98b60e68d08105ff0dee4afac0fccc3011e297820fb0ef",
+    "nucleus_rl/segmenter.py": "519f5473bc1397d198a292077bfb1628ac845083e1d8ebae98c97600a7a49547",
+    "nucleus_rl/train.py": "430299add2f92b19c9fcb46de8357dfe9a92ff51bc66deb9b9400593cfaea6da"
+  },
+  "duplicate_definitions": {
+    "same_gt_duplicate_count": "Assign each nonempty raw mask to its best-IoU reference instance only when IoU > 0.5; sum max(number assigned - 1, 0) over reference IDs.",
+    "raw_overlap_pair_count": "Count unordered pairs of nonempty raw masks with mutual IoU > 0.5. This is an overlap proxy, not proof that both represent the same nucleus."
+  },
+  "generation": {
+    "do_sample": false,
+    "max_new_tokens": 512,
+    "seed": 42,
+    "adapter": null,
+    "coordinate_frame": "processed",
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  }
+}

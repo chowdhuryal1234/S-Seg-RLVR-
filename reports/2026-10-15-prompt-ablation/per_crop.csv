@@ -1,0 +1,17 @@
+id,patient_id,variant,gt_count,pred_count,tp,fp,fn,pq,recall,count_error,format_valid,parse_error,raw_mask_count,same_gt_duplicate_count,raw_overlap_pair_count,completion_tokens,hit_token_cap,emitted_object_count
+TCGA-CH-5767-01Z-00-DX1_x768_y128,TCGA-CH-5767,one_example,2,1,0,1,2,0.0,0.0,1,True,,1,0,0,37,False,1
+TCGA-CH-5767-01Z-00-DX1_x768_y128,TCGA-CH-5767,three_examples,2,1,0,1,2,0.0,0.0,1,True,,1,0,0,35,False,1
+TCGA-AR-A1AK-01Z-00-DX1_x640_y256,TCGA-AR-A1AK,three_examples,4,0,0,0,4,0.0,0.0,4,False,objects must be an array with at most 8 entries,0,0,0,260,False,9
+TCGA-AR-A1AK-01Z-00-DX1_x640_y256,TCGA-AR-A1AK,one_example,4,1,0,1,4,0.0,0.0,3,True,,1,0,0,34,False,1
+TCGA-49-4488-01Z-00-DX1_x640_y512,TCGA-49-4488,one_example,5,1,0,1,5,0.0,0.0,4,True,,1,0,0,34,False,1
+TCGA-49-4488-01Z-00-DX1_x640_y512,TCGA-49-4488,three_examples,5,8,1,7,4,0.10397084212545558,0.2,3,True,,8,0,0,216,False,8
+TCGA-21-5784-01Z-00-DX1_x512_y640,TCGA-21-5784,three_examples,6,0,0,0,6,0.0,0.0,6,False,Box must have positive area and lie inside the image,0,0,0,224,False,8
+TCGA-21-5784-01Z-00-DX1_x512_y640,TCGA-21-5784,one_example,6,1,0,1,6,0.0,0.0,5,True,,1,0,0,34,False,1
+TCGA-18-5592-01Z-00-DX1_x0_y128,TCGA-18-5592,one_example,7,1,0,1,7,0.0,0.0,6,True,,1,0,0,35,False,1
+TCGA-18-5592-01Z-00-DX1_x0_y128,TCGA-18-5592,three_examples,7,0,0,0,7,0.0,0.0,7,False,objects must be an array with at most 8 entries,0,0,0,248,False,9
+TCGA-38-6178-01Z-00-DX1_x768_y768,TCGA-38-6178,three_examples,8,8,1,7,7,0.09848484848484848,0.125,0,True,,8,0,1,225,False,8
+TCGA-38-6178-01Z-00-DX1_x768_y768,TCGA-38-6178,one_example,8,1,0,1,8,0.0,0.0,7,True,,1,0,0,37,False,1
+TCGA-AY-A8YK-01A-01-TS1_x0_y640,TCGA-AY-A8YK,one_example,4,1,0,1,4,0.0,0.0,3,True,,1,0,0,37,False,1
+TCGA-AY-A8YK-01A-01-TS1_x0_y640,TCGA-AY-A8YK,three_examples,4,1,0,1,4,0.0,0.0,3,True,,1,0,0,37,False,1
+TCGA-A7-A13E-01Z-00-DX1_x0_y0,TCGA-A7-A13E,three_examples,5,8,0,8,5,0.0,0.0,3,True,,8,0,0,215,False,8
+TCGA-A7-A13E-01Z-00-DX1_x0_y0,TCGA-A7-A13E,one_example,5,1,0,1,5,0.0,0.0,4,True,,1,0,0,34,False,1

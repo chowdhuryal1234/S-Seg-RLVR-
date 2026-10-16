@@ -1,0 +1,22 @@
+{
+  "one_example": [
+    {
+      "role": "system",
+      "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."
+    },
+    {
+      "role": "user",
+      "content": "Locate every visible nucleus, at most 8 objects. For each nucleus give a tight box [x0,y0,x1,y1] and an interior foreground point [x,y]. Use pixel coordinates of the PROCESSED image shown to you, which is 224 pixels wide and 224 pixels high: 0<=x0<x1<=224, 0<=y0<y1<=224; the point must be inside its box and inside the image. Do not use normalized coordinates. Respond exactly as <answer>{\"objects\":[{\"box\":[x0,y0,x1,y1],\"point\":[x,y]}]}</answer>. Use one object per nucleus, with no prose or markdown.\n\nFormatting example with invented coordinates, unrelated to the supplied image:\n<answer>{\"objects\":[{\"box\":[56,56,112,112],\"point\":[84,84]}]}</answer>\n\nNow inspect the supplied image and return its actual nuclei using the same format. Choose the objects and coordinates from this image; do not copy the example. Return only one complete <answer>...</answer> block containing valid JSON, with numeric coordinates."
+    }
+  ],
+  "three_examples": [
+    {
+      "role": "system",
+      "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."
+    },
+    {
+      "role": "user",
+      "content": "Locate every visible nucleus, at most 8 objects. For each nucleus give a tight box [x0,y0,x1,y1] and an interior foreground point [x,y]. Use pixel coordinates of the PROCESSED image shown to you, which is 224 pixels wide and 224 pixels high: 0<=x0<x1<=224, 0<=y0<y1<=224; the point must be inside its box and inside the image. Do not use normalized coordinates. Respond exactly as <answer>{\"objects\":[{\"box\":[x0,y0,x1,y1],\"point\":[x,y]}]}</answer>. Use one object per nucleus, with no prose or markdown.\n\nFormatting example with invented coordinates, unrelated to the supplied image:\n<answer>{\"objects\":[{\"box\":[56,56,112,112],\"point\":[84,84]},{\"box\":[140,28,196,84],\"point\":[168,56]},{\"box\":[28,140,84,196],\"point\":[56,168]}]}</answer>\n\nNow inspect the supplied image and return its actual nuclei using the same format. Choose the objects and coordinates from this image; do not copy the example. Return only one complete <answer>...</answer> block containing valid JSON, with numeric coordinates."
+    }
+  ]
+}
