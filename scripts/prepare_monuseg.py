@@ -17,6 +17,9 @@ import random
 import sys
 from zipfile import ZipFile
 
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 try:
     from audit_monuseg import audit_archive, parse_regions
 except ImportError:
@@ -177,11 +180,19 @@ def prepare(args) -> dict:
         raise ValueError(f"Archive pair validation failed: {audit['issues']}")
     if any("test" in pair[key].lower() for pair in audit["pairs"] for key in ("image_member", "xml_member")):
         raise ValueError("Refusing archive members identified as test data")
+    cohort_name = getattr(args, "cohort", None)
+    cohort_report = None
+    cohort_pairs = audit["pairs"]
+    if cohort_name is not None:
+        if cohort_name != "official30":
+            raise ValueError("The supported explicit cohort is official30")
+        from nucleus_rl.cohort import select_cohort_pairs
+        cohort_pairs, cohort_report = select_cohort_pairs(audit["pairs"])
     excluded = [{"id": pair["id"], "reason": "NegativeROA or degenerate polygon present; semantics/geometry not guessed",
                  "negative_region_entries": pair["negative_region_entries"],
                  "degenerate_region_entries": pair["degenerate_region_entries"]}
-                for pair in audit["pairs"] if pair["negative_region_entries"] or pair["degenerate_region_entries"]]
-    eligible_pairs = [pair for pair in audit["pairs"] if not pair["negative_region_entries"]
+                for pair in cohort_pairs if pair["negative_region_entries"] or pair["degenerate_region_entries"]]
+    eligible_pairs = [pair for pair in cohort_pairs if not pair["negative_region_entries"]
                       and not pair["degenerate_region_entries"]]
     eligible_patients = {pair["patient_id"] for pair in eligible_pairs}
     if args.train_patient_ids or args.val_patient_ids:
@@ -262,6 +273,9 @@ def prepare(args) -> dict:
                         "visible_centroids_xy": centroids,
                         "visible_centroid_definition": "Arithmetic mean of visible instance pixels in crop-local (x,y); can fall outside a nonconvex instance. GT-derived diagnostic metadata, never an evaluation-time prompt.",
                         "sampling_condition": condition})
+        if cohort_report is not None:
+            records[-1]["cohort_id"] = cohort_report["cohort_id"]
+            records[-1]["cohort_protocol_sha256"] = cohort_report["protocol_sha256"]
     for name, rows in (("manifest", records), ("train", [r for r in records if r["split"] == "train"]),
                        ("validation", [r for r in records if r["split"] == "validation"])):
         (out / f"{name}.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -274,6 +288,9 @@ def prepare(args) -> dict:
               "sampling_condition": condition, "excluded_images": excluded, "image_audits": image_audits,
               "training_archive_audit": audit,
               "rasterizer": "Pillow inclusive polygons, vertices rounded floor(x+0.5), earliest XML region wins overlap. No MATLAB-parity claim."}
+    if cohort_report is not None:
+        report["cohort"] = cohort_report
+        report["cohort"]["canonical_pairs_after_annotation_exclusions"] = len(eligible_pairs)
     (out / "preparation_report.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
 
@@ -282,6 +299,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--train-archive", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--cohort", choices=("official30",), default=None,
+                        help="Explicitly enforce exact official PDF image IDs before annotation-quality filtering; omission preserves the original engineering behavior")
     parser.add_argument("--crop-size", type=int, default=128)
     parser.add_argument("--max-nuclei", type=int, default=8)
     parser.add_argument("--border-policy", choices=("complete", "visible"), default="complete",
