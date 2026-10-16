@@ -1,0 +1,1 @@
+<answer>{"objects":[{"box":[1,3,223,223],"point":[112,112]}]}</answer>

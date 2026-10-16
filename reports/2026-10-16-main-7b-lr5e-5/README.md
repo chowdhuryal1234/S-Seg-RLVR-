@@ -78,3 +78,7 @@ All **64 before and 64 after final maps and raw-mask files** were present and ve
 The selected validation cohort is reused for monitoring and setting selection, not an untouched final test. Four patients and one seed limit the conclusion. Only 12 of 384 nuclei match, so reliable detection remains unresolved. Do not pool these scores with benchmark8. This is a full-mask engineering pilot, with no weak-label, SOTA or clinical claim.
 
 [Visual report](index.html) · [Exact metrics, settings and provenance](summary.json) · [All before answers](before_records.jsonl) · [All after answers](after_records.jsonl).
+
+## Additional teaching case: reward rises, instance matches stay zero
+
+[English slide and explanation](reward-case/index.html) · [1920 × 1080 PNG](reward-case/comparison.png) · [Selection and exact data](reward-case/README.md). This separate, explicitly post-hoc case shows foreground IoU increasing from 0.0432 to 0.2601 while both phases match 0/5 annotated objects. The original fixed examples above and all cohort metrics remain unchanged.

@@ -1,0 +1,269 @@
+{
+  "case_id": "TCGA-AR-A1AS-01Z-00-DX1_x256_y0",
+  "selection_rule": "Post-hoc illustrative selection: first lexicographic validation ID with at least three complete nuclei, valid answers in both phases, one predicted instance and zero matched instances in both phases, and increased foreground IoU. This is a case explanation, not a representative sample or a new experiment.",
+  "eligible_case_count": 15,
+  "eligible_ids": [
+    "TCGA-AR-A1AS-01Z-00-DX1_x256_y0",
+    "TCGA-AR-A1AS-01Z-00-DX1_x256_y128",
+    "TCGA-AR-A1AS-01Z-00-DX1_x768_y0",
+    "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+    "TCGA-B0-5710-01Z-00-DX1_x0_y640",
+    "TCGA-B0-5710-01Z-00-DX1_x512_y128",
+    "TCGA-B0-5710-01Z-00-DX1_x512_y512",
+    "TCGA-B0-5710-01Z-00-DX1_x768_y384",
+    "TCGA-G9-6363-01Z-00-DX1_x0_y0",
+    "TCGA-G9-6363-01Z-00-DX1_x0_y384",
+    "TCGA-G9-6363-01Z-00-DX1_x0_y768",
+    "TCGA-G9-6363-01Z-00-DX1_x128_y0",
+    "TCGA-G9-6363-01Z-00-DX1_x640_y384",
+    "TCGA-G9-6363-01Z-00-DX1_x640_y768",
+    "TCGA-G9-6363-01Z-00-DX1_x768_y0"
+  ],
+  "source_run": "runs/h200_overnight_20261016/main_7b_lr5e-5_seed42",
+  "source_result_sha256": "0b68ada04892888929be601a636982308bcee6f17a10d885773ccffb56a7eed4",
+  "manifest_sha256": "1969cd648b83fa0d9f1bfcaa73d248a879e3f3156e2863e46c540cf7cce853f8",
+  "image_sha256": "5ff2fb17b7d6a1ae4ad1485ffb129bfb074d4c05b164f00ebaf9229a115d963b",
+  "mask_sha256": {
+    "before": "74ac5ed23dd47e7250bba7ea37d86ebe4812eb519bcee7ab972496cc23c08287",
+    "after": "b2fb72cfbd6bb2f1fb8de4e35adf060cd841c656972852d99e1a258c070862f9"
+  },
+  "source_instance_ids": [
+    48,
+    49,
+    106,
+    309,
+    364
+  ],
+  "partial_instance_ids": [
+    48,
+    364
+  ],
+  "display_ids": {
+    "G1": 48,
+    "G2": 49,
+    "G3": 106,
+    "G4": 309,
+    "G5": 364
+  },
+  "metrics": {
+    "before": {
+      "foreground_pixels": 184,
+      "gt_foreground_pixels": 4259,
+      "intersection": 184,
+      "union": 4259,
+      "false_positive_pixels": 0,
+      "image_coverage_fraction": 0.01123046875,
+      "point_gt_id": 106,
+      "per_instance_ious": [
+        {
+          "gt_id": 48,
+          "iou": 0.0
+        },
+        {
+          "gt_id": 49,
+          "iou": 0.0
+        },
+        {
+          "gt_id": 106,
+          "iou": 0.10586881472957423
+        },
+        {
+          "gt_id": 309,
+          "iou": 0.0
+        },
+        {
+          "gt_id": 364,
+          "iou": 0.0
+        }
+      ]
+    },
+    "after": {
+      "foreground_pixels": 16374,
+      "gt_foreground_pixels": 4259,
+      "intersection": 4259,
+      "union": 16374,
+      "false_positive_pixels": 12115,
+      "image_coverage_fraction": 0.9993896484375,
+      "point_gt_id": 0,
+      "per_instance_ious": [
+        {
+          "gt_id": 48,
+          "iou": 0.025772566263588616
+        },
+        {
+          "gt_id": 49,
+          "iou": 0.06821790643703432
+        },
+        {
+          "gt_id": 106,
+          "iou": 0.10614388664956638
+        },
+        {
+          "gt_id": 309,
+          "iou": 0.045865396360083056
+        },
+        {
+          "gt_id": 364,
+          "iou": 0.014107731769879077
+        }
+      ]
+    }
+  },
+  "records": {
+    "before": {
+      "id": "TCGA-AR-A1AS-01Z-00-DX1_x256_y0",
+      "patient_id": "TCGA-AR-A1AS",
+      "step": null,
+      "coordinate_frame": "processed",
+      "prompt_style": "example",
+      "prompt_size": [
+        224,
+        224
+      ],
+      "original_size": [
+        128,
+        128
+      ],
+      "scale_to_original": [
+        0.5714285714285714,
+        0.5714285714285714
+      ],
+      "raw_objects": [
+        {
+          "box": [
+            137.0,
+            109.0,
+            168.0,
+            140.0
+          ],
+          "point": [
+            150.0,
+            115.0
+          ]
+        }
+      ],
+      "converted_objects": [
+        {
+          "box": [
+            78.28571428571428,
+            62.285714285714285,
+            96.0,
+            80.0
+          ],
+          "point": [
+            85.71428571428571,
+            65.71428571428571
+          ]
+        }
+      ],
+      "text": "<answer>{\"objects\":[{\"box\":[137,109,168,140],\"point\":[150,115]}]}</answer>",
+      "prediction_path": "/n/home01/jzhou1125/rlvr-overnight-20261016/runs/experiment_suite/main_7b_lr5e-5_seed42/before/000030.npy",
+      "overlay_path": "/n/home01/jzhou1125/rlvr-overnight-20261016/runs/experiment_suite/main_7b_lr5e-5_seed42/before/000030.png",
+      "format_valid": true,
+      "parse_error": null,
+      "format_reward": 1.0,
+      "seg_reward": 0.04320262972528763,
+      "total_reward": 1.0432026297252877,
+      "pq": 0.0,
+      "dq": 0.0,
+      "sq": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "pred_count": 1,
+      "gt_count": 5,
+      "count_error": 4,
+      "tp": 0,
+      "fp": 1,
+      "fn": 5,
+      "raw_mask_count": 1,
+      "nonempty_raw_mask_count": 1,
+      "same_gt_duplicate_count": 0,
+      "raw_overlap_pair_count": 0,
+      "raw_best_gt_ids": [
+        null
+      ],
+      "raw_best_gt_ious": [
+        0.10586881472957423
+      ],
+      "raw_overlap_pairs": []
+    },
+    "after": {
+      "id": "TCGA-AR-A1AS-01Z-00-DX1_x256_y0",
+      "patient_id": "TCGA-AR-A1AS",
+      "step": null,
+      "coordinate_frame": "processed",
+      "prompt_style": "example",
+      "prompt_size": [
+        224,
+        224
+      ],
+      "original_size": [
+        128,
+        128
+      ],
+      "scale_to_original": [
+        0.5714285714285714,
+        0.5714285714285714
+      ],
+      "raw_objects": [
+        {
+          "box": [
+            1.0,
+            3.0,
+            223.0,
+            223.0
+          ],
+          "point": [
+            112.0,
+            112.0
+          ]
+        }
+      ],
+      "converted_objects": [
+        {
+          "box": [
+            0.5714285714285714,
+            1.7142857142857142,
+            127.42857142857142,
+            127.42857142857142
+          ],
+          "point": [
+            64.0,
+            64.0
+          ]
+        }
+      ],
+      "text": "<answer>{\"objects\":[{\"box\":[1,3,223,223],\"point\":[112,112]}]}</answer>",
+      "prediction_path": "/n/home01/jzhou1125/rlvr-overnight-20261016/runs/experiment_suite/main_7b_lr5e-5_seed42/after/000030.npy",
+      "overlay_path": "/n/home01/jzhou1125/rlvr-overnight-20261016/runs/experiment_suite/main_7b_lr5e-5_seed42/after/000030.png",
+      "format_valid": true,
+      "parse_error": null,
+      "format_reward": 1.0,
+      "seg_reward": 0.26010748748015144,
+      "total_reward": 1.2601074874801514,
+      "pq": 0.0,
+      "dq": 0.0,
+      "sq": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "pred_count": 1,
+      "gt_count": 5,
+      "count_error": 4,
+      "tp": 0,
+      "fp": 1,
+      "fn": 5,
+      "raw_mask_count": 1,
+      "nonempty_raw_mask_count": 1,
+      "same_gt_duplicate_count": 0,
+      "raw_overlap_pair_count": 0,
+      "raw_best_gt_ids": [
+        null
+      ],
+      "raw_best_gt_ious": [
+        0.10614388664956638
+      ],
+      "raw_overlap_pairs": []
+    }
+  },
+  "verification": "Both full64 phases reverified from saved outputs; no model execution or source edits."
+}
