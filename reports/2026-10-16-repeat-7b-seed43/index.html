@@ -1,0 +1,138 @@
+<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>repeat_7b_selected_seed43</title><style>body{font:17px/1.6 system-ui,sans-serif;color:#172438;background:#eef3f8;
+max-width:1450px;margin:28px auto;padding:0 20px}section,details{background:white;
+padding:20px;border-radius:12px;margin:18px 0}h1{line-height:1.2}h2{font-size:24px}
+img{max-width:100%;height:auto}table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{text-align:left;padding:9px;border-bottom:1px solid #dce3eb;vertical-align:top}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f2f5f9;padding:16px}
+a{color:#075da8}.warning{border-left:5px solid #bc7d22}.scroll{overflow-x:auto}</style><h1>repeat_7b_selected_seed43</h1><p>Full validation cohort: 64 crops, 4 patients · Status: <b>verified_training_pilot</b></p><section class='warning'>The validation cohort is reused for setting selection and is not an untouched final test set.<p>before: 64/64 final maps verified, 64/64 raw-mask files verified; after: 64/64 final maps verified, 64/64 raw-mask files verified</p></section><section><h2>Observed outcome</h2><p>The final 1,000-step seed43 checkpoint raised macro PQ from 0.02265 to 0.04555 and matched GT occurrences from 9 to 11 of 384. Count MAE worsened slightly. All 64 final answers are valid, but most GT instances remain unmatched.</p><p>The learning rate 5e-5 was selected using the seed42 validation64 results. This repeat reuses that cohort; it is not an independent test and does not repeat both learning-rate settings.</p><p>All 1,000 optimizer steps had nonzero gradients. The final adapter hash changed while SAM and the Qwen vision encoder stayed frozen. The adapter_changed_steps counter compares against initialization, not the preceding step.</p></section><section><h2>Before and after</h2><div class='scroll'><table><tr><th>Metric</th><th>Before</th><th>After</th></tr><tr><td>Macro PQ</td><td>0.0227</td><td>0.0456</td></tr><tr><td>Macro recall</td><td>0.0215</td><td>0.0446</td></tr><tr><td>Micro recall</td><td>0.0234</td><td>0.0286</td></tr><tr><td>Count MAE</td><td>4.9219</td><td>4.9844</td></tr><tr><td>Matched GT occurrences (TP)</td><td>9</td><td>11</td></tr><tr><td>Crop-level GT occurrences</td><td>384</td><td>384</td></tr><tr><td>Final instances</td><td>73</td><td>65</td></tr><tr><td>Same-GT duplicate extras</td><td>0</td><td>0</td></tr><tr><td>Raw-mask overlap pairs</td><td>15</td><td>0</td></tr><tr><td>Valid answers</td><td>62</td><td>64</td></tr><tr><td>Foreground IoU</td><td>0.0643</td><td>0.2082</td></tr><tr><td>Reward (supporting diagnostic)</td><td>1.0330</td><td>1.2082</td></tr></table></div><p>After training, 63 of 64 valid answers contain exactly one object; the remaining answer contains two. The validation cohort has only one single-nucleus crop. Multi-object localization therefore remains unresolved despite higher foreground reward and fully valid output formatting.</p><p>Macro metrics weight crops equally; micro recall is total TP / total GT. Count MAE uses final instance counts. Invalid answers remain in the denominator. Duplicate extras refer to raw SAM masks matching the same GT above IoU 0.5; overlap pairs are a separate proxy.</p></section><section><h2>Training and resources</h2><div class='scroll'><table><tr><th>Item</th><th>Observed or planned value</th></tr><tr><td>Planned steps</td><td>1000</td></tr><tr><td>Completed updates this run</td><td>1000</td></tr><tr><td>Requested steps completed</td><td>Yes</td></tr><tr><td>Learning rate</td><td>5e-05</td></tr><tr><td>Seed</td><td>43</td></tr><tr><td>Training-loop seconds (includes periodic evaluation/checkpoints)</td><td>2590.140</td></tr><tr><td>Before / after evaluation seconds</td><td>76.89 / 57.39</td></tr><tr><td>Total runner seconds</td><td>2744.136</td></tr><tr><td>Training-step peak allocated GiB</td><td>17.182</td></tr><tr><td>Training-step peak reserved GiB</td><td>19.139</td></tr><tr><td>Adapter changed</td><td>Yes</td></tr><tr><td>Nonzero-gradient steps</td><td>1000</td></tr><tr><td>Stop reason</td><td>None reported</td></tr></table></div><p>Unavailable means no saved value; it does not mean zero. Training time may include periodic evaluation and checkpoint work; total time also includes load, before/after evaluation and final saving.</p></section><section><h2>Single-nucleus example</h2><p>TCGA-AR-A1AS-01Z-00-DX1_x0_y768; 1 visible GT instances, including any edge fragments.</p><img src='single_example.png' alt='Same input and GT, with before/after parsed prompts, individual raw masks and final instances'><details><summary>Exact answers and provenance</summary><h3>Before exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[137,109,160,130],&quot;point&quot;:[145,117]}]}&lt;/answer&gt;</pre><h3>After exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[137,1,224,90],&quot;point&quot;:[178,30]}]}&lt;/answer&gt;</pre><pre>{
+  &quot;bbox_xyxy&quot;: [
+    0,
+    768,
+    128,
+    896
+  ],
+  &quot;instance_ids&quot;: [
+    208
+  ],
+  &quot;instance_count&quot;: 1,
+  &quot;truncated_instance_ids&quot;: [
+    208
+  ],
+  &quot;border_touching_instance_ids&quot;: [
+    208
+  ],
+  &quot;source_clipped_instance_ids&quot;: [],
+  &quot;source_image_id&quot;: &quot;TCGA-AR-A1AS-01Z-00-DX1&quot;,
+  &quot;patient_id&quot;: &quot;TCGA-AR-A1AS&quot;,
+  &quot;split&quot;: &quot;validation&quot;,
+  &quot;source_image_member&quot;: &quot;MoNuSeg 2018 Training Data/Tissue Images/TCGA-AR-A1AS-01Z-00-DX1.tif&quot;,
+  &quot;source_xml_member&quot;: &quot;MoNuSeg 2018 Training Data/Annotations/TCGA-AR-A1AS-01Z-00-DX1.xml&quot;,
+  &quot;physical_spacing&quot;: {
+    &quot;um_per_pixel&quot;: null,
+    &quot;source&quot;: &quot;not_verified&quot;,
+    &quot;tiff_resolution_tags&quot;: {},
+    &quot;note&quot;: &quot;TIFF display resolution is not assumed to be physical tissue spacing; no resizing performed.&quot;
+  },
+  &quot;id&quot;: &quot;TCGA-AR-A1AS-01Z-00-DX1_x0_y768&quot;,
+  &quot;image_path&quot;: &quot;images/TCGA-AR-A1AS-01Z-00-DX1_x0_y768.png&quot;,
+  &quot;mask_path&quot;: &quot;masks/TCGA-AR-A1AS-01Z-00-DX1_x0_y768.png&quot;,
+  &quot;gt_mask&quot;: &quot;masks/TCGA-AR-A1AS-01Z-00-DX1_x0_y768.png&quot;,
+  &quot;path_base&quot;: &quot;manifest_directory&quot;,
+  &quot;source_archive&quot;: &quot;/Users/conny/Desktop/RLVR/RLVR/data/pathology/monuseg/MoNuSeg_2018_Training_data.zip&quot;,
+  &quot;instance_count_definition&quot;: &quot;Distinct nonzero IDs with at least one visible pixel; includes partial objects, not centroid-in-crop filtering.&quot;,
+  &quot;sampling_condition&quot;: {
+    &quot;crop_size&quot;: 128,
+    &quot;grid_stride&quot;: 128,
+    &quot;min_nuclei&quot;: 1,
+    &quot;max_nuclei&quot;: 8,
+    &quot;border_policy&quot;: &quot;visible&quot;,
+    &quot;zero_foreground_border&quot;: false,
+    &quot;all_visible_instances_complete_in_source_mask&quot;: false,
+    &quot;clipped_to_source_image_instances_excluded&quot;: false,
+    &quot;ignored_pixels&quot;: 0,
+    &quot;negative_roa_images_excluded&quot;: true,
+    &quot;degenerate_polygon_images_excluded&quot;: true,
+    &quot;partial_instance_policy&quot;: &quot;All visible pixels of every included instance remain supervised; truncated IDs are listed per crop.&quot;,
+    &quot;selection_bias&quot;: &quot;At most 8 visible nuclei and selected engineering patients; not representative whole-slide performance.&quot;
+  },
+  &quot;cohort_id&quot;: &quot;monuseg2018_official_training30&quot;,
+  &quot;cohort_protocol_sha256&quot;: &quot;cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87&quot;,
+  &quot;image_sha256&quot;: &quot;23082b78a3777055c6fec3bea75f8173708b5f10c414652e2b19e2cace7fbdad&quot;,
+  &quot;mask_sha256&quot;: &quot;4332352f883cf731ed92db4005478b74459dbcfe63d76371408760c3dd04207e&quot;,
+  &quot;image_pixels_sha256&quot;: &quot;4914746925f27d2d65631d7d9d1a47247af0a11def2c64171ff5e841eb280e95&quot;,
+  &quot;source_image_sha256&quot;: &quot;8944c2bcd11ff7c8b9ac35e2e7fbddb380f000586306ec47e15cad6f7a0441a5&quot;,
+  &quot;source_xml_sha256&quot;: &quot;14a64ebc8d07e016de14be9f3312b27e1d2ddaeb4387f9096bb3b2b8496bf4bb&quot;
+}</pre></details></section><section><h2>Multiple-nucleus example</h2><p>TCGA-21-5786-01Z-00-DX1_x0_y512; 8 visible GT instances, including any edge fragments.</p><img src='multiple_example.png' alt='Same input and GT, with before/after parsed prompts, individual raw masks and final instances'><details><summary>Exact answers and provenance</summary><h3>Before exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[1,137,90,224],&quot;point&quot;:[45,187]}]}&lt;/answer&gt;</pre><h3>After exact completion</h3><pre>&lt;answer&gt;{&quot;objects&quot;:[{&quot;box&quot;:[3,170,90,224],&quot;point&quot;:[45,196]}]}&lt;/answer&gt;</pre><pre>{
+  &quot;bbox_xyxy&quot;: [
+    0,
+    512,
+    128,
+    640
+  ],
+  &quot;instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    380,
+    381,
+    382,
+    383
+  ],
+  &quot;instance_count&quot;: 8,
+  &quot;truncated_instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    382
+  ],
+  &quot;border_touching_instance_ids&quot;: [
+    11,
+    61,
+    114,
+    379,
+    382
+  ],
+  &quot;source_clipped_instance_ids&quot;: [],
+  &quot;source_image_id&quot;: &quot;TCGA-21-5786-01Z-00-DX1&quot;,
+  &quot;patient_id&quot;: &quot;TCGA-21-5786&quot;,
+  &quot;split&quot;: &quot;validation&quot;,
+  &quot;source_image_member&quot;: &quot;MoNuSeg 2018 Training Data/Tissue Images/TCGA-21-5786-01Z-00-DX1.tif&quot;,
+  &quot;source_xml_member&quot;: &quot;MoNuSeg 2018 Training Data/Annotations/TCGA-21-5786-01Z-00-DX1.xml&quot;,
+  &quot;physical_spacing&quot;: {
+    &quot;um_per_pixel&quot;: null,
+    &quot;source&quot;: &quot;not_verified&quot;,
+    &quot;tiff_resolution_tags&quot;: {},
+    &quot;note&quot;: &quot;TIFF display resolution is not assumed to be physical tissue spacing; no resizing performed.&quot;
+  },
+  &quot;id&quot;: &quot;TCGA-21-5786-01Z-00-DX1_x0_y512&quot;,
+  &quot;image_path&quot;: &quot;images/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;mask_path&quot;: &quot;masks/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;gt_mask&quot;: &quot;masks/TCGA-21-5786-01Z-00-DX1_x0_y512.png&quot;,
+  &quot;path_base&quot;: &quot;manifest_directory&quot;,
+  &quot;source_archive&quot;: &quot;/Users/conny/Desktop/RLVR/RLVR/data/pathology/monuseg/MoNuSeg_2018_Training_data.zip&quot;,
+  &quot;instance_count_definition&quot;: &quot;Distinct nonzero IDs with at least one visible pixel; includes partial objects, not centroid-in-crop filtering.&quot;,
+  &quot;sampling_condition&quot;: {
+    &quot;crop_size&quot;: 128,
+    &quot;grid_stride&quot;: 128,
+    &quot;min_nuclei&quot;: 1,
+    &quot;max_nuclei&quot;: 8,
+    &quot;border_policy&quot;: &quot;visible&quot;,
+    &quot;zero_foreground_border&quot;: false,
+    &quot;all_visible_instances_complete_in_source_mask&quot;: false,
+    &quot;clipped_to_source_image_instances_excluded&quot;: false,
+    &quot;ignored_pixels&quot;: 0,
+    &quot;negative_roa_images_excluded&quot;: true,
+    &quot;degenerate_polygon_images_excluded&quot;: true,
+    &quot;partial_instance_policy&quot;: &quot;All visible pixels of every included instance remain supervised; truncated IDs are listed per crop.&quot;,
+    &quot;selection_bias&quot;: &quot;At most 8 visible nuclei and selected engineering patients; not representative whole-slide performance.&quot;
+  },
+  &quot;cohort_id&quot;: &quot;monuseg2018_official_training30&quot;,
+  &quot;cohort_protocol_sha256&quot;: &quot;cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87&quot;,
+  &quot;image_sha256&quot;: &quot;059b7e5a9271b601d887147cc574f20c9f2282d07b7ee5d7b6fdcf1e1dbd4189&quot;,
+  &quot;mask_sha256&quot;: &quot;5fb6690067c63a9d4b8736de5ac826ae8eb1eeaad69e34152d6dd74b94db5b43&quot;,
+  &quot;image_pixels_sha256&quot;: &quot;a7fde1f90832c9ed25d72234f3369a2995613229a9d77fb240aad1be8ac26d2f&quot;,
+  &quot;source_image_sha256&quot;: &quot;fbee9258bc8df706b9bba8b30a8064b4aede797a54224715af28564c342296ef&quot;,
+  &quot;source_xml_sha256&quot;: &quot;a02e0eea799db7d65ec4a4e6ed87262b304e3d043cb1e2cb22a6eaba667a128e&quot;
+}</pre></details></section><section><h2>Selected-setting seed repeat</h2><div class='scroll'><table><tr><th>Final metric, LR 5e-5</th><th>Seed 42, selected</th><th>Seed 43, repeat</th></tr><tr><td>Completed steps</td><td>1,000</td><td>1,000</td></tr><tr><td>Macro PQ</td><td>0.040448</td><td>0.045552</td></tr><tr><td>Macro recall</td><td>0.045219</td><td>0.044568</td></tr><tr><td>Matched / GT occurrences</td><td>12 / 384</td><td>11 / 384</td></tr><tr><td>Micro recall</td><td>0.031250</td><td>0.028646</td></tr><tr><td>Count MAE</td><td>4.703125</td><td>4.984375</td></tr><tr><td>Valid answers</td><td>64 / 64</td><td>64 / 64</td></tr><tr><td>Same-GT duplicate extras</td><td>2</td><td>0</td></tr></table></div><p>Only seed and output path differ in saved arguments. Model metadata match; initial adapter hashes differ, but all 64 initial final-map/raw-mask/text artifacts are byte-identical. Seed43 has higher macro PQ yet lower micro recall and worse count MAE. The setting was chosen on reused validation; this is not a robust learning-rate winner or independent test result.</p></section><section><h2>Scope and evidence</h2><p>The 384 crop-level GT occurrences correspond to 340 unique source nuclei because some nuclei cross crop boundaries within the same patient/split. Recall retains denominator 384. Sixty-one of 64 validation crops contain truncated or source-clipped nuclei.</p><p>Full-mask engineering validation, selected 1-8-nucleus crops; validation reused and used for model selection; no official test or clinical/SOTA claim. Partial scores are not full-cohort estimates.</p><p><a href='summary.json'>Verified summary and provenance</a> · <a href='before_records.jsonl'>Every before answer</a> · <a href='after_records.jsonl'>Every after answer</a></p><p>No model was run to create this report. Source records remain unchanged; accepted masks and duplicates were recomputed from saved artifacts where available. Raw-mask tiles show every saved mask, including empty masks.</p></section></html>
