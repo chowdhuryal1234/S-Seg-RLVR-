@@ -1,4 +1,4 @@
-"""Single-GPU Qwen text-policy LoRA GRPO pilot; SAM2 stays frozen.
+"""Bounded single-GPU Qwen text-policy LoRA GRPO; SAM2 stays frozen.
 
 Use --help without installing GPU dependencies. This is engineering validation
 with full reference masks, not a weak-supervision benchmark or clinical model.
@@ -47,6 +47,15 @@ def build_parser():
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--beta", type=float, default=0.04)
     parser.add_argument("--save-steps", type=int, default=10)
+    parser.add_argument("--eval-every", type=int, default=100,
+                        help="Evaluate the fixed --eval-manifest every N steps; 0 disables intermediate evaluation")
+    parser.add_argument("--resume-from-checkpoint",
+                        help="Complete checkpoint from this runner; use a NEW output directory and the same planned max-steps")
+    parser.add_argument("--wall-time-minutes", type=float,
+                        help="Soft training-stage limit checked between optimizer steps; final saving/evaluation require extra time")
+    parser.add_argument("--cohort-protocol", help="Verified official30 membership JSON; defaults to the tracked protocol")
+    parser.add_argument("--direct-gpu-load", action="store_true",
+                        help="Stream model shards to the single CUDA device to reduce host RAM demand")
     parser.add_argument("--min-pixels", type=int, default=224 * 224, action=ReplaySettingAction)
     parser.add_argument("--max-pixels", type=int, default=448 * 448, action=ReplaySettingAction)
     parser.add_argument("--coordinate-frame", choices=("processed", "original"), default="processed",
@@ -115,8 +124,14 @@ def validate_args(args):
         raise ValueError("This pilot starts new adapters; --adapter is only for rollout/evaluation")
     if args.group_size != 2:
         raise ValueError("This bounded single-GPU runner fixes group-size=2 and accumulation=2")
-    if not 1 <= args.max_steps <= 100:
-        raise ValueError("Use 1–100 optimizer steps for this pilot")
+    if not 1 <= args.max_steps <= 5000:
+        raise ValueError("Use 1–5000 optimizer steps for this bounded runner")
+    if args.eval_every < 0:
+        raise ValueError("Evaluation interval must be nonnegative")
+    if args.wall_time_minutes is not None and (not math.isfinite(args.wall_time_minutes) or args.wall_time_minutes <= 0):
+        raise ValueError("Wall-time limit must be finite and positive")
+    if args.resume_from_checkpoint and args.mode != "train":
+        raise ValueError("--resume-from-checkpoint is only for training; use --adapter for evaluation")
     if not 1 <= args.max_objects <= 8:
         raise ValueError("This crop schema supports 1–8 objects")
     if args.min_pixels <= 0 or args.max_pixels < args.min_pixels:
@@ -127,6 +142,40 @@ def validate_args(args):
         raise ValueError("Require finite positive learning-rate and finite nonnegative beta")
     if int(os.environ.get("WORLD_SIZE", "1")) != 1:
         raise ValueError("This runner is intentionally single-process, single-GPU")
+
+
+def restore_resume_revision(args):
+    """Check completed payloads before importing GPU libraries or loading weights."""
+    if not args.resume_from_checkpoint:
+        return None
+    from nucleus_rl.training_budget import verify_checkpoint
+    marker = verify_checkpoint(args.resume_from_checkpoint)
+    config = marker["contract"]["config"]
+    if args.model != config["model"] or args.revision not in ("main", config["revision"]):
+        raise ValueError("Resume requires the checkpoint's exact base model and revision")
+    if marker["global_step"] >= args.max_steps:
+        raise ValueError("Checkpoint already reached --max-steps; changing the planned schedule is not supported")
+    args.revision = config["revision"]
+    return marker
+
+
+def training_contract(args, rows, validation, metadata, segmenter, cohort):
+    from nucleus_rl.training_budget import dataset_identity, file_digest
+    keys = ("model", "revision", "seed", "max_steps", "group_size", "max_completion_length", "max_objects",
+            "lora_rank", "learning_rate", "beta", "save_steps", "eval_every", "min_pixels", "max_pixels",
+            "coordinate_frame", "prompt_style")
+    source = Path(__file__).resolve().parent
+    return {
+        "config": {key: getattr(args, key) for key in keys},
+        "fixed_training": {"microbatch": 1, "gradient_accumulation": 2, "num_iterations": 1,
+                           "dtype": "bfloat16", "loss_type": "grpo", "optimizer": "adamw_torch"},
+        "train_data": dataset_identity(rows), "validation_data": dataset_identity(validation),
+        "cohort_protocol_sha256": cohort["protocol_sha256"],
+        "sam": {key: value for key, value in segmenter.metadata.items() if key != "checkpoint"},
+        "packages": metadata["packages"],
+        "source_sha256": {name: file_digest(source / name) for name in (
+            "train.py", "training_budget.py", "evaluate.py", "rewards.py", "segmenter.py", "cohort.py")},
+    }
 
 
 def text_lora_targets(model):
@@ -173,6 +222,8 @@ def load_policy(args):
         args.model, revision=revision, min_pixels=args.min_pixels, max_pixels=args.max_pixels,
     )
     processor.tokenizer.padding_side = "left"
+    # Large inference checkpoints can exceed the job's host-RAM allocation.
+    # Stream shards directly to one GPU only when explicitly requested.
     load_options = {"device_map": {"": "cuda"}, "low_cpu_mem_usage": True} if getattr(args, "direct_gpu_load", False) else {}
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         args.model, revision=revision, torch_dtype=torch.bfloat16, attn_implementation="sdpa",
@@ -201,22 +252,29 @@ def load_policy(args):
     return model, processor, metadata
 
 
-def train_policy(args, model, processor, rows, validation, segmenter, output):
-    import numpy as np
+def train_policy(args, model, processor, rows, validation, segmenter, output, contract):
     import torch
     from datasets import Dataset, Image as DatasetImage
-    from PIL import Image
-    from peft import LoraConfig, get_peft_model
+    from peft import LoraConfig, PeftModel, get_peft_model
     from transformers import TrainerCallback, set_seed
     from trl import GRPOConfig, GRPOTrainer
     from nucleus_rl.evaluate import ArtifactScorer, completion_text, prompt_for_image, run_evaluation, write_json
     from nucleus_rl.segmenter import parameter_sha256
+    from nucleus_rl.training_budget import (
+        load_training_state, preserve_evaluation_state, restore_rng, save_training_state,
+        seal_checkpoint, verify_checkpoint, wall_budget_reached,
+    )
 
     targets = text_lora_targets(model)
-    model = get_peft_model(model, LoraConfig(
-        task_type="CAUSAL_LM", r=args.lora_rank, lora_alpha=2 * args.lora_rank,
-        lora_dropout=0.0, target_modules=targets, bias="none", revision=args.revision,
-    ))
+    resumed_step = 0
+    if args.resume_from_checkpoint:
+        resumed_step = verify_checkpoint(args.resume_from_checkpoint, contract)["global_step"]
+        model = PeftModel.from_pretrained(model, args.resume_from_checkpoint, is_trainable=True)
+    else:
+        model = get_peft_model(model, LoraConfig(
+            task_type="CAUSAL_LM", r=args.lora_rank, lora_alpha=2 * args.lora_rank,
+            lora_dropout=0.0, target_modules=targets, bias="none", revision=args.revision,
+        ))
     trainable = assert_text_adapters_only(model)
     initial = {name: parameter.detach().cpu().clone() for name, parameter in model.named_parameters() if parameter.requires_grad}
     adapter_hash_before = parameter_sha256(model, trainable_only=True)
@@ -229,7 +287,16 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
         "count": sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad),
         "adapter_sha256_before": adapter_hash_before, "visual_sha256_before": visual_hash_before,
     })
-    before = run_evaluation(model, processor, validation, ArtifactScorer(segmenter, output / "before", args.max_objects), args.seed, args.max_completion_length)
+    def evaluate_at(directory):
+        # Evaluation seeds RNGs; restore them and every submodule's train/eval
+        # mode so validation cannot change the following training sample.
+        with preserve_evaluation_state(model):
+            return run_evaluation(model, processor, validation, ArtifactScorer(segmenter, directory, args.max_objects),
+                                  args.seed, args.max_completion_length)
+
+    evaluation_started = time.monotonic()
+    before = evaluate_at(output / "before")
+    before_evaluation_seconds = time.monotonic() - evaluation_started
     set_seed(args.seed)
     scorer = ArtifactScorer(segmenter, output / "training_completions", args.max_objects)
     lookup = {row["id"]: row for row in rows}
@@ -255,10 +322,20 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
         dataset_rows.append({"id": row["id"], "image": row["image_path"], "prompt": prompt})
     dataset = Dataset.from_list(dataset_rows).cast_column("image", DatasetImage())
     proof = {"finite_gradient_steps": 0, "nonzero_gradient_steps": 0, "adapter_changed_steps": 0, "stop_reason": None}
+    progress = {"last_checkpoint": None, "periodic_evaluations": [], "resumed_from_step": resumed_step,
+                "peak_gpu_allocated_bytes": 0, "peak_gpu_reserved_bytes": 0}
+    coordinate_config = {key: getattr(args, key) for key in REPLAY_SETTINGS}
+    coordinate_config["conversion"] = "x_original=x_prompt*original_width/prompt_width; likewise y"
+    runner_args = args
 
     class ProofCallback(TrainerCallback):
         def on_train_begin(self, args, state, control, **kwargs):
             self.started = time.monotonic()
+            self.step_started = self.started
+            torch.cuda.reset_peak_memory_stats()
+
+        def on_step_begin(self, args, state, control, **kwargs):
+            self.step_started = time.monotonic()
             torch.cuda.reset_peak_memory_stats()
 
         def on_pre_optimizer_step(self, args, state, control, model=None, **kwargs):
@@ -273,20 +350,54 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
             assert_text_adapters_only(model)
             changed = any(not torch.equal(parameter.detach().cpu(), initial[name]) for name, parameter in model.named_parameters() if parameter.requires_grad)
             proof["adapter_changed_steps"] += int(changed)
-            row = {
-                "step": state.global_step, "elapsed_seconds": time.monotonic() - self.started,
-                "adapter_differs_from_initial": changed,
-                "peak_gpu_allocated_bytes": torch.cuda.max_memory_allocated(),
-                "peak_gpu_reserved_bytes": torch.cuda.max_memory_reserved(), **proof,
-            }
-            with (output / "optimizer_proof.jsonl").open("a") as stream:
-                stream.write(json.dumps(row, allow_nan=False) + "\n")
-            if state.global_step >= 10 and (
+            elapsed = time.monotonic() - self.started
+            allocated, reserved = torch.cuda.max_memory_allocated(), torch.cuda.max_memory_reserved()
+            progress["peak_gpu_allocated_bytes"] = max(progress["peak_gpu_allocated_bytes"], allocated)
+            progress["peak_gpu_reserved_bytes"] = max(progress["peak_gpu_reserved_bytes"], reserved)
+            if state.global_step - resumed_step >= 10 and (
                 not any(group["reward_std"] > 0 for group in scorer.groups)
                 or not changed or all(group["all_zero"] for group in scorer.groups)
             ):
-                proof["stop_reason"] = "No useful group reward variation or adapter update in the first 10 steps"
+                proof["stop_reason"] = "No useful group reward variation or adapter update in the first 10 new steps"
                 control.should_training_stop = True
+            elif wall_budget_reached(elapsed, runner_args.wall_time_minutes):
+                proof["stop_reason"] = "wall_time_budget"
+                control.should_training_stop = True
+            due_eval = runner_args.eval_every and state.global_step % runner_args.eval_every == 0
+            if control.should_training_stop or state.global_step == runner_args.max_steps or due_eval:
+                control.should_save = True
+            row = {
+                "step": state.global_step, "elapsed_seconds": elapsed,
+                "step_duration_seconds": time.monotonic() - self.step_started,
+                "adapter_differs_from_initial": changed,
+                "step_peak_gpu_allocated_bytes": allocated, "step_peak_gpu_reserved_bytes": reserved,
+                "peak_gpu_allocated_bytes": progress["peak_gpu_allocated_bytes"],
+                "peak_gpu_reserved_bytes": progress["peak_gpu_reserved_bytes"], **proof,
+            }
+            with (output / "optimizer_proof.jsonl").open("a") as stream:
+                stream.write(json.dumps(row, allow_nan=False) + "\n")
+            return control
+
+        def on_save(self, args, state, control, optimizer=None, lr_scheduler=None, **kwargs):
+            checkpoint = Path(args.output_dir) / f"checkpoint-{state.global_step}"
+            write_json(checkpoint / "coordinate_config.json", coordinate_config)
+            save_training_state(checkpoint, optimizer, lr_scheduler)
+            seal_checkpoint(checkpoint, contract, {**proof, "resumed_from_step": resumed_step})
+            progress["last_checkpoint"] = str(checkpoint.resolve())
+            write_json(output / "progress.json", {"step": state.global_step, **progress, **proof})
+            due_eval = runner_args.eval_every and state.global_step % runner_args.eval_every == 0
+            if due_eval and not control.should_training_stop and state.global_step < runner_args.max_steps:
+                eval_started = time.monotonic()
+                summary = evaluate_at(output / "evaluations" / f"step-{state.global_step}")
+                record = {"step": state.global_step, "duration_seconds": time.monotonic() - eval_started,
+                          "summary": summary}
+                progress["periodic_evaluations"].append(record)
+                with (output / "validation_history.jsonl").open("a") as stream:
+                    stream.write(json.dumps(record, allow_nan=False) + "\n")
+                if wall_budget_reached(time.monotonic() - self.started, runner_args.wall_time_minutes):
+                    proof["stop_reason"] = "wall_time_budget"
+                    control.should_training_stop = True
+                write_json(output / "progress.json", {"step": state.global_step, **progress, **proof})
             return control
 
         def on_log(self, args, state, control, logs=None, **kwargs):
@@ -295,6 +406,25 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
                     raise RuntimeError(f"Nonfinite logged metric: {name}={value}")
             with (output / "training_log.jsonl").open("a") as stream:
                 stream.write(json.dumps({"step": state.global_step, **(logs or {})}, allow_nan=False) + "\n")
+
+    class SafeResumeGRPOTrainer(GRPOTrainer):
+        """Keep Trainer's adapter/step/data resume, loading no pickle payloads.
+
+        Transformers 4.56 refuses torch.load under Torch 2.5. The additional
+        safetensors/JSON bundle restores only optimizer, scheduler and RNG.
+        Fixed accumulation=2, generations=2, iterations=1 puts each optimizer
+        checkpoint at a generation-buffer boundary in TRL 0.23.1.
+        """
+        def _load_optimizer_and_scheduler(self, checkpoint):
+            if checkpoint:
+                verify_checkpoint(checkpoint, contract)
+                bundle = load_training_state(checkpoint)
+                self.optimizer.load_state_dict(bundle["optimizer"])
+                self.lr_scheduler.load_state_dict(bundle["scheduler"])
+
+        def _load_rng_state(self, checkpoint):
+            if checkpoint:
+                restore_rng(load_training_state(checkpoint)["rng"])
 
     config = GRPOConfig(
         output_dir=str(output / "checkpoints"), max_steps=args.max_steps,
@@ -314,30 +444,35 @@ def train_policy(args, model, processor, rows, validation, segmenter, output):
         temperature=1.0, scale_rewards="group", mask_truncated_completions=True,
     )
     write_json(output / "grpo_config.json", config.to_dict())
-    trainer = GRPOTrainer(
+    callback = ProofCallback()
+    trainer = SafeResumeGRPOTrainer(
         model=model, args=config, processing_class=processor, train_dataset=dataset,
-        reward_funcs=segmentation_and_format_reward, callbacks=[ProofCallback()],
+        reward_funcs=segmentation_and_format_reward, callbacks=[callback],
     )
     if trainer.ref_model is not None:
         raise RuntimeError("Expected adapter-disabled reference; refusing an extra model copy")
-    trainer.train()
+    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    training_elapsed = time.monotonic() - callback.started
     trainer.save_model(str(output / "adapter"))
     processor.save_pretrained(output / "adapter")
-    write_json(output / "adapter" / "coordinate_config.json", {
-        "coordinate_frame": args.coordinate_frame,
-        "prompt_style": args.prompt_style,
-        "min_pixels": args.min_pixels, "max_pixels": args.max_pixels,
-        "conversion": "x_original=x_prompt*original_width/prompt_width; likewise y",
-    })
+    write_json(output / "adapter" / "coordinate_config.json", coordinate_config)
     scorer.summary()
-    after = run_evaluation(model, processor, validation, ArtifactScorer(segmenter, output / "after", args.max_objects), args.seed, args.max_completion_length)
+    evaluation_started = time.monotonic()
+    after = evaluate_at(output / "after")
+    after_evaluation_seconds = time.monotonic() - evaluation_started
     visual_hash_after = parameter_sha256(visual)
     if visual_hash_after != visual_hash_before:
         raise RuntimeError("Qwen image encoder changed despite freeze requirement")
     changed = parameter_sha256(model, trainable_only=True) != adapter_hash_before
-    status = "verified_training_pilot" if changed and proof["nonzero_gradient_steps"] and not proof["stop_reason"] else "no_useful_update"
+    status = "verified_training_pilot" if changed and proof["nonzero_gradient_steps"] and proof["stop_reason"] in (None, "wall_time_budget") else "no_useful_update"
     return {
-        "status": status, "optimizer_steps": trainer.state.global_step, **proof,
+        "status": status, "optimizer_steps": trainer.state.global_step, **proof, **progress,
+        "optimizer_steps_this_run": trainer.state.global_step - resumed_step,
+        "requested_optimizer_steps": args.max_steps,
+        "completed_requested_steps": trainer.state.global_step == args.max_steps,
+        "training_elapsed_seconds": training_elapsed, "wall_time_minutes": args.wall_time_minutes,
+        "before_evaluation_seconds": before_evaluation_seconds,
+        "after_evaluation_seconds": after_evaluation_seconds,
         "adapter_changed": changed, "adapter_sha256_before": adapter_hash_before,
         "adapter_sha256_after": parameter_sha256(model, trainable_only=True),
         "visual_sha256_before": visual_hash_before, "visual_sha256_after": visual_hash_after,
@@ -351,10 +486,13 @@ def main(argv=None):
     try:
         restore_adapter_settings(args)
         validate_args(args)
-    except ValueError as error:
+        restore_resume_revision(args)
+    except (ValueError, OSError, KeyError) as error:
         parser.error(str(error))
     from nucleus_rl.evaluate import ArtifactScorer, prepare_coordinate_rows, read_manifest, run_evaluation, write_json
     from nucleus_rl.segmenter import FrozenSAM2, file_sha256
+    from nucleus_rl.cohort import load_official30_cohort
+    from nucleus_rl.training_budget import check_cohort, verify_checkpoint
 
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -365,13 +503,10 @@ def main(argv=None):
     try:
         rows = read_manifest(args.manifest)
         validation = read_manifest(args.eval_manifest) if args.eval_manifest else []
+        cohort = None
         if args.mode == "train":
-            if any(row["split"] != "train" for row in rows):
-                raise ValueError("Training manifest must contain only train records")
-            if any(row["split"] != "validation" for row in validation):
-                raise ValueError("Evaluation manifest must contain only validation records")
-            if {row["patient_id"] for row in rows} & {row["patient_id"] for row in validation}:
-                raise ValueError("Train/validation patient overlap")
+            cohort = load_official30_cohort(args.cohort_protocol)
+            check_cohort(rows, validation, cohort)
         model, processor, metadata = load_policy(args)
         rows = prepare_coordinate_rows(rows, processor, args.coordinate_frame)
         validation = prepare_coordinate_rows(validation, processor, args.coordinate_frame)
@@ -384,11 +519,16 @@ def main(argv=None):
         ])
         metadata["manifest_sha256"] = file_sha256(args.manifest)
         metadata["eval_manifest_sha256"] = file_sha256(args.eval_manifest) if args.eval_manifest else None
+        metadata["cohort_protocol_sha256"] = cohort["protocol_sha256"] if cohort else None
         write_json(output / "metadata.json", metadata)
         segmenter = FrozenSAM2(args.sam_checkpoint, args.sam_config)
         write_json(output / "sam_before.json", segmenter.metadata)
         if args.mode == "train":
-            result = train_policy(args, model, processor, rows, validation, segmenter, output)
+            contract = training_contract(args, rows, validation, metadata, segmenter, cohort)
+            if args.resume_from_checkpoint:
+                verify_checkpoint(args.resume_from_checkpoint, contract)
+            write_json(output / "training_contract.json", contract)
+            result = train_policy(args, model, processor, rows, validation, segmenter, output, contract)
         else:
             scorer = ArtifactScorer(segmenter, output / "predictions", args.max_objects)
             result = run_evaluation(
