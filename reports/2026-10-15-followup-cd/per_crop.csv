@@ -1,0 +1,81 @@
+experiment,id,variant,gt_count,pred_count,tp,fp,fn,pq,recall,count_error,format_valid,parse_error,same_gt_duplicate_count,raw_overlap_pair_count
+C,TCGA-CH-5767-01Z-00-DX1_x768_y128,base_one_example,2,1,0,1,2,0.0,0.0,1,True,,0,0
+C,TCGA-CH-5767-01Z-00-DX1_x768_y128,base_three_examples,2,1,0,1,2,0.0,0.0,1,True,,0,0
+C,TCGA-CH-5767-01Z-00-DX1_x768_y128,large_one_example,2,2,0,2,2,0.0,0.0,0,True,,0,0
+C,TCGA-CH-5767-01Z-00-DX1_x768_y128,large_three_examples,2,5,0,5,2,0.0,0.0,3,True,,0,0
+C,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,base_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+C,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,base_three_examples,4,0,0,0,4,0.0,0.0,4,False,objects must be an array with at most 8 entries,0,0
+C,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,large_one_example,4,0,0,0,4,0.0,0.0,4,False,Answer must contain exactly the objects key,0,0
+C,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,large_three_examples,4,0,0,0,4,0.0,0.0,4,True,,0,0
+C,TCGA-49-4488-01Z-00-DX1_x640_y512,base_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+C,TCGA-49-4488-01Z-00-DX1_x640_y512,base_three_examples,5,8,1,7,4,0.10397084212545558,0.2,3,True,,0,0
+C,TCGA-49-4488-01Z-00-DX1_x640_y512,large_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+C,TCGA-49-4488-01Z-00-DX1_x640_y512,large_three_examples,5,4,0,4,5,0.0,0.0,1,True,,0,0
+C,TCGA-21-5784-01Z-00-DX1_x512_y640,base_one_example,6,1,0,1,6,0.0,0.0,5,True,,0,0
+C,TCGA-21-5784-01Z-00-DX1_x512_y640,base_three_examples,6,0,0,0,6,0.0,0.0,6,False,Box must have positive area and lie inside the image,0,0
+C,TCGA-21-5784-01Z-00-DX1_x512_y640,large_one_example,6,6,0,6,6,0.0,0.0,0,True,,0,0
+C,TCGA-21-5784-01Z-00-DX1_x512_y640,large_three_examples,6,8,0,8,6,0.0,0.0,2,True,,0,0
+C,TCGA-18-5592-01Z-00-DX1_x0_y128,base_one_example,7,1,0,1,7,0.0,0.0,6,True,,0,0
+C,TCGA-18-5592-01Z-00-DX1_x0_y128,base_three_examples,7,0,0,0,7,0.0,0.0,7,False,objects must be an array with at most 8 entries,0,0
+C,TCGA-18-5592-01Z-00-DX1_x0_y128,large_one_example,7,1,0,1,7,0.0,0.0,6,True,,0,0
+C,TCGA-18-5592-01Z-00-DX1_x0_y128,large_three_examples,7,2,0,2,7,0.0,0.0,5,True,,0,0
+C,TCGA-38-6178-01Z-00-DX1_x768_y768,base_one_example,8,1,0,1,8,0.0,0.0,7,True,,0,0
+C,TCGA-38-6178-01Z-00-DX1_x768_y768,base_three_examples,8,8,1,7,7,0.09848484848484848,0.125,0,True,,0,1
+C,TCGA-38-6178-01Z-00-DX1_x768_y768,large_one_example,8,8,0,8,8,0.0,0.0,0,True,,0,0
+C,TCGA-38-6178-01Z-00-DX1_x768_y768,large_three_examples,8,0,0,0,8,0.0,0.0,8,False,Box must have positive area and lie inside the image,0,0
+C,TCGA-AY-A8YK-01A-01-TS1_x0_y640,base_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+C,TCGA-AY-A8YK-01A-01-TS1_x0_y640,base_three_examples,4,1,0,1,4,0.0,0.0,3,True,,0,0
+C,TCGA-AY-A8YK-01A-01-TS1_x0_y640,large_one_example,4,0,0,0,4,0.0,0.0,4,True,,0,0
+C,TCGA-AY-A8YK-01A-01-TS1_x0_y640,large_three_examples,4,0,0,0,4,0.0,0.0,4,True,,0,0
+C,TCGA-A7-A13E-01Z-00-DX1_x0_y0,base_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+C,TCGA-A7-A13E-01Z-00-DX1_x0_y0,base_three_examples,5,8,0,8,5,0.0,0.0,3,True,,0,0
+C,TCGA-A7-A13E-01Z-00-DX1_x0_y0,large_one_example,5,3,0,3,5,0.0,0.0,2,True,,0,0
+C,TCGA-A7-A13E-01Z-00-DX1_x0_y0,large_three_examples,5,0,0,0,5,0.0,0.0,5,False,Box must have positive area and lie inside the image,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,tiny_one_example,2,1,0,1,2,0.0,0.0,1,True,,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,large_one_example,2,1,0,1,2,0.0,0.0,1,True,,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,tiny_three_examples,2,1,0,1,2,0.0,0.0,1,True,,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,large_three_examples,2,1,0,1,2,0.0,0.0,1,True,,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,tiny_oracle_tight,2,2,2,0,0,0.6885416666666666,1.0,0,True,,0,0
+D,TCGA-CH-5767-01Z-00-DX1_x768_y128,large_oracle_tight,2,2,2,0,0,0.821875,1.0,0,True,,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,tiny_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,large_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,tiny_three_examples,4,0,0,0,4,0.0,0.0,4,False,objects must be an array with at most 8 entries,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,large_three_examples,4,0,0,0,4,0.0,0.0,4,False,objects must be an array with at most 8 entries,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,tiny_oracle_tight,4,4,4,0,0,0.796924244064664,1.0,0,True,,0,0
+D,TCGA-AR-A1AK-01Z-00-DX1_x640_y256,large_oracle_tight,4,4,4,0,0,0.8018614362791145,1.0,0,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,tiny_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,large_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,tiny_three_examples,5,8,1,7,4,0.10397084212545558,0.2,3,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,large_three_examples,5,8,1,7,4,0.1114642932824751,0.2,3,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,tiny_oracle_tight,5,5,5,0,0,0.7889001034403922,1.0,0,True,,0,0
+D,TCGA-49-4488-01Z-00-DX1_x640_y512,large_oracle_tight,5,5,5,0,0,0.845579082550425,1.0,0,True,,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,tiny_one_example,6,1,0,1,6,0.0,0.0,5,True,,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,large_one_example,6,1,0,1,6,0.0,0.0,5,True,,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,tiny_three_examples,6,0,0,0,6,0.0,0.0,6,False,Box must have positive area and lie inside the image,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,large_three_examples,6,0,0,0,6,0.0,0.0,6,False,Box must have positive area and lie inside the image,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,tiny_oracle_tight,6,6,6,0,0,0.7940954674448669,1.0,0,True,,0,0
+D,TCGA-21-5784-01Z-00-DX1_x512_y640,large_oracle_tight,6,6,6,0,0,0.7952914964870837,1.0,0,True,,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,tiny_one_example,7,1,0,1,7,0.0,0.0,6,True,,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,large_one_example,7,1,0,1,7,0.0,0.0,6,True,,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,tiny_three_examples,7,0,0,0,7,0.0,0.0,7,False,objects must be an array with at most 8 entries,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,large_three_examples,7,0,0,0,7,0.0,0.0,7,False,objects must be an array with at most 8 entries,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,tiny_oracle_tight,7,7,7,0,0,0.7632023214791025,1.0,0,True,,0,0
+D,TCGA-18-5592-01Z-00-DX1_x0_y128,large_oracle_tight,7,7,7,0,0,0.73459097658496,1.0,0,True,,0,0
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,tiny_one_example,8,1,0,1,8,0.0,0.0,7,True,,0,0
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,large_one_example,8,1,0,1,8,0.0,0.0,7,True,,0,0
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,tiny_three_examples,8,8,1,7,7,0.09848484848484848,0.125,0,True,,0,1
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,large_three_examples,8,8,1,7,7,0.08645610278372591,0.125,0,True,,0,0
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,tiny_oracle_tight,8,8,8,0,0,0.8424843103763128,1.0,0,True,,0,0
+D,TCGA-38-6178-01Z-00-DX1_x768_y768,large_oracle_tight,8,8,8,0,0,0.834917509093154,1.0,0,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,tiny_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,large_one_example,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,tiny_three_examples,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,large_three_examples,4,1,0,1,4,0.0,0.0,3,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,tiny_oracle_tight,4,4,3,1,1,0.5699274163609889,0.75,0,True,,0,0
+D,TCGA-AY-A8YK-01A-01-TS1_x0_y640,large_oracle_tight,4,4,4,0,0,0.7372328720508167,1.0,0,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,tiny_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,large_one_example,5,1,0,1,5,0.0,0.0,4,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,tiny_three_examples,5,8,0,8,5,0.0,0.0,3,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,large_three_examples,5,8,0,8,5,0.0,0.0,3,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,tiny_oracle_tight,5,5,5,0,0,0.8127420858626732,1.0,0,True,,0,0
+D,TCGA-A7-A13E-01Z-00-DX1_x0_y0,large_oracle_tight,5,5,5,0,0,0.7951669336495133,1.0,0,True,,0,0
