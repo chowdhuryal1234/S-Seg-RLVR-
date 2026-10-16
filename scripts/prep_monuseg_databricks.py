@@ -135,7 +135,7 @@ print("Images with negative ROA / degenerate regions:",
 
 # COMMAND ----------
 
-protocol = json.loads((Path(REPO_DIR) / "reports/2026-10-09/data_protocol.json").read_text())
+protocol = json.loads((Path(REPO_DIR) / "configs/monuseg_databricks.json").read_text())
 argv = list(protocol["preparation_argv"][1:])          
 argv[argv.index("--train-archive") + 1] = TRAIN_DIR      
 argv[argv.index("--out") + 1] = OUT_DIR                  
@@ -180,7 +180,7 @@ report = json.loads(report_path.read_text())
 report["source_format"] = "extracted_folder read via FolderArchive (zipfile.ZipFile stand-in); see source_folder_manifest.json"
 report["training_archive_audit"]["archive_bytes"] = sum(m["bytes"] for m in manifest)   
 report["protocol_deviation"] = {**deviation, "final_argv": argv,
-                                "note": "Patient assignments follow data_protocol.json intersected with this dataset."}
+                                "note": "Patient assignments follow configs/monuseg_databricks.json intersected with this dataset."}
 report_path.write_text(json.dumps(report, indent=2) + "\n")
 print("Written to source_folder_manifest.json，format annotated in preparation_report.json.")
 
@@ -189,7 +189,7 @@ print("Written to source_folder_manifest.json，format annotated in preparation_
 produced = {split: [json.loads(line) for line in (Path(OUT_DIR) / f"{split}.jsonl").read_text().splitlines()]
             for split in ("train", "validation")}
 for split in ("train", "validation"):
-    expected = [c["id"] for c in protocol["selected_crops"][split]]
+    expected = protocol["expected_crop_ids"][split]
     got = [r["id"] for r in produced[split]]
     status = "same" if got == expected else ("same content but different sequence" if sorted(got) == sorted(expected) else "different")
     print(f"{split}: generate {len(got)} crop，previous {len(expected)} 个 → {status}")
