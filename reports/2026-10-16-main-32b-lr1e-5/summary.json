@@ -1,0 +1,2505 @@
+{
+  "schema_version": 1,
+  "run_name": "main_32b_lr1e-5_seed42",
+  "status": "verified_training_pilot",
+  "purpose": "Fresh 32B language-LoRA GRPO, learning rate 1e-5, seed 42, 400 optimizer steps; final checkpoint evaluated on the fixed validation64 cohort.",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "gpu": "NVIDIA H200",
+    "gpu_total_bytes": 150101688320,
+    "packages": {
+      "torch": "2.5.1",
+      "transformers": "4.56.2",
+      "trl": "0.23.1",
+      "peft": "0.17.1",
+      "accelerate": "1.10.1",
+      "datasets": "3.6.0",
+      "SAM-2": "1.0"
+    }
+  },
+  "settings": {
+    "seed": 42,
+    "max_steps": 400,
+    "group_size": 2,
+    "max_completion_length": 512,
+    "max_objects": 8,
+    "lora_rank": 8,
+    "learning_rate": 1e-05,
+    "beta": 0.04,
+    "save_steps": 50,
+    "eval_every": 100,
+    "coordinate_frame": "processed",
+    "prompt_style": "example",
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "fresh_base": true,
+  "reward": "R_fmt + binary foreground IoU against full instance masks; no count, separation or topology reward.",
+  "optimizer_evidence": {
+    "optimizer_steps": 400,
+    "optimizer_steps_this_run": 400,
+    "finite_gradient_steps": 400,
+    "nonzero_gradient_steps": 400,
+    "adapter_changed_steps": 400,
+    "completed_requested_steps": true,
+    "adapter_changed": true,
+    "adapter_sha256_before": "853a2f6582f2aa7b2112e1b9904eb1742fe0677242a29cb768b0ebf4e237283b",
+    "adapter_sha256_after": "c4313d1bfde3377dc0da9fe57aa91d7df6310d51eff58240d3f8a6c70b48d06a",
+    "visual_sha256_before": "75e8fc974d56216ba356f899a495a8bf332876c09649568cf03231061672aabf",
+    "visual_sha256_after": "75e8fc974d56216ba356f899a495a8bf332876c09649568cf03231061672aabf",
+    "reference_uses_disabled_adapter": true,
+    "resumed_from_step": 0,
+    "requested_optimizer_steps": 400,
+    "stop_reason": null,
+    "adapter_changed_steps_definition": "Count of steps whose adapter differs from its initial weights; not a comparison against the preceding step."
+  },
+  "sam": {
+    "checkpoint_sha256": "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
+    "config": "configs/sam2.1/sam2.1_hiera_t.yaml",
+    "source_commit": "2b90b9f5ceec907a1c18123530e92e794ad901a4",
+    "parameters_before": "eb052b402dfa702df22aea28d0bb72a33e9e9f2d430a783c36eec319be0b61ed",
+    "parameters_after": "eb052b402dfa702df22aea28d0bb72a33e9e9f2d430a783c36eec319be0b61ed",
+    "trainable_parameters": 0,
+    "unchanged": true
+  },
+  "resources": {
+    "training_elapsed_seconds": 4221.195576961967,
+    "before_evaluation_seconds": 327.4564332549926,
+    "after_evaluation_seconds": 344.23714047600515,
+    "elapsed_seconds": 4936.167966220994,
+    "peak_gpu_allocated_bytes": 68674091520,
+    "peak_gpu_reserved_bytes": 71353499648,
+    "periodic_evaluation_count": 3,
+    "training_elapsed_definition": "Training-loop elapsed, including periodic evaluations and checkpoint work; not the sum of optimizer-step durations."
+  },
+  "data": {
+    "train_manifest_sha256": "a49d484b4202ddd21f1ce34eda3859641fc38bbbd72b665e27fcf63190300dcc",
+    "evaluation_manifest_sha256": "1969cd648b83fa0d9f1bfcaa73d248a879e3f3156e2863e46c540cf7cce853f8",
+    "training_pool_crops": 256,
+    "training_pool_patients": 19,
+    "evaluation_crops": 64,
+    "evaluation_patients": 4,
+    "selection": "Official-30 MoNuSeg training sources, patient-disjoint train/validation partition; selected native 128x128 crops with 1-8 annotated nuclei. This run evaluates all 64 validation crops; benchmark8 is not pooled into a separate metric.",
+    "evaluation_crop_provenance": [
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 5,
+        "image_sha256": "7f09d1ff0cc66b0440d81112bb55beeaf7b90d95b63b38fea3be9416c81480a0",
+        "mask_sha256": "4be80e633ffdf61aafc9bc81d317e8bd1efab514f8a0c895e5b76907831cd7b6",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          78,
+          103,
+          300
+        ],
+        "border_touching_instance_ids": [
+          78,
+          103,
+          300,
+          352
+        ],
+        "source_clipped_instance_ids": [
+          352
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 7,
+        "image_sha256": "476de6a0a1498752f9127bab8eaa865660f244b03628d0f619577363d1ad312b",
+        "mask_sha256": "dc05f3980cf74458a6ea1477407bb72242d0431624ae142a7abda77039de286b",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          106,
+          191,
+          225
+        ],
+        "border_touching_instance_ids": [
+          106,
+          191,
+          225
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y384",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          384,
+          128,
+          512
+        ],
+        "instance_count": 5,
+        "image_sha256": "63aa91e4c76f9a67c99af0a90ee825a1c25ae4c9bff941a4959baf110ce378bb",
+        "mask_sha256": "6e0a1912d76196b3af860335fa574aace6c6e058366f245d879ec6d4234174ad",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          314,
+          358,
+          359,
+          360
+        ],
+        "border_touching_instance_ids": [
+          314,
+          358,
+          359,
+          360
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 8,
+        "image_sha256": "059b7e5a9271b601d887147cc574f20c9f2282d07b7ee5d7b6fdcf1e1dbd4189",
+        "mask_sha256": "5fb6690067c63a9d4b8736de5ac826ae8eb1eeaad69e34152d6dd74b94db5b43",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          11,
+          61,
+          114,
+          379,
+          382
+        ],
+        "border_touching_instance_ids": [
+          11,
+          61,
+          114,
+          379,
+          382
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x384_y512",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          512,
+          512,
+          640
+        ],
+        "instance_count": 3,
+        "image_sha256": "07bdff8695d4822e7c4c307b91aefec07bb0bd6cf64d55bbdb00242e1f12ac82",
+        "mask_sha256": "e1272c272e0942cbd976bec30910668830ef383aadb9b07bbe060f435045e296",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          17
+        ],
+        "border_touching_instance_ids": [
+          17
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x512_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          384,
+          640,
+          512
+        ],
+        "instance_count": 8,
+        "image_sha256": "c51efc37b3f99229c5bd00e55ba68acb40b370977c7538fdc739bcb652e5d72e",
+        "mask_sha256": "1dca0bad7a0284bc2c0eb58525e928e560f092b1288fe1c6047aec2ef853c17a",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          93,
+          116,
+          265,
+          266
+        ],
+        "border_touching_instance_ids": [
+          93,
+          116,
+          229,
+          265,
+          266
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x128_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          128,
+          256,
+          256
+        ],
+        "instance_count": 7,
+        "image_sha256": "ad8492e797e701af57bf01f7b0371ea9807e459c9886d6ce3ce0fdd55758b283",
+        "mask_sha256": "640e5b01cecf48d19f26d1b3591afcde22e931f7c2d3fae537fc623f2ddcf02e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          46,
+          47,
+          341,
+          343,
+          363
+        ],
+        "border_touching_instance_ids": [
+          45,
+          46,
+          47,
+          341,
+          343,
+          363
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x256_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          768,
+          384,
+          896
+        ],
+        "instance_count": 6,
+        "image_sha256": "4e71481da9a991e64e5d6141ba1b8581f2a76929e059f3098aab20a68677c04a",
+        "mask_sha256": "ef018a062146d729eca1491c092e0cb92008607130165ce1aeec0328ceab4b1a",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          198,
+          199,
+          265,
+          377,
+          424
+        ],
+        "border_touching_instance_ids": [
+          198,
+          199,
+          265,
+          377,
+          424
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x640_y640",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          640,
+          768,
+          768
+        ],
+        "instance_count": 7,
+        "image_sha256": "62f6d8d8ceee7b05411ea6a84e80abe2e52a680ad07376a8ce4b6f81cf6a2f34",
+        "mask_sha256": "8a491f7432370deb5ea62407dc262326c7aa5ff65686b5275e7f98d16e309624",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          8,
+          11,
+          60,
+          73,
+          247
+        ],
+        "border_touching_instance_ids": [
+          8,
+          11,
+          60,
+          73,
+          247
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x256_y256",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          256,
+          384,
+          384
+        ],
+        "instance_count": 5,
+        "image_sha256": "a3a4708244e11398838fa9144cd88cfa4b090668d03bfd5bc0383c090c453a4e",
+        "mask_sha256": "245e6410fd076c561602cf887b12266c354da25a45718bd3a3b551527978075e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          213,
+          230,
+          317
+        ],
+        "border_touching_instance_ids": [
+          55,
+          213,
+          230,
+          317
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x512_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          0,
+          640,
+          128
+        ],
+        "instance_count": 2,
+        "image_sha256": "a6cf8d4f9bade7c1d4dbb06a8ad660f65ec5022b8d55515cf2e820ef4b8167ba",
+        "mask_sha256": "c6533d9f9916f6ae9a97b5107be31f3541dd5ad0e8ab1a7df2b5c846cb92748c",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          308
+        ],
+        "border_touching_instance_ids": [
+          308
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y640",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          640,
+          256,
+          768
+        ],
+        "instance_count": 8,
+        "image_sha256": "9d8f5802361b866a28491cb758005a006810f1e1ae6a629f7a58c514b90909b6",
+        "mask_sha256": "dfef684065a5a60d753957d640dd3b84c22044c135924167b8e6b98097612cd9",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          115,
+          173,
+          257,
+          266,
+          426,
+          428
+        ],
+        "border_touching_instance_ids": [
+          115,
+          173,
+          257,
+          266,
+          426,
+          428
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x128_y0",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          0,
+          256,
+          128
+        ],
+        "instance_count": 3,
+        "image_sha256": "97bd77d89cfef5a19f19ae0ab12122d33cc77f900183a3464ad31ef35a06495c",
+        "mask_sha256": "c6bacee3d7ffc3540747f40c35336d3c159f51a05f55eb546baa02cea2a5d944",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          215
+        ],
+        "border_touching_instance_ids": [
+          215
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x512_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          0,
+          640,
+          128
+        ],
+        "instance_count": 4,
+        "image_sha256": "a56c45f4ef6a49baacea94b645bee338f143e87c5f16a3d7b3890676e0175def",
+        "mask_sha256": "b02a8a8c6c638afaa7f8df71ee5c650439ed2221eaa035011ff58f74cba3a315",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          100,
+          169,
+          217,
+          218
+        ],
+        "border_touching_instance_ids": [
+          100,
+          169,
+          217,
+          218
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y640",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          640,
+          128,
+          768
+        ],
+        "instance_count": 2,
+        "image_sha256": "f85ddde26ed208e0d6744774aa745fb32a779ee7abd72735742612619a95ea11",
+        "mask_sha256": "563382caef916b573742177f47a5a90de7709120e9b9f7278ae75d8513b8152d",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [],
+        "border_touching_instance_ids": [
+          90
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 7,
+        "image_sha256": "0665a46a1030b121d442ce1141248918f7489eceb4b5b5d88fd1975bced79206",
+        "mask_sha256": "f892fd064f606e9eb0f93c7e3ee79ce01a7a463518ada88192540d3f7ab9fbc2",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          6,
+          174,
+          427
+        ],
+        "border_touching_instance_ids": [
+          6,
+          174,
+          427
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x256_y0",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          0,
+          384,
+          128
+        ],
+        "instance_count": 8,
+        "image_sha256": "84b2a86fce8d4e374e29241916c3e0f009c02af5b90405ba265556a09736befe",
+        "mask_sha256": "86b98b85bf224d50085a20c78668b95445adebc68018b2c1a6dce7d6a4c09dce",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          281
+        ],
+        "border_touching_instance_ids": [
+          281
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          0,
+          128,
+          128
+        ],
+        "instance_count": 6,
+        "image_sha256": "3c3067fd15a37f40f801bc1ce476406921c6c2be22078ab601624c0e1a8cc846",
+        "mask_sha256": "a7b55d2aaea5ebc814996981e02fe82c06d8595787760dee65ed855ab51090ed",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [],
+        "border_touching_instance_ids": [],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 6,
+        "image_sha256": "d99b21837779ea3506f326747dfc1b05f8ce48c4247f18d61b185f07e6cfce4b",
+        "mask_sha256": "2b234f1ae114903f2121556932d2c2379e9b8c1bb99ed9d3149473b65cd4357f",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          347,
+          363,
+          364
+        ],
+        "border_touching_instance_ids": [
+          347,
+          363,
+          364
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y768",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          768,
+          256,
+          896
+        ],
+        "instance_count": 8,
+        "image_sha256": "fefe1c6fff6f74ed721f3dbf8c9269e390a18c1b2a02f2981a825607235cd4b4",
+        "mask_sha256": "e6e4793aab68446c4547aacd1046359d6f9c18d961794c3cf331199efd2a8303",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          174,
+          266,
+          377,
+          425,
+          428,
+          436
+        ],
+        "border_touching_instance_ids": [
+          174,
+          266,
+          377,
+          425,
+          428,
+          436
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 4,
+        "image_sha256": "d30f3ad719991e0f914b149e55c15c64ed7dfbdfb18eb4345cddb7238372de48",
+        "mask_sha256": "dd9a552fb4560727e978e12bb2a0d7f8284092e67dc7bbe1f5d85aff16be3de5",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          164
+        ],
+        "border_touching_instance_ids": [
+          164
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x256_y128",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          128,
+          384,
+          256
+        ],
+        "instance_count": 8,
+        "image_sha256": "562ff1242253c115350dcaf834e530f7f1fe63f1d8295de0e6f9e7dc067cd680",
+        "mask_sha256": "6b7719c52274969a0a8eb44c7ae586cec92636630821a628b87c6219a1aa245d",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          125,
+          170,
+          190,
+          254
+        ],
+        "border_touching_instance_ids": [
+          55,
+          125,
+          170,
+          190,
+          254
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x640_y768",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          768,
+          768,
+          896
+        ],
+        "instance_count": 6,
+        "image_sha256": "ea47865c2fff089f833187974502df1c693b66bbb1ff5957d2ee2bc1e54e9e13",
+        "mask_sha256": "f497dd564c9607e438b04c8f40597d47e47831c6d3b3c3eb7d0ca3ffbc308d5e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          66,
+          87,
+          88,
+          149,
+          353
+        ],
+        "border_touching_instance_ids": [
+          66,
+          87,
+          88,
+          149,
+          353
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-21-5786-01Z-00-DX1_x128_y512",
+        "patient_id": "TCGA-21-5786",
+        "source_image_id": "TCGA-21-5786-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          512,
+          256,
+          640
+        ],
+        "instance_count": 5,
+        "image_sha256": "d114d717d411a7df6de5ab97bdef3fa82eb737d4e7ec15b5c701b55812ea0a65",
+        "mask_sha256": "acf9576a074875b28ccc4bf18b504b65ffefb6173135099e6681eb4aabcade0e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          67,
+          68,
+          253,
+          257,
+          258
+        ],
+        "border_touching_instance_ids": [
+          67,
+          68,
+          253,
+          257,
+          258
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x768_y0",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          0,
+          896,
+          128
+        ],
+        "instance_count": 6,
+        "image_sha256": "11753bf03a41885061161bd109417461a42b5c752dab11c7ec805fb7a01185d0",
+        "mask_sha256": "c89f40e4380c70009d91471535681045d51b21947b7f88a93f3d73995aff18ae",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          127,
+          169,
+          304
+        ],
+        "border_touching_instance_ids": [
+          127,
+          169,
+          304
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x768_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          0,
+          896,
+          128
+        ],
+        "instance_count": 8,
+        "image_sha256": "44b18ce3eda4830d0c6719784f46f2aa05d6d779c3d09e9df3f2986efff40170",
+        "mask_sha256": "7c21616d27cbcbeab931c72169f84201f23598564974a5ef22ab0c7141c8a803",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          50,
+          167,
+          261
+        ],
+        "border_touching_instance_ids": [
+          50,
+          167,
+          261,
+          305
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x768_y768",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          768,
+          896,
+          896
+        ],
+        "instance_count": 6,
+        "image_sha256": "6f00ec888efb51d7038a3e063522f624c39b39134fb1851a9bb7cc4b7d2e2a99",
+        "mask_sha256": "879262e7f43307374bc4598f905ddd12461714c3da2ceeb8d9f063037dc2e7c4",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          28,
+          144,
+          176
+        ],
+        "border_touching_instance_ids": [
+          28,
+          144,
+          176
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 6,
+        "image_sha256": "6743f26b882f846f2c969048ffa71efd7c32f97116bd81df390521e6c585dceb",
+        "mask_sha256": "e20628a184929a433498d62ec0da359c4dc83833305cca425007bbd6d317b9cc",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          218,
+          227,
+          311
+        ],
+        "border_touching_instance_ids": [
+          218,
+          227,
+          311
+        ],
+        "source_clipped_instance_ids": [
+          311
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x256_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          384,
+          384,
+          512
+        ],
+        "instance_count": 4,
+        "image_sha256": "53c480cffec74ff5997732132a0b6597438e85ce6fb25aaa0d5bdf1d9800b610",
+        "mask_sha256": "cc250adc7bc955953d13e54b0a28fd6162fdcf70bb036382b225d40823e02093",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          41,
+          42,
+          213,
+          317
+        ],
+        "border_touching_instance_ids": [
+          41,
+          42,
+          213,
+          317
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x256_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          256,
+          0,
+          384,
+          128
+        ],
+        "instance_count": 5,
+        "image_sha256": "5ff2fb17b7d6a1ae4ad1485ffb129bfb074d4c05b164f00ebaf9229a115d963b",
+        "mask_sha256": "791c4abce03dd4d149d4041f4d0c6b5a202e9fcf50ca977dc6bffb3dcd8c2644",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          48,
+          364
+        ],
+        "border_touching_instance_ids": [
+          48,
+          49,
+          364
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x384_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          128,
+          512,
+          256
+        ],
+        "instance_count": 6,
+        "image_sha256": "ff893c47a1dbef32a902c3aaaa7eee29dd7a8906656c0b8cb8fa54cd43a81428",
+        "mask_sha256": "435dba016e0e5060de92fd6a175f9adc5a8c1a166298d4ff75ea647d8d0cc450",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          106,
+          110,
+          175
+        ],
+        "border_touching_instance_ids": [
+          106,
+          110,
+          175
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          384,
+          128,
+          512
+        ],
+        "instance_count": 8,
+        "image_sha256": "fd5054956cff65f66ff66f80a7b554a439568f160cbdf79e9b7892d3f070a963",
+        "mask_sha256": "7aa58f8fc47990c9f26f5e349d92e01ff07635f7a48ce93512124ddd6c13a93f",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          110,
+          111,
+          130,
+          247,
+          338
+        ],
+        "border_touching_instance_ids": [
+          110,
+          111,
+          130,
+          131,
+          247,
+          338
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x768_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          0,
+          896,
+          128
+        ],
+        "instance_count": 8,
+        "image_sha256": "859b54531109932ee2f1bebe3685bd022b7659e94b814f74456042c3cff32fd0",
+        "mask_sha256": "2228f09c5a02413feafa21372662a3b7c7122184fb94b5c030a9a9d6918767ef",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          164,
+          166,
+          195,
+          306
+        ],
+        "border_touching_instance_ids": [
+          164,
+          166,
+          195,
+          306
+        ],
+        "source_clipped_instance_ids": [
+          195
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y640",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          640,
+          128,
+          768
+        ],
+        "instance_count": 6,
+        "image_sha256": "1ddfb49d6c42b2c5b6894b5122a977410e2daf9a33f9c0927a3f75193f30ee30",
+        "mask_sha256": "98b1cb1b81121339b4e7429d30d214b2711a15c203101eedfb3602790bdc1cd1",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          20,
+          70
+        ],
+        "border_touching_instance_ids": [
+          20,
+          70,
+          346
+        ],
+        "source_clipped_instance_ids": [
+          346
+        ]
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 8,
+        "image_sha256": "345ef4eca2d4827c79219a8703649fb56f3c89bf452e30dc6ebe5264dac11f0e",
+        "mask_sha256": "2decc061fb331b04db0456f3a4cf11124d671bae2b15cde666149ced817462de",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          82,
+          83,
+          110,
+          111,
+          186,
+          308,
+          338
+        ],
+        "border_touching_instance_ids": [
+          82,
+          83,
+          110,
+          111,
+          186,
+          308,
+          338
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x128_y640",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          640,
+          256,
+          768
+        ],
+        "instance_count": 8,
+        "image_sha256": "d0693c4a95f61039ed88a8e9b7102c5a47ba2959c1e7b0c395f62c7ece2e58cc",
+        "mask_sha256": "2ded8919bcf8d7e83ecbd79e1afb691a9cfa9005b7af6767ce91d8edfc3362ec",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          128,
+          131,
+          221,
+          317,
+          355
+        ],
+        "border_touching_instance_ids": [
+          55,
+          128,
+          131,
+          221,
+          317,
+          355
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x768_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          128,
+          896,
+          256
+        ],
+        "instance_count": 3,
+        "image_sha256": "0a74240ab8a103fedc32310ccc509c915da769eb8cbfa3b6509c84673cb1957f",
+        "mask_sha256": "c2d20b11b2a443e873036768c7cd7604c76f0eaf3a84e326693d4379086d672b",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [],
+        "border_touching_instance_ids": [],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y768",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          768,
+          768,
+          896
+        ],
+        "instance_count": 7,
+        "image_sha256": "3df14476d242ec206740cb36057d1805e3662be559dc42600f83cea35ebffc74",
+        "mask_sha256": "b6ccf6916e8e600097820acee4494a61b8c26fbbd42986ea32c8b08a1946b532",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          23,
+          29,
+          144,
+          192
+        ],
+        "border_touching_instance_ids": [
+          23,
+          29,
+          144,
+          192
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 5,
+        "image_sha256": "3ecb3ca0b635b4b4b125cd5c48d4831b7a818cfbbeb2b5fbd1d67c68127cff17",
+        "mask_sha256": "8c809471248956c9fd8ae3c96a9ac79db9188a33f7ac6cb2065593a76a9c83e1",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          94,
+          108,
+          166,
+          195,
+          273
+        ],
+        "border_touching_instance_ids": [
+          94,
+          108,
+          166,
+          195,
+          273
+        ],
+        "source_clipped_instance_ids": [
+          195
+        ]
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x128_y768",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          768,
+          256,
+          896
+        ],
+        "instance_count": 7,
+        "image_sha256": "4b9ad75cf6da8d193551040f8660cbbe6a23d2493ed181cdee7a999301958d0f",
+        "mask_sha256": "5b287cbe60ad9130a086308d776f76d27a16a9982867c8976cef2a5632cbb491",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          19,
+          155,
+          157,
+          221,
+          272
+        ],
+        "border_touching_instance_ids": [
+          19,
+          155,
+          157,
+          221,
+          272
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x128_y768",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          768,
+          256,
+          896
+        ],
+        "instance_count": 5,
+        "image_sha256": "70d22b35725d585ebb34cf1ffd3aa19ea3c0f6e6ba23109cabd893950dd180f2",
+        "mask_sha256": "d09a6d5f507debd7fcad26648c3679d0b08e80fa82315dcff0f169d5d89af60a",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          196,
+          273
+        ],
+        "border_touching_instance_ids": [
+          196,
+          273
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x384_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          128,
+          512,
+          256
+        ],
+        "instance_count": 7,
+        "image_sha256": "d59d9b641515a530ffe0a1b99984ceb4737c2963714d92c6b60f078b5db36888",
+        "mask_sha256": "e9e1a324500079e43328f24bda09d05a7b7e6d1b763bb7d1ec9f3f59e0215e25",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          93,
+          100,
+          271,
+          347
+        ],
+        "border_touching_instance_ids": [
+          93,
+          100,
+          271,
+          347
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x640_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          128,
+          768,
+          256
+        ],
+        "instance_count": 8,
+        "image_sha256": "fffc9463544c4027c6fa2be737f8cb788f99a4f5ee2e2faaf955d88844a53c32",
+        "mask_sha256": "442632d453f1038dbbdb07da97d736fe117574b21e6cdb5bec20a912113dd9b1",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          116,
+          185,
+          186,
+          190,
+          268
+        ],
+        "border_touching_instance_ids": [
+          116,
+          185,
+          186,
+          190,
+          268
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x128_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          0,
+          256,
+          128
+        ],
+        "instance_count": 4,
+        "image_sha256": "3c9929ba8adcdeaa1236ed8f829ffc7d32c2463a5372ec634a99d8f7fb57558b",
+        "mask_sha256": "53716e6c03ca62a8b35d4350a003bad604f01ede1eb89964776b327e71bb9744",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          127
+        ],
+        "border_touching_instance_ids": [
+          127
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x512_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          128,
+          640,
+          256
+        ],
+        "instance_count": 8,
+        "image_sha256": "43ce4c990894c78d46da742defda5a05af10cb1cd1faea7f139c77c00ec931f5",
+        "mask_sha256": "e565741785d3dfb9c78a15af3636beaf7afd5a6c7d1e597bfa18672f1a5c32a7",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          85,
+          109,
+          271,
+          280,
+          308,
+          332,
+          388
+        ],
+        "border_touching_instance_ids": [
+          85,
+          109,
+          271,
+          280,
+          308,
+          332,
+          388
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x512_y128",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          128,
+          640,
+          256
+        ],
+        "instance_count": 8,
+        "image_sha256": "63511cd9c035735de91afaec2180c4ee269de0d5594c51081e70aa5451db3e14",
+        "mask_sha256": "d0587c2279b50788263455bac9725e9f84b07bc1923d58bfe1d53313a1407e5a",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          100,
+          101,
+          121,
+          175,
+          177
+        ],
+        "border_touching_instance_ids": [
+          100,
+          101,
+          121,
+          175,
+          177
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          384,
+          768,
+          512
+        ],
+        "instance_count": 5,
+        "image_sha256": "697b5a0dc5e1ee5a01bd829fde02cff31e9fe8bcca42ae08f4720acc7cb0c70e",
+        "mask_sha256": "9b6501d817208f4d4c482c31cf8e0fbe9375de7db2121be299728a37511bd416",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          115,
+          265
+        ],
+        "border_touching_instance_ids": [
+          115,
+          265
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y512",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          512,
+          128,
+          640
+        ],
+        "instance_count": 3,
+        "image_sha256": "88a555c3df2a57a7b8eb2d5159862c6e0af551a0da4ca9ebdbdabec7dfe4b28c",
+        "mask_sha256": "06aa0016cdb1220becd796131dcc6bcb744479be1a3a4b8f2a1ad3d903034b39",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          54
+        ],
+        "border_touching_instance_ids": [
+          54
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x0_y0",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          0,
+          128,
+          128
+        ],
+        "instance_count": 5,
+        "image_sha256": "b9171efae36ceb319563229a357877f3659f759d2920363a6349c36c750b94b3",
+        "mask_sha256": "79c8eec8e49684096192cb918a7a486adfc0ed3ee0611b7d216c68f91a7f3f1b",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          78,
+          215,
+          300
+        ],
+        "border_touching_instance_ids": [
+          78,
+          215,
+          300
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x128_y128",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          128,
+          128,
+          256,
+          256
+        ],
+        "instance_count": 4,
+        "image_sha256": "de6ebb0a2573dc9a1dd614280ce6fae849edf5a7157bae4097f2994dd7ea0e46",
+        "mask_sha256": "5db4b7871aef10ed201350e560f83104be974bdc19e58ae3548eacd50a857ce1",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          170,
+          225
+        ],
+        "border_touching_instance_ids": [
+          128,
+          170,
+          225
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x384_y0",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          0,
+          512,
+          128
+        ],
+        "instance_count": 3,
+        "image_sha256": "9dda2ab7717bf51ffbf2bfa6a867dfacac991a3f5e7cf5c56195dc2443c71678",
+        "mask_sha256": "aa13cd212846512c3826f7531a767493850d4f4ece104236d038c540a66ba8f0",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          100
+        ],
+        "border_touching_instance_ids": [
+          100
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x512_y640",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          640,
+          640,
+          768
+        ],
+        "instance_count": 8,
+        "image_sha256": "c7ccca0aabd0998a607de75d82a07610ae00b0985c80a1370cadc50862b669f9",
+        "mask_sha256": "42e473194d8f01c293b6e82d86b145cb83fa141c7b6acfc503fca8cc5eac6f8a",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          8,
+          26,
+          73,
+          247
+        ],
+        "border_touching_instance_ids": [
+          8,
+          26,
+          73,
+          232,
+          247
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x384_y384",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          384,
+          512,
+          512
+        ],
+        "instance_count": 8,
+        "image_sha256": "9302628165294116bf47760e3310ea244dec58003d7f51bea9200cdbd8e0a0aa",
+        "mask_sha256": "e3f67456ea1d6503e3d8242723079431e10384647cc30659f5b9af0778da86c0",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          42,
+          45,
+          317,
+          318
+        ],
+        "border_touching_instance_ids": [
+          42,
+          45,
+          317,
+          318
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y128",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          128,
+          128,
+          256
+        ],
+        "instance_count": 7,
+        "image_sha256": "003b20602d60b5a8b88f0f2ae0a11556949161b82ec1845fa010c8ad932aa1be",
+        "mask_sha256": "e1f7f9279e4b8cf16c6032c25ee00a0ca6c8930d5fa1cf98a02c0a5fe0d043b0",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          43,
+          200,
+          341,
+          342,
+          402
+        ],
+        "border_touching_instance_ids": [
+          43,
+          200,
+          341,
+          342,
+          402
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x512_y512",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          512,
+          640,
+          640
+        ],
+        "instance_count": 6,
+        "image_sha256": "a1dda4e3f57f76f8138b4019f742da3b39ec7373f020716b5273ee6e45c56ef9",
+        "mask_sha256": "8d8c1855d655e7dae999afa474918c5be7e85f03913fb562c02b3172e7b95e5f",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          17,
+          26,
+          322
+        ],
+        "border_touching_instance_ids": [
+          17,
+          26,
+          322
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x384_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          384,
+          0,
+          512,
+          128
+        ],
+        "instance_count": 7,
+        "image_sha256": "78f5a418f92585dd3ea722869a9e4df7975ee64feb5af40b83764b2a9cc2d8fd",
+        "mask_sha256": "bc6a987f0f948bd4a0553f2002c0c0fb223cbcb9ce412f8d1575e341dbf50490",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          168,
+          169,
+          216,
+          252
+        ],
+        "border_touching_instance_ids": [
+          168,
+          169,
+          216,
+          252
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-AR-A1AS",
+        "source_image_id": "TCGA-AR-A1AS-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 1,
+        "image_sha256": "23082b78a3777055c6fec3bea75f8173708b5f10c414652e2b19e2cace7fbdad",
+        "mask_sha256": "4332352f883cf731ed92db4005478b74459dbcfe63d76371408760c3dd04207e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          208
+        ],
+        "border_touching_instance_ids": [
+          208
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x512_y768",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          512,
+          768,
+          640,
+          896
+        ],
+        "instance_count": 6,
+        "image_sha256": "7da5995d54e9517f6074bb1a25ab573ef6833a82a0030fd4b0b353d69c0455ec",
+        "mask_sha256": "f9698cb2d4c1db2af20c8e4294ae1642825dc2766db7267227822695773d14e2",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          29,
+          73,
+          230
+        ],
+        "border_touching_instance_ids": [
+          29,
+          73,
+          230
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 7,
+        "image_sha256": "7ce525ad47698ba1dfd5450019bdfb1748508a2b5a20f992efba34afc5665782",
+        "mask_sha256": "99ae2b4662d325b03ababe1b2210649ab64934ee12e0d34f2aaa8985b695b20e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          100,
+          101,
+          102,
+          103
+        ],
+        "border_touching_instance_ids": [
+          100,
+          101,
+          102,
+          103
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x640_y0",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          0,
+          768,
+          128
+        ],
+        "instance_count": 7,
+        "image_sha256": "9132b59c67198c9045e316c758c9a29a50e0d3679e65a959e226e2313b749438",
+        "mask_sha256": "9b5654747369141a8ce1cbaf39ae698d2160f32f937c8b278c087b96fc393e88",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          172,
+          185,
+          186,
+          189,
+          304
+        ],
+        "border_touching_instance_ids": [
+          172,
+          185,
+          186,
+          189,
+          304
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x0_y768",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          0,
+          768,
+          128,
+          896
+        ],
+        "instance_count": 7,
+        "image_sha256": "1cd477e48e3e5b44305089ea9ea23e260602fb57a0d278ac87a553cbd82a9440",
+        "mask_sha256": "d2831dc132f48f109364a81c2ad1e354323449a22d3046cd9de38aeef65e3ea5",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          196,
+          214,
+          312
+        ],
+        "border_touching_instance_ids": [
+          196,
+          214,
+          312
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x768_y384",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          384,
+          896,
+          512
+        ],
+        "instance_count": 8,
+        "image_sha256": "96f4f219c4ebc534b5116a84197c7447590c3e3f3b8ca7dfe334710e0adf71fd",
+        "mask_sha256": "1e6c97e5809d25708a9ea653bf56da4b8eb8d51e1136fab378d2fbb578967c01",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          68,
+          265
+        ],
+        "border_touching_instance_ids": [
+          55,
+          68,
+          265
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-G9-6363-01Z-00-DX1_x640_y512",
+        "patient_id": "TCGA-G9-6363",
+        "source_image_id": "TCGA-G9-6363-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          640,
+          512,
+          768,
+          640
+        ],
+        "instance_count": 6,
+        "image_sha256": "367b7b2560229a0640a5aeb47118b75a1049696d4a78a6e1068cd0f2fb0d613f",
+        "mask_sha256": "aec69787f70d6a60354a59b825cd7617636b457ba5c6cdd2356636d49df03a0b",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          7,
+          115,
+          343
+        ],
+        "border_touching_instance_ids": [
+          7,
+          115,
+          343
+        ],
+        "source_clipped_instance_ids": []
+      },
+      {
+        "id": "TCGA-B0-5710-01Z-00-DX1_x768_y256",
+        "patient_id": "TCGA-B0-5710",
+        "source_image_id": "TCGA-B0-5710-01Z-00-DX1",
+        "split": "validation",
+        "bbox_xyxy": [
+          768,
+          256,
+          896,
+          384
+        ],
+        "instance_count": 7,
+        "image_sha256": "e0ad7f54c18c67105f3bdbcf31851ca811d441ac2781d9f25cdc17348a63602d",
+        "mask_sha256": "979d997bd62f9052b89db40eed5fd2bf524396de53b38afad2f301e460840c0e",
+        "cohort_id": "monuseg2018_official_training30",
+        "cohort_protocol_sha256": "cd981d572043a068ca73679c72906377e76073b56a24c8cffddc3a8013fe1c87",
+        "truncated_instance_ids": [
+          55,
+          58,
+          68
+        ],
+        "border_touching_instance_ids": [
+          55,
+          58,
+          68,
+          357
+        ],
+        "source_clipped_instance_ids": []
+      }
+    ],
+    "evaluation_gt_occurrences": 384,
+    "evaluation_unique_source_nuclei": 340,
+    "evaluation_crops_with_partial_nuclei": 61,
+    "gt_count_unit": "Crop-level GT instances/occurrences. A source nucleus crossing a crop border can occur in more than one crop; all such occurrences remain within one patient/split. Existing crop metrics retain total_gt_count=384, not 340."
+  },
+  "before": {
+    "n_records": 64,
+    "macro_pq": 0.014141554097532113,
+    "macro_recall": 0.016183035714285712,
+    "micro_recall": 0.018229166666666668,
+    "count_mae": 4.515625,
+    "total_tp": 7,
+    "total_gt_count": 384,
+    "total_pred_count": 119,
+    "format_valid_count": 47,
+    "mean_foreground_iou": 0.05323831442061806,
+    "mean_total_reward": 0.7876133144206181,
+    "total_same_gt_duplicate_count": 0,
+    "total_raw_overlap_pair_count": 3
+  },
+  "after": {
+    "n_records": 64,
+    "macro_pq": 0.01687004394009598,
+    "macro_recall": 0.023344494047619048,
+    "micro_recall": 0.026041666666666668,
+    "count_mae": 4.640625,
+    "total_tp": 10,
+    "total_gt_count": 384,
+    "total_pred_count": 121,
+    "format_valid_count": 46,
+    "mean_foreground_iou": 0.048516862440961366,
+    "mean_total_reward": 0.7672668624409613,
+    "total_same_gt_duplicate_count": 0,
+    "total_raw_overlap_pair_count": 0
+  },
+  "example_selection": {
+    "single": "TCGA-AR-A1AS-01Z-00-DX1_x0_y768",
+    "multiple": "TCGA-21-5786-01Z-00-DX1_x0_y512"
+  },
+  "example_selection_rule": "Lexicographically first ID with GT count exactly 1 and first with GT count >1; no output-based selection",
+  "evidence": {
+    "source_result_sha256": "1467c37a4a50b1e50472ba9b2828f6d43ada45b32fafcc0207ea636afaca98d2",
+    "source_arguments_sha256": "f902fff36b2a61e1af4e3446ee93a85f2ba0d684b47fc8d403cff5b2a15e27a6",
+    "source_metadata_sha256": "aaba98e6bc6724f1938294a387bc25c4d4047c1a548fdd7ad3d3eb9c2e8938e7",
+    "before": {
+      "complete": true,
+      "expected_crops": 64,
+      "verified_final_maps": 64,
+      "verified_raw_masks": 64,
+      "missing_artifacts": [],
+      "file_sha256": {
+        "000001.npy": "47de16483a4fa6f49bb31671bedf57c6c0456340125bfee2daaf889f1e46f3ee",
+        "000001_raw_masks.npz": "e92524f5a7511f73680fd38c8f7c44fbf7b8941acdea89fe56f5f9772a35525f",
+        "000001.txt": "32ee60ab5ab37c9e4c8d79a73047f4a62de7548d2ffa380ece62eaf0f732ca25",
+        "000002.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000002_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000002.txt": "1fb3d6c56cd3771725ca64b8166807e75a168b12c9726c37982be7d9d33b902c",
+        "000003.npy": "9e831785bffbb2391df20894bfca41a9dad961acd8ba249a6981411481befeff",
+        "000003_raw_masks.npz": "bd500637580d4ca50af2b34f0a5e218148486e4d8e42213dce47667d0e4e0556",
+        "000003.txt": "d886319c17b8b6386def268164b6c4293e59be2000b3e0a7ae180d1d21b73cb0",
+        "000004.npy": "53f085ec80613458b90cb6ccd500677c6254301a312e667b1b52849c43917f16",
+        "000004_raw_masks.npz": "bd093ee8333c6658f265c5037d6902d540078ca493fd9c803601228a234c70e9",
+        "000004.txt": "01a225d3f5fe2653b200adbb1fbc3b3fc0614c84d379657a60f6b3fcb35723f4",
+        "000005.npy": "3ddb3d66024b7a8c73af01e4e7e72f02bde6bdf57064cb0add9c8d81bf30e24a",
+        "000005_raw_masks.npz": "fe653ed0473a97ee4058cf0198716f056bd355eba95a9d882f0c41b0539e75f1",
+        "000005.txt": "ee36ee39c2bf28de360d241969f0c482e0f4abe878dd05789c404e3eaebb81c7",
+        "000006.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000006_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000006.txt": "7ad622b0f72232822a5c57bbcb9c9b7be3eb041ac2713e7b98ea3a982cc2413b",
+        "000007.npy": "f406cf012e010e7ca2b73cecfb5de8e4ededbf22deae60dc9aa445928f355d0f",
+        "000007_raw_masks.npz": "82039b469b65ca2b9ece78a7c55d00133c47be88a787110dd3326a7c9235d79f",
+        "000007.txt": "4b1749279c13da7f5d260269187156999f48d87f577fe2adad3c4093af139ceb",
+        "000008.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000008_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000008.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000009.npy": "1d0b70440de656d85e4a89410fa06eff87f7272aea00bb9bbcca6912f29e0e5c",
+        "000009_raw_masks.npz": "6db5211fb6828e55c1b482de0ed506c187913a4dbfdc36e5f2e08578f42d2895",
+        "000009.txt": "8db8fa0820df1136876cb55a22000caf85d613ede31f55c09be989ed2ccbd02b",
+        "000010.npy": "987bc6d979951a221a52ca60235d4636da6eea85be484cd3e17a352922bb8bea",
+        "000010_raw_masks.npz": "7388d55b5cc971f3daa960b762890abad8b311fb70c815ec8cabc46c3187f689",
+        "000010.txt": "357f06238fa5fa0a317933c7451515cf45d2f1079e06775b199b1b9440d4bffc",
+        "000011.npy": "2cfc6e930dd8e372713dc8e7934af828b1a1950f52439beaa597f1cf02ef9cc8",
+        "000011_raw_masks.npz": "18896568ce5650a76f2f9aac6b2229aad043cc944c2d4f0e1cde7d11335a5f08",
+        "000011.txt": "633e3fd9b3264d59bc9f38ff3d8782cb5fb72c41f6c735e2f9a9e1f4fa7ab83e",
+        "000012.npy": "43043b3820b15e7834a27e0fbd8b75d42cfafc9f5fea216bb2d9e0d295de935b",
+        "000012_raw_masks.npz": "e1b9610ca4eefe9f3b825890da20aca9f18176419a449ad927abf71a679981d3",
+        "000012.txt": "d280758dd71b519693659add3fe3488c7ceaa17c388338fe89cff762dff36577",
+        "000013.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000013_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000013.txt": "6b14ae0a93d4a5ae1a5abe7d1427157dfd96af9e6db71376282ad97ba2263216",
+        "000014.npy": "55ab3c421d54aee643be6b8a0fdf9e612e664912afbd234d64d74a8abf39464c",
+        "000014_raw_masks.npz": "cfeb2cad12ad17201b8923b46e8cf4a2d36e25cdeedaa8f9de623917681e2257",
+        "000014.txt": "f431165360a12f51b8028d4b82c4846cf49aa004c4ffd4a6f01bd8d1fe883678",
+        "000015.npy": "74c5dc21d525c1837be15df89305fab3872610b71d2a07b605f0d9af78971c01",
+        "000015_raw_masks.npz": "2b1e7bbd3714880a3d6c3459552e148cd02563b457cb80cd877f5852916f8547",
+        "000015.txt": "54bf107e7e0cfead702e784de7c65a167374d263db76027e889182115d72dd0f",
+        "000016.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000016_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000016.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000017.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000017_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000017.txt": "2062af3751f8b7049d013593f5c2cd01371160ea7e46cbb8e9a234a8a8e74d55",
+        "000018.npy": "5513158ad4ee73b9534f6dd6dc0aa13af7ce42a5593501549fd3573e486c38fa",
+        "000018_raw_masks.npz": "0c798c0e18d89e0b4c9efb04e1bcb0678f51a576171253cb5e7d303b77258705",
+        "000018.txt": "2089b4fa04ac44a3d8990915d055172b7b7f35340efb1b7d87fa0db7e679adc7",
+        "000019.npy": "7e5abeb5b922c6de0fb98f679baef680976e0bbe4cb032a9956d4c1d21d3cda8",
+        "000019_raw_masks.npz": "251592193506de9efa3b8224e04c9da6cdbf23594cd6e8e04c633b7bbdbdd34a",
+        "000019.txt": "190260fa900a5ded9e6fc0c626b6d04d9cd9f6046f483f4a32f55e7253408a7c",
+        "000020.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000020_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000020.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000021.npy": "79677427498130a5f5778006ad9239dd91ccaf90dd674eead08b6b510d7bedf3",
+        "000021_raw_masks.npz": "0d5823cfe128dc20ad14395914676742e77f7532fd55e939ffb711719daf2809",
+        "000021.txt": "08c8487c5ab4287606b69f50652acf8b56f556284a77e7f7dc57187c9bf0f473",
+        "000022.npy": "1e1e74be04c37280e82ee11efa447b211d730becf9fd0f191682ce59c6735bf0",
+        "000022_raw_masks.npz": "f6dd6da3db62d0c1ba4fbe93a00ebd458b5decc3bf5351aa866f564cf50c7f13",
+        "000022.txt": "13f8ef6567365d117504ff2861753da6775aeeb46eae2ea37c56ba62f1a17249",
+        "000023.npy": "3b0cee662faf0d0333059b77fdfdf24e2a82cb79e29ee517fbb3b7166ef3054a",
+        "000023_raw_masks.npz": "5774b5d1bf1172f073924506d557f37bb8b6823fd1c7b2407646a15a4e2392be",
+        "000023.txt": "43104ea2ba918d79a991aa31c9f9f80310e9c14cb96eb97f2d55d07c276d9f17",
+        "000024.npy": "2175d5770b245ed265f6aeaa2c6423e61bd538060f894d64d4b2d1d8055c6e46",
+        "000024_raw_masks.npz": "fee4da86ee51f05d984e5ec73e782aa49e6b9b75a5509123f20b58f88278f257",
+        "000024.txt": "d8937aa0f8eaa3bd30a3eb0bea74cceb09ed8c5312c566974f8f999ceafd7436",
+        "000025.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000025_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000025.txt": "7dc06feac2af0bdf3110e1e51104d89555e52badd5c58107df927f9830fee72d",
+        "000026.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000026_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000026.txt": "37a54e7b9a814b58a74596316143a8338fb8f42117bb72a8e9b46ca7a7fd4202",
+        "000027.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000027_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000027.txt": "ea6481ed07cd62d4d2b8bfea40474e6c581d4a312da0bbfa5d778bd14ccda26c",
+        "000028.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000028_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000028.txt": "621d3daa74abe53f409e132e5b0aa344985ce2af787c824aa42b47e3a3d8d120",
+        "000029.npy": "a45011504c6ca58c9468d710763d0d90e0f7936ef978d7f17b2c4589860988ce",
+        "000029_raw_masks.npz": "1f39d2348304cd26a3c7abfa7b8d4ac62e068cbbe1a8362a0b4ec2d0e75debf5",
+        "000029.txt": "cb3ba61f7a330b7060e6ed356e001db1d20fb52cbb242b4a4cc515e72fb2290e",
+        "000030.npy": "4c7f04fe95650894d18ecc3a90eb2210c1ef8605a458cad898ea2c738cff4c81",
+        "000030_raw_masks.npz": "a65d26f37f71297e77456519e4ad6f0dc5c6a1fada1e15797961b6a02c57b3b9",
+        "000030.txt": "58af50dcdf98b36f645c9e09bf759a43f7272d83c16cb40084e277f7a8af5211",
+        "000031.npy": "ba29f8f2ec7006751a09f6d5c1d8e17b5708d94fbfe69f5591f6c33d1cde6189",
+        "000031_raw_masks.npz": "2f7c54f0c3168ade3a3741f425ba509640411d9a15b0c12f4e434cadb5403c1a",
+        "000031.txt": "82eaa46df63c2faa89ca3189faa340b0b1da79e68f4c7c16957c86aeb81ac32e",
+        "000032.npy": "3be14177ed815a28badcdb4c790dca6f35ffbb012b57964d11260ba1f5152e8d",
+        "000032_raw_masks.npz": "944ff52890591a0ebbf5605595e7bccc7c3f2f45589eef77aad30f75f3a1c919",
+        "000032.txt": "1ef8804d6053adc218a098e843579541116c345e9f4280ad93e1c23df28928bf",
+        "000033.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000033_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000033.txt": "7f8c9c3f7d54e847aa76628f019a5134db85e7176604afa03bb73ea2a5614d3b",
+        "000034.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000034_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000034.txt": "b38dc7b396a1493a787a39bbfd35e972c965678f61c0bb38098f5fc655557484",
+        "000035.npy": "0d86494197bdef8ab2ee6790def3ac54cba6ef594ed88f8399040dfafa599097",
+        "000035_raw_masks.npz": "f8453af56699142fc4ad296f5fb67df3f9cd264b7ecf3f24e42b23125d56f6e8",
+        "000035.txt": "aa0c3b193660561f4d69cf0f1a098bdfc842aaccfcabb16746aee8ec22f4c9ee",
+        "000036.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000036_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000036.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000037.npy": "06a0c25adf7938728e396b38ed110243b38a452f4c445d6f191453b9ec3e9871",
+        "000037_raw_masks.npz": "3b11d4d421da92c2b05e97370aba660df74efec58734a8eaaf53bdf849d0488c",
+        "000037.txt": "a7225a60b721317aa977b7b6132761dd1b956dc9e51a2dde38ca330e6df6e480",
+        "000038.npy": "f8008362945a96858e4e136a0ddbfd01f27cd3b8974b246356b5a40402491e09",
+        "000038_raw_masks.npz": "15e5ebde4031543f40baaa9d221cd770947f7ddbf8f500b24b29ddd124220213",
+        "000038.txt": "92dc6b97e01229913f88199307db16fa9b8292d9dbb6ba3c66ba8faf51aa1e61",
+        "000039.npy": "a729c38b9bda3491de40e4bba36cdfb82339a45be0d3763ef80742814c413760",
+        "000039_raw_masks.npz": "48be56205672141ff735b487fef550496cab2a2a690b5e6e9d9b9f4c933a1e9c",
+        "000039.txt": "900a77f5a218f2305caeb792745625e407a6cd0c9c42495a44a4981abc9b63ee",
+        "000040.npy": "2aa7b9833ae1a93a9d18ef7d6af433b7984541a185c40b98859a1a009c0f713a",
+        "000040_raw_masks.npz": "3a717ad19252342a9be63cf7c51d2afa0d2e9cefb42a5617bb76ab9156447d4f",
+        "000040.txt": "49516f88110deadd0ee9afce46af3d6beacd04f7aa300999a5ace4d5a05fb97d",
+        "000041.npy": "abe8c6e32fc026b917f2cdb2ac9bdf07b57e73f40addb07d0df91d2dc51ea776",
+        "000041_raw_masks.npz": "7a5d2bb91096675cdf18bb538345b87ee959df0207a560b7de53e56a166f8254",
+        "000041.txt": "527951b405237dc52d81fc09c1fc1df441cd9ff20420a9371505569ac19a7951",
+        "000042.npy": "970f781254f2446e5e563c24aed079065904615d268c8e22450c5ec6c4f56be5",
+        "000042_raw_masks.npz": "28358c5926d7190d47838bf2fde0481a85cc355844b6b45679f102f763085acf",
+        "000042.txt": "e6d3f06e24517709fd95964599bb775c66a548a297e3f0cb8d7543f2cdae0b09",
+        "000043.npy": "2d3cc30083fd9619cf8ae71414f5c2c25d25a74fa1f10cff5aa511398035bdb6",
+        "000043_raw_masks.npz": "9f4abc1b11be89e612922287e220d6ad654260dee3d6bd36e4518059a4f26232",
+        "000043.txt": "81da69047f8cdaad64b0d4e8b36b113b456054847d91e723ba79a7b3e49cb351",
+        "000044.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000044_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000044.txt": "4c1d008ce3327f719513405220d428ead4ca263a0d62aa93962baedcfccd8847",
+        "000045.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000045_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000045.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000046.npy": "c07ad33a3887b23d40c1f7ff69f02a6fe5f8f2ade8ca28339140d31d1f90e859",
+        "000046_raw_masks.npz": "76a835b0358898c1df1af79049f6aecd92074d0ca1491933e9b1d65e437d8fac",
+        "000046.txt": "769366570a01176457b9a691b88f337b7bcbcffc5a2852df43cbeeba9608cc9d",
+        "000047.npy": "aca70ad25fee6b915f9168cac125b01e8562f93bd88f17da54c2725fedd237c8",
+        "000047_raw_masks.npz": "81292543238bce74ed89420badd41882bed683bb2691673ed23548f95354a6eb",
+        "000047.txt": "5c9d266831ab59ab8f3344f0984fd0ee0423a03ff4ee026973eed9c6f9e28826",
+        "000048.npy": "b76f9998770597ca2e56f794b126d2e5e2a6e808c5817943db3cceed30381ed6",
+        "000048_raw_masks.npz": "54b795bc7f3798d4781b39358e894288a0f53c9e0da4e361e555c53323a3359e",
+        "000048.txt": "5bb281d87044acbfc392dbea3cff0101b07a7223fdfd34c8783989e6a89d7e1f",
+        "000049.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000049_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000049.txt": "860ee88240282c62db66f540ed4c0035a1839ed8e922f2080fa5cf3d7b757435",
+        "000050.npy": "3487218856149978a69432c4ad974e82c6717ebfe40ad6900fc51fe058b8ac96",
+        "000050_raw_masks.npz": "4f7901dc0488f181da8aa0f783b0e58947baff9399dbcc606c69e9ca8d6d7bc0",
+        "000050.txt": "a92622b4492b6160b6c529b43a527f0792bd16d83b206249cb23bccbdac62872",
+        "000051.npy": "1665fbe4e2d5655b9c0b438a6b5ab2f239c66f5c623fe1d4241c6f3be03fc70d",
+        "000051_raw_masks.npz": "340da2958e9bca7b7a17c1b4f8c7fafc33fa918203fa05da4990698075f4665f",
+        "000051.txt": "289cbb759365d98f3bbb388e80d1ad8d41374db49ad7f60785ad858e200d05fb",
+        "000052.npy": "f4ceb791e2d094cdf2d219c2680f2bee89b727de8c6f4a927d0f3439f9b7f2e3",
+        "000052_raw_masks.npz": "5f224cae57cd78adbdf4dc2e4d3d0edfacaed64ec22ad661815fb8b61025e974",
+        "000052.txt": "20045bcbca9343a4c542eae4a97aea78af295d337781a1afa691184e8c37a098",
+        "000053.npy": "33210a811e2aa63f600a189259fd7e7a430910f6cfd9f834558011cfacbcede8",
+        "000053_raw_masks.npz": "c436db746279ad91dc6c17f8bfaa00210059de56926a9f1a71473457230b93c2",
+        "000053.txt": "01f2ac2caf0cfb2d0524fab7b4aa135da517dfa2f73d63836ddb3056e1be4e7a",
+        "000054.npy": "bee31c3e6d3aa606378d5c0c597eba693c350674a919a53b835b4c5b60e6c773",
+        "000054_raw_masks.npz": "d9569783a1080036aae665d2bdc937a4b46f8a69f546bfa91f1ddbba1c8ad942",
+        "000054.txt": "97f5763a4522a938cf4716f61e09864f34846277dee93741ea6619d94d252c6f",
+        "000055.npy": "772305d48db56bf3b90516001e8241243bf22204c9dc1626015ed401a678f2c0",
+        "000055_raw_masks.npz": "350002e7f1ba51a2bed5c1ccb8f200a733ca78756107982fd2fbfbcd85070a53",
+        "000055.txt": "4ae8013cb48c07bc139a32e7d8fdae95652d03254ee711567430ff775e142b58",
+        "000056.npy": "d72c1dbf0fcc334b5ca10c60a4a0ccf793de42dccff1bbe043e9bf30fcbe904a",
+        "000056_raw_masks.npz": "93e53cdc4841d8b9f803951a47fbe5227daa53d0aadd54d63a94b1ca0e11b3ab",
+        "000056.txt": "27efa35da6310c2be4c04d53165b726e3369bd1d38c8c07679c7bc880432c005",
+        "000057.npy": "e66b2623856d657b74dbc218f9046113e402c3543ad17d29f810886ad8550f38",
+        "000057_raw_masks.npz": "a536c4684f36fe150618bf8a11271a78af73c4682be1639fedc83389bbd12a44",
+        "000057.txt": "ea0377206a009a0f8c6b17d7bd6d64337ad2397e1bb0cb6c50adef776236be88",
+        "000058.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000058_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000058.txt": "ee3eedb2ca2308ae4d9b9da0db7c6d2e411cf296c4858bd9d9fb5a8536976da3",
+        "000059.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000059_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000059.txt": "bd2355022cd28baafc86f4f5a8eb77230822110df05dceb6c61c3b27cbdd7736",
+        "000060.npy": "f1e953f55945984ff1e3967eebccbca846420782bebc4fab86bbfd358638a667",
+        "000060_raw_masks.npz": "160c92e8d06dd728707a3aac731dd5bb3879410f6de3bbfa0be830a5d724f079",
+        "000060.txt": "e7b39302d0d3dc71edae41d38f90dbd3df1aabb309aa3613e87635226c155d47",
+        "000061.npy": "5c005c69bf94db190e7277fda14ab92f10a6bbbca1ccfac821cc86b361596e81",
+        "000061_raw_masks.npz": "f83ee507bc54d95363fe6ffb821e2cbab30fac5d6b0469c44c41b3f062e0a2ba",
+        "000061.txt": "761fa0f8a2b0aa7366aef5a72880a4eaf123471b65abf5885c61d6fb79a96556",
+        "000062.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000062_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000062.txt": "8eb909a4fa663969bbd1fd33619b59558a8482e7c6b6e37bbb34816e1f323af3",
+        "000063.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000063_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000063.txt": "b5f5073c89daebaaa7da9a23f7f39a04bc530129196dea83f6fb10cf1c158487",
+        "000064.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000064_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000064.txt": "a40b8dd9a541359d26e2e49e00a288892887e463df3280108958c7fda502a315",
+        "summary.json": "dcc086db2cd6b7c0fe6ded15fb10c2fc4677fa3cac665b4cbd2e0524cca0f96a",
+        "completions.jsonl": "402979bfedd07054921b6823cf0c6c1b943172be1e75b1943b5afbd02be84e38"
+      }
+    },
+    "after": {
+      "complete": true,
+      "expected_crops": 64,
+      "verified_final_maps": 64,
+      "verified_raw_masks": 64,
+      "missing_artifacts": [],
+      "file_sha256": {
+        "000001.npy": "449407cb9cd9f0428036b2fcbc655ffc1115563c16160a10c04aae891cbc3c5a",
+        "000001_raw_masks.npz": "5edc184e6a226a2e9dd85c4a96a745b8a967157c092912f3fd8c7bb55583ab09",
+        "000001.txt": "bb5d3d204b04dae2a89b7b7da840a4f3fbadce71d623ba350f53f105b18169ef",
+        "000002.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000002_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000002.txt": "a7adc69a7b18202846523393c1448c92145e7a6dfa97752afc408b35698ef7cf",
+        "000003.npy": "9e831785bffbb2391df20894bfca41a9dad961acd8ba249a6981411481befeff",
+        "000003_raw_masks.npz": "bd500637580d4ca50af2b34f0a5e218148486e4d8e42213dce47667d0e4e0556",
+        "000003.txt": "d886319c17b8b6386def268164b6c4293e59be2000b3e0a7ae180d1d21b73cb0",
+        "000004.npy": "d9410f572feeac055ee4f2ce2a508d99feb90868ea9090d3bd803873c859893f",
+        "000004_raw_masks.npz": "5fa7282d85112ca2b0b67a10c59d575590538022d204dc52c073f9130c0b08cd",
+        "000004.txt": "a7225a60b721317aa977b7b6132761dd1b956dc9e51a2dde38ca330e6df6e480",
+        "000005.npy": "e83e45d51f3ae8aa55ef570282f5e626bef1f5163a5944bdf47a2e89b0b42a80",
+        "000005_raw_masks.npz": "607ff3bf46a7c6d711ada8d4303bcb6848cb5b4781d72da6118acf06e3037858",
+        "000005.txt": "13646f9d6dfac2088f11ea776119e6a570387ff4f4cbec2663652845d9626028",
+        "000006.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000006_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000006.txt": "9d372570fe668dc116c3f50532b4f6f0a98d2a21b1354b871376eeb5a25d8800",
+        "000007.npy": "7d92c7e42feadd8fad533183fd03b1f419c0948eefbcf0350b15a8c9c9524a03",
+        "000007_raw_masks.npz": "365b1691fe371e78642e1d66b226551bde421c79b90b84c60fbbd6c14b6d3f49",
+        "000007.txt": "4262cf6e4f8c67d4ec0d066e29f9b298e3bf6fee93816796130a544d2c61cc8a",
+        "000008.npy": "65bb9b7f743b857865649e78ef88521a08433a52ff91c383302416140faa3277",
+        "000008_raw_masks.npz": "cf7922065a97c8cdc8e74bc604e1a72ce7d806cf25b4bfcc0d9edb127d78133b",
+        "000008.txt": "00c7bfe7c9d1878bef5fe832819e3b91d31332c8587575b98367719767ae5192",
+        "000009.npy": "2328592d7cc72cb200ec1f0cee71a2237cd682f3e04194a1f3c21697a1788ccb",
+        "000009_raw_masks.npz": "d04874ed31269425c600b66503ae02bae07a6371a806f1d88548fd12495d5578",
+        "000009.txt": "8f17b32707673f1949234e9a17051e42020c3767a0fc8fce50a38ec55ab641e9",
+        "000010.npy": "987bc6d979951a221a52ca60235d4636da6eea85be484cd3e17a352922bb8bea",
+        "000010_raw_masks.npz": "7388d55b5cc971f3daa960b762890abad8b311fb70c815ec8cabc46c3187f689",
+        "000010.txt": "357f06238fa5fa0a317933c7451515cf45d2f1079e06775b199b1b9440d4bffc",
+        "000011.npy": "85db65e6935058b8061e31337276aef02c2857f62da3a202966b27df9ad24c6a",
+        "000011_raw_masks.npz": "ca5e7696c2268b5e7b27e9d1607b1dfb8dae61209a67ae3e0342e1dcdedaf53e",
+        "000011.txt": "7a719b74ae77f0e17ab02f970429bbe328d5f09c2d0c537cb24994c322a82165",
+        "000012.npy": "9ce03c3732f6ad3f7fa54f32d3e35ed73015e964fc63769f7675d97c63e608fa",
+        "000012_raw_masks.npz": "a5cc593c67af4d545183fc65160b7fe7d8b79d0e333394db17582db7d19bc943",
+        "000012.txt": "888018a475efece52998b0f812639ae272005112e4e699a8387f7ca8fb6e01a8",
+        "000013.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000013_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000013.txt": "a8ddce17fe0cc6c6e050ce2e6072ed9533efc93a939bbed6720370d2a5841e89",
+        "000014.npy": "499803dc94274c49f6abeb55584b57fd5b68176d30b7eed163b5f58df407bbb1",
+        "000014_raw_masks.npz": "3c081acc7dbc6e33f9bb3c5d2e456d97261e2813ad9b31cd64513dfb605b621c",
+        "000014.txt": "96f91023056c093245e2b450f1d6bc2efe398649fc8d94cb7ec401b5377f8e59",
+        "000015.npy": "550c0d9710d4476de6168f85031ee07acfd495c625b04ee414558a4aa12b8f74",
+        "000015_raw_masks.npz": "b3ca5ff2847dd0097fb9c44896a7564e0b2270ff18e398c300182a6711629331",
+        "000015.txt": "35ae45436e89e4528c618e470e5e54097d80358a89baec9d95fc9a4a3cdd5468",
+        "000016.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000016_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000016.txt": "879947a43c5fd458297bf546045f4de1713a3a66a7b2d16f14bc4ced05e0868d",
+        "000017.npy": "13f43fc91ac4733b63f9f7ab33d30146286adf30da7b69968e5b0c382ff78e20",
+        "000017_raw_masks.npz": "f760239b0fe235e6abd49dadb37807bdf4167e5f4e3ee8bf09256846b601ee2e",
+        "000017.txt": "0c372901b0ec94a6a969fcc96b9ccaf810da66d8941524fb8326a753ec5e67ab",
+        "000018.npy": "d6c0437660bb4cbf5477a221b91e5172e7978f406b370a391d3d9adf0501af67",
+        "000018_raw_masks.npz": "a9fa6d80e3964d4690ae42a4fab1193635c3b96dda19fa0584d568fde8380d1c",
+        "000018.txt": "a9f1e333b459f2e55e4b6c6bbf59f93354999abac55556d7d4ac7da4f2137e7b",
+        "000019.npy": "541581fc5c7a85f8271cf05501a61352708919f447ef7b26c2cdad49b60acb85",
+        "000019_raw_masks.npz": "7de666000d643acb1b06343fcd74b9f4ffd11841a8207ba9104c278d8dbf0236",
+        "000019.txt": "39f51a0e69da8ee0b638e66b150cc9903c44ccfb0bb0177359817a918cc71362",
+        "000020.npy": "7610d3c24f743da1f5a62b36ac5d8149ee7abc522856bf438209ccded4f76316",
+        "000020_raw_masks.npz": "5d2495b4a7c0a3f36156ce4a7b3653e2e34fa1810da1beae2a5530f99b8f09c3",
+        "000020.txt": "200afba6e3b7c8dff19af19f6b1f3c470d8d44d324e96f77fc7cce0770e74724",
+        "000021.npy": "437fcf742460c35c3fcd023c95594f1d563d31c622759de8e0ab9293a68110c8",
+        "000021_raw_masks.npz": "0a3d952281cb88e1c61dade07dd8d793a92ba749991a5ef8dc7370911d0ebf8a",
+        "000021.txt": "d7a862e70abf4cbcf793f0279436055f777452cdc032454a0edb7fb06dcb07aa",
+        "000022.npy": "6f702ada2dab2c83b503d427a31dafe736af28ba229130b8944669220d766159",
+        "000022_raw_masks.npz": "86779c79116e8f3e0df1aa642d03fed41980d545c34b2356d36c4ad013d8b78a",
+        "000022.txt": "2890ac61e6750da2a9f3551ba80e2381207140f6f5b2a1dbae255fd8a5ce0f51",
+        "000023.npy": "b31a786c3dcd86a2f6e163d8c4de5cc0ae97b850d756dc617e33ad3af60d3351",
+        "000023_raw_masks.npz": "b19f6e1ee0b2ba5d150c4ed260771fe8721c68e0ee0f8a4b1a9fca1ec503974c",
+        "000023.txt": "d80d02ebd5ad533926f90e6bfef5f8af42c6a03d0c9de581adf27eb45117b4b6",
+        "000024.npy": "76097d03b884cd3a6ef2d03f2d054cd79aeb49b72adb13c52f3cc156938f1afb",
+        "000024_raw_masks.npz": "0715e08b423d446ee4cf0c656b0d7f7a802cd517f2110095d7b75e5723e07735",
+        "000024.txt": "99ffbe045f29121c30f14c51f6fdc81466823f3ed16101d6c5af61f6bb19f010",
+        "000025.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000025_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000025.txt": "4fa634430d5c7201f78f2cfc305c657b076029846a34131eaa66559b7a14e8ed",
+        "000026.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000026_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000026.txt": "67090ffa553c885f2b359b5d33a610b5be2b9560e29d2c67ed481b81b6ce0775",
+        "000027.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000027_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000027.txt": "d02ae3faea970809ee4c7c741bf9878b4befb478382e0077f9accf75ef9630cf",
+        "000028.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000028_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000028.txt": "83e9f31a72880cecfd7cd874598b5d2f3cb4a1b59cbb3064c8c333e452456f74",
+        "000029.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000029_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000029.txt": "277b63ac49c24a1aa248cc47cf33ee44bb3ec81104ebc74e4fcf9d04b669ae5f",
+        "000030.npy": "abef082eea02a96da258c319cd0621ad5494674af8a9275a4e8b7b9b114d7f6f",
+        "000030_raw_masks.npz": "584845972df0b3d77813ad710de5eb5e4e1d0046b022664b8abb4831d6d8c185",
+        "000030.txt": "c0cbbb96fa90fb87df474a312914201cb0b4dfb9d3cd3262d093c6051bf46a45",
+        "000031.npy": "b48a3e5cf680590cf78ec52d5b58b7f0ddf0002669913a0ab899168e8c57ab94",
+        "000031_raw_masks.npz": "fb59e3b1ed978df047427c819dd744dbb383ed809e8adcc0c8c5d7933876b84c",
+        "000031.txt": "fdae210b190429292c299312f42252c19c457016ca148d02f75165ffe5e9a4ab",
+        "000032.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000032_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000032.txt": "1d13f2ff33603879fdd26a82de63c70d7c0d04ef7e520e056ad0302cfa64af87",
+        "000033.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000033_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000033.txt": "4dfb87559119b440563b6d732cf58be427fcaf1683360e41273ece2be988ad00",
+        "000034.npy": "79d5b7f384edf1b58fad5070b614e982700052949cc688879d02c0f952a2b43e",
+        "000034_raw_masks.npz": "c3f53cd9962f585a9a68ad5a9c17e9d8bed2ddaa0f929cd6054db73701dee88f",
+        "000034.txt": "3d86294a1ee680b856da6263675c969ecdf8a4e94da148a8c6cf7b288200f3b1",
+        "000035.npy": "0d86494197bdef8ab2ee6790def3ac54cba6ef594ed88f8399040dfafa599097",
+        "000035_raw_masks.npz": "f8453af56699142fc4ad296f5fb67df3f9cd264b7ecf3f24e42b23125d56f6e8",
+        "000035.txt": "aa0c3b193660561f4d69cf0f1a098bdfc842aaccfcabb16746aee8ec22f4c9ee",
+        "000036.npy": "483bff93b64077929524eea6f6e428af6788ab8efc97983fe55c5b08df3f5265",
+        "000036_raw_masks.npz": "e0d29e9d5bb594d4ea3e81c94246d77d095412f4fb86845c83c05d692f31ce50",
+        "000036.txt": "486847e7defddee406d8c1788220528ca33233678aa3256484056a46551a45b4",
+        "000037.npy": "06a0c25adf7938728e396b38ed110243b38a452f4c445d6f191453b9ec3e9871",
+        "000037_raw_masks.npz": "3b11d4d421da92c2b05e97370aba660df74efec58734a8eaaf53bdf849d0488c",
+        "000037.txt": "a7225a60b721317aa977b7b6132761dd1b956dc9e51a2dde38ca330e6df6e480",
+        "000038.npy": "66fdaa3bdb172230dbea5783321ca30b37e4cac41a02ccaa95213db746b425f1",
+        "000038_raw_masks.npz": "bf51e0620c2d0ddddf0c215af8758b958007ebcffb295cc6de36b511cb527754",
+        "000038.txt": "7d6848c01deb98912639ca78e2234ae0736f8f3e2c1b7671765c2b041f9af8e9",
+        "000039.npy": "a729c38b9bda3491de40e4bba36cdfb82339a45be0d3763ef80742814c413760",
+        "000039_raw_masks.npz": "48be56205672141ff735b487fef550496cab2a2a690b5e6e9d9b9f4c933a1e9c",
+        "000039.txt": "900a77f5a218f2305caeb792745625e407a6cd0c9c42495a44a4981abc9b63ee",
+        "000040.npy": "682378aee56fbf6d2cba6d3b1c37f4726ec51da223c7351bed725ca1d76b04e7",
+        "000040_raw_masks.npz": "222db85b358475c0e5aee044829ef84b7371efa7d2325848aeb566f57a56b8f2",
+        "000040.txt": "81c2257d1a8e1318be9d35c8f0f154b629efd1068ec4d6f70aa923a91542b061",
+        "000041.npy": "89ec71e288233d080c9a8e1a70078dd0ff05974f567a5dcc6fb7f81312a57314",
+        "000041_raw_masks.npz": "869c0eac13071a66623ffbb0cf9adcb896151cbbd45814a41703cda95e506e75",
+        "000041.txt": "8a27ed1c5dfaf122caa646d19d822e76301289ba3cb043d1f38dace13720c2ce",
+        "000042.npy": "b51b72d13d0a23e1ac33934ee7d5dd3dfcdee8dda3e58b1b37f4f2d05751ca21",
+        "000042_raw_masks.npz": "fcc87d7a6ed8a310ff49785e952c37d2f6197b58e0ae314b609b566cb302eaba",
+        "000042.txt": "23222a597d7b91d09e9717d76428ce33ded93eb06df9afc9e352b595c897b7ba",
+        "000043.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000043_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000043.txt": "c2b950a359164eb17f8610bfef05a89e8814baf3a8b59bcb6a5a781fc4e37c10",
+        "000044.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000044_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000044.txt": "fff973d32ecf0a64285b27c5260cf483d0907bf604262b1761c2d26239008c94",
+        "000045.npy": "44ed08c641123b2fa1c681cd306204173df56ba1eb1bc1c639abc628032c2ae0",
+        "000045_raw_masks.npz": "c7882c2695ad95bccb68847c3f95118409d1077dc30dde6b66117f2696b9b873",
+        "000045.txt": "bc6f8ea7515ac82f0b3a0bbe4da71296474156d5f2bf09ed866604494548360e",
+        "000046.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000046_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000046.txt": "6235636f14377418abfaf3da0690dfde77c86dc3977ebf00131fefc120211edb",
+        "000047.npy": "600985ad4242bfff54263c666e87942e06a1b92b92f5ef803d08c4b32b0f9838",
+        "000047_raw_masks.npz": "457f6311f2e0670d4b7b2958d91b3e4b6ce4785e7979d3c889381697dc604cfe",
+        "000047.txt": "a1043c79749ac35a04441f5b4e3612bcb77ca9dbfb9771865d635e2dd5438cbe",
+        "000048.npy": "a6cad65f4034ed73373990239c1cf0481b0159941a88aaf7a178e818474d8d2d",
+        "000048_raw_masks.npz": "955336a004f94fa8cd3b8d1e63aab012448cfad51c47dd85206aacc195ffc544",
+        "000048.txt": "a77ee107f322f0cfbbef3d7705f01ad85bb2234e8a61ee287e8e9e15325acc6d",
+        "000049.npy": "86950fcdf648b8cb0c3863f3582430fe36e2a3b70c0b5845684460d014b15ffe",
+        "000049_raw_masks.npz": "9075c541d7dc228ae970a9c67dd793ed3f8e1215c8b760946faf160aa2235765",
+        "000049.txt": "a8ec96c9e17a7aad5f44b888d8ffeb4c473efea0c7bec1c568e1ef07e9bbc3b6",
+        "000050.npy": "494504679de231e485bc4b9334f86078c28fb0738d097b648659797e3a78f040",
+        "000050_raw_masks.npz": "d0ffc2c8742b2ab3f03a7f465759882f543f97428cf296c75f45e094dbf82866",
+        "000050.txt": "4bd410817826446ac5cc5c6e611b6b29c116099ab2919872e0ea19f2507ae6f2",
+        "000051.npy": "20abc9b3ded1e123b212a721678d4a392ffe3c5eb53faa331d989a96573f77e4",
+        "000051_raw_masks.npz": "37abfebe132697e116244c8e6ff781d8933330599a3041b5c9b270676d927c11",
+        "000051.txt": "ab770da9ebd3f6ebf9a28b212443e73457906880ff5b47652d058fcb3e7f0bd9",
+        "000052.npy": "d8906e4ca349dc33587beccfa8107f3eb4870aef190587d820badc5dc5975a8a",
+        "000052_raw_masks.npz": "fda628be4fbf19c18eff0377e6a17a4c257ad45b5d58f1699bf4c049b72db805",
+        "000052.txt": "5e653facea4477ab612bad92a13cf77e5dfd315d68b71c6ba5adfbe828e063fc",
+        "000053.npy": "cc85810f7f347469a8d07430071cfea304e0feff776ea6bf30316db1198a79bc",
+        "000053_raw_masks.npz": "2fd4a04ec23ac2044c38db8ba51b71f6e71c49cb78bdf4b38eaf473aa19e3ce4",
+        "000053.txt": "0434a9a0a8cf7091792910d4de276f5183bc5d09199adb768a672737d18f4c04",
+        "000054.npy": "ac5dec43dac86f9ff90e4dbf5be78b3176a85447ae1045c06befff246d72cc57",
+        "000054_raw_masks.npz": "f07d0c4975ec4705157ed4dc49af53e0e628adaf8d5ff4a6ce37d2d679e0cce9",
+        "000054.txt": "02e2a4dff7cbac0d8e9c24ff800eaefb2f0829256c9f0229695e579a89b22163",
+        "000055.npy": "772305d48db56bf3b90516001e8241243bf22204c9dc1626015ed401a678f2c0",
+        "000055_raw_masks.npz": "350002e7f1ba51a2bed5c1ccb8f200a733ca78756107982fd2fbfbcd85070a53",
+        "000055.txt": "4ae8013cb48c07bc139a32e7d8fdae95652d03254ee711567430ff775e142b58",
+        "000056.npy": "296342b574a4dcdff999dc68c1194667a8455bc3176289e46c0d57e9d0119e23",
+        "000056_raw_masks.npz": "cb3223ef91acd3ad5994036bdcffb20218253e9867d77286e842995b945eeba2",
+        "000056.txt": "44f0b8144066a6533cc2443a2c5437a5afb9aa632755044ff8b6e491f20dcf49",
+        "000057.npy": "baebdca100433377ffea219e2d85b04be8c6fa3368fb20738691664b697c58be",
+        "000057_raw_masks.npz": "0e36e41fb32892a7577d98e296d8e98233829ed862bc4a7dae115ab85416e8f5",
+        "000057.txt": "660a78e66b478b8104bbb3c2ff63f8a8d7e0179a2ff3c1578242bbcd39ec0f73",
+        "000058.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000058_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000058.txt": "a9552ec04efc52b3b25a4ede4f9ef5fde7a267bd6adda8c13039b334cbeb9395",
+        "000059.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000059_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000059.txt": "9a9da3f4532b0ff052d100030d3cac90f3c67184ef957e439b31e8d68bdb774e",
+        "000060.npy": "bd8b9dc5844e548321dc611f8f9e76a14cb38c0614b62897708886971f26e46b",
+        "000060_raw_masks.npz": "6a7d4e781343ed30d5bac0e1a333cde3220f87f56951b81a29075e95d88a2962",
+        "000060.txt": "d37849cabf6bfe85b555deda5327bbfd84d9e8df0f765cbbe3927dfca4546f93",
+        "000061.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000061_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000061.txt": "380a0316b7b61cc62ea6dd478ed8a31c960c79d091aa1cfe7cfac12b5915220c",
+        "000062.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000062_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000062.txt": "8903d51fe5f0cdcbd83000a86f0b4468926ed2e10cc81dc0ae38c319bcb66399",
+        "000063.npy": "8bbef32d4dda4c219fb333d2ba628b033036418d4f39a5f1e985ea9f71ba13fd",
+        "000063_raw_masks.npz": "24a353f52de7fb26b92de211c94f76f609dc29cd044899df992cbd74ce93ef9c",
+        "000063.txt": "8a1a0570b0dd9df7d0114df821f02d7b4811a8d7a6132fc95f2c6b5fa614bc17",
+        "000064.npy": "830bb6e987b5e74fb64bbd802d5b2b748a1a0e7405bc6d9cedc5f8d5d54efd63",
+        "000064_raw_masks.npz": "214202817792cabd81ba055458a8b20ba771cd31d2caf35dd91fa0c505b096d9",
+        "000064.txt": "b2e1db31ebf0e26024f50ac52e45e000a7e93c8ab50246e7161e845d9e32f3f4",
+        "summary.json": "48aadbd76d366d441439ce9a4e78f406d76e5f5f45f99d57647003371c80d20a",
+        "completions.jsonl": "595c8fcbfa75a62581c8831a285fe9fda09b7e83d7d4f17fc8b6996f2457b292"
+      }
+    },
+    "raw_answers": "before_records.jsonl and after_records.jsonl preserve all source completion records byte-for-byte."
+  },
+  "conclusion": "Final-checkpoint macro PQ rose from 0.0141416 to 0.0168700 and matched GT occurrences from 7 to 10 of 384. Count MAE and coordinate-contract validity worsened slightly, while foreground IoU decreased. Most nuclei remain unmatched. The 400-step 32B budget differs from the 1,000-step 7B budget, so this is not a causal model-size comparison.",
+  "limitations": [
+    "The same 64 selected validation crops from four patients are reused for monitoring and setting selection, not an untouched final test.",
+    "This report uses the final 400-step checkpoint, not the best intermediate checkpoint. Three periodic evaluations occurred during training.",
+    "Only 10 of 384 crop-level GT occurrences match and 18 of 64 final answers fail the coordinate contract; reliable detection remains unresolved.",
+    "The 32B run used 400 steps versus 1,000 for the 7B runs. Model identity and optimization budget both differ; no causal model-size claim.",
+    "One seed, no pooling with benchmark8. Full-mask reward engineering; no weak-label, SOTA or clinical claim.",
+    "The 384 within-crop GT occurrences represent 340 unique source nuclei; boundary fragments can repeat across neighboring crops in the same split. Crop-level metrics retain denominator 384."
+  ],
+  "examples": {
+    "single": {
+      "id": "TCGA-AR-A1AS-01Z-00-DX1_x0_y768",
+      "gt_count": 1,
+      "image_sha256": "23082b78a3777055c6fec3bea75f8173708b5f10c414652e2b19e2cace7fbdad",
+      "mask_sha256": "4332352f883cf731ed92db4005478b74459dbcfe63d76371408760c3dd04207e",
+      "before": {
+        "text": "<answer>{\"objects\":[{\"box\":[137,109,187,155],\"point\":[157,131]}]}</answer>",
+        "format_valid": true,
+        "pq": 0.0,
+        "recall": 0.0,
+        "pred_count": 1,
+        "gt_count": 1,
+        "count_error": 0,
+        "tp": 0,
+        "same_gt_duplicate_count": 0,
+        "raw_overlap_pair_count": 0
+      },
+      "after": {
+        "text": "<answer>{\"objects\":[{\"box\":[137,109,190,156],\"point\":[158,132]}]}</answer>",
+        "format_valid": true,
+        "pq": 0.0,
+        "recall": 0.0,
+        "pred_count": 1,
+        "gt_count": 1,
+        "count_error": 0,
+        "tp": 0,
+        "same_gt_duplicate_count": 0,
+        "raw_overlap_pair_count": 0
+      }
+    },
+    "multiple": {
+      "id": "TCGA-21-5786-01Z-00-DX1_x0_y512",
+      "gt_count": 8,
+      "image_sha256": "059b7e5a9271b601d887147cc574f20c9f2282d07b7ee5d7b6fdcf1e1dbd4189",
+      "mask_sha256": "5fb6690067c63a9d4b8736de5ac826ae8eb1eeaad69e34152d6dd74b94db5b43",
+      "before": {
+        "text": "<answer>{\"objects\":[{\"box\":[137,109,195,162],\"point\":[163,135]}]}</answer>",
+        "format_valid": true,
+        "pq": 0.0,
+        "recall": 0.0,
+        "pred_count": 1,
+        "gt_count": 8,
+        "count_error": 7,
+        "tp": 0,
+        "same_gt_duplicate_count": 0,
+        "raw_overlap_pair_count": 0
+      },
+      "after": {
+        "text": "<answer>{\"objects\":[{\"box\":[137,109,224,224],\"point\":[180,160]}]}</answer>",
+        "format_valid": true,
+        "pq": 0.0,
+        "recall": 0.0,
+        "pred_count": 1,
+        "gt_count": 8,
+        "count_error": 7,
+        "tp": 0,
+        "same_gt_duplicate_count": 0,
+        "raw_overlap_pair_count": 0
+      }
+    }
+  },
+  "invalid_answer_handling": "All 17 before and 18 after rejected responses contain at least one box outside the declared 224x224 prompt frame. Their JSON decodes, but the coordinate contract fails and the strict parser rejects the entire response. Empty final masks remain in all metric denominators; exact emitted text is retained.",
+  "coordinate_rejection_audit": {
+    "before": {
+      "invalid_responses": 17,
+      "responses_with_out_of_bounds_box": 17,
+      "responses_with_nonpositive_area_box": 0
+    },
+    "after": {
+      "invalid_responses": 18,
+      "responses_with_out_of_bounds_box": 18,
+      "responses_with_nonpositive_area_box": 0
+    },
+    "method": "Independently JSON-decode every rejected answer block and check every raw box against each record prompt_size; do not repair or clip coordinates."
+  },
+  "budget_context": {
+    "reference_run_name": "main_7b_lr1e-5_seed42",
+    "reference_source_result_sha256": "54b408af9dceb0ca94bc1ed088540094addaee8da03fd748c56179aa00f77825",
+    "reference_after": {
+      "n_records": 64,
+      "macro_pq": 0.026684588623167693,
+      "macro_recall": 0.02531622023809524,
+      "micro_recall": 0.026041666666666668,
+      "count_mae": 4.9375,
+      "total_tp": 10,
+      "total_gt_count": 384,
+      "total_pred_count": 68,
+      "format_valid_count": 61,
+      "mean_foreground_iou": 0.11410881237519598,
+      "mean_total_reward": 1.0672338123751959,
+      "total_same_gt_duplicate_count": 1,
+      "total_raw_overlap_pair_count": 8
+    },
+    "reference_completed_steps": 1000,
+    "this_completed_steps": 400,
+    "same_evaluation_manifest_sha256": "1969cd648b83fa0d9f1bfcaa73d248a879e3f3156e2863e46c540cf7cce853f8",
+    "interpretation": "The 7B and 32B checkpoints and completed optimization budgets differ. Scores on the common validation cohort are descriptive; no causal effect of model size or robust preferred architecture is established."
+  }
+}
