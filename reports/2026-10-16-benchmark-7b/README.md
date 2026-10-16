@@ -1,6 +1,6 @@
 # 7B: 20-step H200 timing check
 
-A fresh Qwen2.5-VL-7B LoRA run completed **20 optimizer steps**, including **19 steps with nonzero gradients and changed adapter parameters**. SAM2.1 tiny and the Qwen vision encoder stayed frozen. This checks execution and speed; it is separate from the longer experiments.
+A fresh Qwen2.5-VL-7B LoRA run completed **20 optimizer steps**, including **19 steps with nonzero gradients**. The final adapter hash differs from its initial hash. SAM2.1 tiny and the Qwen vision encoder stayed frozen. This checks execution and speed; it is separate from the longer experiments.
 
 **Matching did not improve.** The model produced more final instances, but matched only one annotated nucleus both before and after. Lower count error alone is not evidence of better detection.
 

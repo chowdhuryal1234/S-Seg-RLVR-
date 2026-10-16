@@ -49,7 +49,8 @@
     "adapter_sha256_after": "557888c0ccd409bded3cc1beb49abf31950553e99f3a801ee190ba6662f3a5f3",
     "visual_sha256_before": "fcd7486357c5c491d567f2e828c1741693e85a777864f445b1fe1dae7ab7fc15",
     "visual_sha256_after": "fcd7486357c5c491d567f2e828c1741693e85a777864f445b1fe1dae7ab7fc15",
-    "reference_uses_disabled_adapter": true
+    "reference_uses_disabled_adapter": true,
+    "adapter_changed_steps_definition": "Count of steps whose adapter differs from its initial weights; not a comparison against the preceding step."
   },
   "sam": {
     "checkpoint_sha256": "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
