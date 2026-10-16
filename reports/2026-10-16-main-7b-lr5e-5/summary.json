@@ -1942,7 +1942,10 @@
         ],
         "source_clipped_instance_ids": []
       }
-    ]
+    ],
+    "evaluation_gt_occurrences": 384,
+    "evaluation_unique_source_nuclei": 340,
+    "gt_count_definition": "Validation has 384 crop-level GT occurrences from 340 unique source nuclei. Boundary-crossing nuclei can appear in adjacent, non-overlapping crops; 61 of 64 validation crops contain partial nuclei. Recall uses the 384 crop-level occurrences, not 340. The legacy evaluation_gt_nuclei field also counts occurrences."
   },
   "before": {
     "n_records": 64,

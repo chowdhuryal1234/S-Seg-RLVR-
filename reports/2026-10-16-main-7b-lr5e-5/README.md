@@ -1,6 +1,6 @@
 # 7B, learning rate 5e-5: 1,000-step GRPO run
 
-A fresh Qwen2.5-VL-7B language-LoRA run completed **1,000 optimizer steps**, with **999 nonzero-gradient steps**. The final adapter hash changed; SAM2.1 tiny and the Qwen vision encoder stayed frozen. Evaluation uses the same **64 validation crops, four patients and 384 annotated nuclei** before training and after the final step.
+A fresh Qwen2.5-VL-7B language-LoRA run completed **1,000 optimizer steps**, with **999 nonzero-gradient steps**. The final adapter hash changed; SAM2.1 tiny and the Qwen vision encoder stayed frozen. Evaluation uses the same **64 validation crops, four patients and 384 GT occurrences** before training and after the final step.
 
 **Macro PQ rose from 0.02265 to 0.04045; matched nuclei rose from 9 to 12.** Count MAE and format validity improved, but same-GT duplicate extras increased. Most nuclei are still missed. Higher final PQ than the matched 1e-5 run is an observed one-seed result, not a robust winner.
 
@@ -9,7 +9,7 @@ A fresh Qwen2.5-VL-7B language-LoRA run completed **1,000 optimizer steps**, wit
 | Macro PQ | 0.022655 | 0.040448 |
 | Macro recall | 0.021540 | 0.045219 |
 | Micro recall | 0.023438 | 0.031250 |
-| Matched / annotated nuclei | 9 / 384 | 12 / 384 |
+| Matched / GT occurrences | 9 / 384 | 12 / 384 |
 | Final instances | 73 | 91 |
 | Count MAE | 4.921875 | 4.703125 |
 | Same-GT duplicate extras | 0 | 2 |
@@ -18,6 +18,8 @@ A fresh Qwen2.5-VL-7B language-LoRA run completed **1,000 optimizer steps**, wit
 | Mean foreground IoU | 0.064296 | 0.201441 |
 | Mean total reward | 1.033046 | 1.201441 |
 
+Validation has 384 crop-level GT occurrences from 340 unique source nuclei. Boundary-crossing nuclei can appear in adjacent, non-overlapping crops; 61 of 64 validation crops contain partial nuclei. Recall uses the 384 crop-level occurrences, not 340.
+
 Macro metrics average crops equally; micro recall pools matched and annotated nuclei. Count MAE uses final instances. Duplicate extras count raw SAM masks matching the same GT at IoU > 0.5; raw-mask overlap pairs are a separate proxy. These definitions can move in opposite directions. The larger foreground-IoU increase does not imply that separate nuclei are reliably found.
 
 Two before answers failed the strict format contract; all after answers are valid. Rejected answers have empty final masks and remain in all metric denominators. Exact text is retained. The saved `adapter_changed_steps=999` means the adapter differed from its initial weights at those steps; it does not verify a change relative to every preceding step.
@@ -25,7 +27,7 @@ Two before answers failed the strict format contract; all after answers are vali
 | Setting or resource | Value |
 | --- | --- |
 | Training pool | 256 selected crops, 19 patients |
-| Evaluation | Full validation64: 64 crops, four patients, 384 annotated nuclei |
+| Evaluation | Full validation64: 64 crops, four patients, 384 GT occurrences |
 | Policy | Fresh Qwen2.5-VL-7B-Instruct; language LoRA rank 8 |
 | Optimizer configuration | Learning rate 5e-5; seed 42; group size 2; beta 0.04 |
 | Reward | Format validity + binary foreground IoU against full masks |
@@ -61,7 +63,7 @@ Both examples were fixed by GT count and ID order before examining predictions a
 | --- | ---: | ---: |
 | Completed steps | 1,000 | 1,000 |
 | Macro PQ | 0.026685 | 0.040448 |
-| Matched / annotated nuclei | 10 / 384 | 12 / 384 |
+| Matched / GT occurrences | 10 / 384 | 12 / 384 |
 | Micro recall | 0.026042 | 0.031250 |
 | Count MAE | 4.937500 | 4.703125 |
 | Valid answers | 61 / 64 | 64 / 64 |
