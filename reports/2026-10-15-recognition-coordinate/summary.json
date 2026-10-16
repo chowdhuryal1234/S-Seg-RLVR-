@@ -1,0 +1,1124 @@
+{
+  "source_run": "runs/recognition_coordinate_probe_32b_20261015",
+  "source_result_sha256": "f1cfd85f3aacd06b4110a57e42c821bd9991b9e9e79fadd6998ae3eb25632c6e",
+  "status": "completed_recognition_coordinate_probe",
+  "created_utc": "2026-10-16T02:19:27.712465+00:00",
+  "model": {
+    "model": "Qwen/Qwen2.5-VL-32B-Instruct",
+    "resolved_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "processor_revision": "7cfb30d71a1f4f49a57592323337a4a4727301da",
+    "adapter": null
+  },
+  "generation_controls": {
+    "seed": 42,
+    "do_sample": false,
+    "use_cache": true,
+    "max_new_tokens": 512,
+    "max_objects": 8,
+    "min_pixels": 50176,
+    "max_pixels": 200704
+  },
+  "optimizer_steps": 0,
+  "sam_used": false,
+  "scope": "Two cue-assisted diagnostics on one selected training-source crop; no benchmark or causal identification",
+  "tasks": {
+    "recognition": {
+      "task": "recognition",
+      "prompt": [
+        {
+          "role": "system",
+          "content": "You inspect images and answer the requested visual task. Return only the requested answer."
+        },
+        {
+          "role": "user",
+          "content": "The image contains six equally styled square markers labeled A, B, C, D, E, F. The small cross in each square marks its center. Letters and lines are artificial annotations, not tissue. Select every labeled square whose CENTER lies inside a visible cell nucleus in the tissue. A square is not positive merely because some nucleus lies near it or overlaps its edge. There may be any number of positive squares; decide from the image. Return only the selected letter IDs, in alphabetical order, each at most once. Use exactly <answer>{\"nucleus_regions\":[\"REGION_ID\",...]}</answer>; REGION_ID means a selected letter from A through F. If none qualify, use <answer>{\"nucleus_regions\":[]}</answer>. No coordinates, explanation or markdown."
+        }
+      ],
+      "text": "<answer>{\"nucleus_regions\":[\"A\",\"B\",\"C\",\"D\",\"E\"]}</answer>",
+      "analysis": {
+        "format_valid": true,
+        "parse_error": null,
+        "errors": [],
+        "json_decoded": true,
+        "raw_payload": {
+          "nucleus_regions": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ]
+        },
+        "raw_entries": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "entry_checks": [
+          {
+            "index": 0,
+            "id": "A",
+            "raw": "A",
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 1,
+            "id": "B",
+            "raw": "B",
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 2,
+            "id": "C",
+            "raw": "C",
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 3,
+            "id": "D",
+            "raw": "D",
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 4,
+            "id": "E",
+            "raw": "E",
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "task": "candidate_recognition",
+        "accepted_ids": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "expected_ids": [
+          "B",
+          "C",
+          "F"
+        ],
+        "tp": 2,
+        "fp": 3,
+        "fn": 1,
+        "tn": 0,
+        "precision": 0.4,
+        "recall": 0.6666666666666666,
+        "accuracy": 0.3333333333333333,
+        "f1": 0.5,
+        "exact_set_correct": false,
+        "per_candidate": [
+          {
+            "id": "A",
+            "expected_positive": false,
+            "predicted_positive": true,
+            "correct": false
+          },
+          {
+            "id": "B",
+            "expected_positive": true,
+            "predicted_positive": true,
+            "correct": true
+          },
+          {
+            "id": "C",
+            "expected_positive": true,
+            "predicted_positive": true,
+            "correct": true
+          },
+          {
+            "id": "D",
+            "expected_positive": false,
+            "predicted_positive": true,
+            "correct": false
+          },
+          {
+            "id": "E",
+            "expected_positive": false,
+            "predicted_positive": true,
+            "correct": false
+          },
+          {
+            "id": "F",
+            "expected_positive": true,
+            "predicted_positive": false,
+            "correct": false
+          }
+        ],
+        "scope": "Candidate-assisted recognition of center membership; formal metrics use accepted IDs only. Invalid whole answers accept none; raw entries are not repaired or salvaged."
+      },
+      "pixel_values_sha256": "6cbd494a052edb44652f1d4fa2454fa883abbd31477428218f5188f0ea83a889",
+      "input_ids_sha256": "95c7ea1f08f278fef22d3e53d7065bdcf90f8218146f9a99e1dc9da1abdb7537",
+      "input_tokens": 251,
+      "completion_tokens": 22,
+      "hit_token_cap": false,
+      "generation_seconds": 1.8743413388729095,
+      "fresh_context": true
+    },
+    "geometry": {
+      "task": "geometry",
+      "prompt": [
+        {
+          "role": "system",
+          "content": "You inspect images and answer the requested visual task. Return only the requested answer."
+        },
+        {
+          "role": "user",
+          "content": "The image contains six equally styled square markers labeled A, B, C, D, E, F. The small cross in each square marks its center. Letters and lines are artificial annotations, not tissue. For EVERY drawn square A through F, read back the square outline's bounding box and the center cross position. Measure the artificial square markers, NOT nuclei and NOT the letter labels. Do not decide which regions contain nuclei. Use pixel coordinates of the PROCESSED image shown to you, which is 224 pixels wide and 224 pixels high. The origin [0,0] is at the upper left; x increases rightward and y increases downward. Boxes are [x0,y0,x1,y1] with 0<=x0<x1<=224 and 0<=y0<y1<=224; centers are [x,y] inside the square. Do not use normalized coordinates. Return all six IDs exactly once in alphabetical order. Use exactly <answer>{\"regions\":[{\"id\":\"REGION_ID\",\"box\":[x0,y0,x1,y1],\"point\":[x,y]},...]}</answer>, replacing placeholders with actual IDs and numeric coordinates. No explanation or markdown."
+        }
+      ],
+      "text": "<answer>\n{\"regions\":[{\"id\":\"A\",\"box\":[35,16,87,69],\"point\":[61,42]},{\"id\":\"B\",\"box\":[145,17,197,69],\"point\":[171,42]},{\"id\":\"C\",\"box\":[20,100,72,152],\"point\":[48,126]},{\"id\":\"D\",\"box\":[145,99,197,152],\"point\":[171,126]},{\"id\":\"E\",\"box\":[20,183,72,235],\"point\":[48,209]},{\"id\":\"F\",\"box\":[145,183,197,235],\"point\":[171,209]}]}\n</answer>",
+      "analysis": {
+        "format_valid": false,
+        "parse_error": "Entry 5: Box must have positive area and lie inside processed224; Entry 6: Box must have positive area and lie inside processed224",
+        "errors": [
+          "Entry 5: Box must have positive area and lie inside processed224",
+          "Entry 6: Box must have positive area and lie inside processed224"
+        ],
+        "json_decoded": true,
+        "raw_payload": {
+          "regions": [
+            {
+              "id": "A",
+              "box": [
+                35,
+                16,
+                87,
+                69
+              ],
+              "point": [
+                61,
+                42
+              ]
+            },
+            {
+              "id": "B",
+              "box": [
+                145,
+                17,
+                197,
+                69
+              ],
+              "point": [
+                171,
+                42
+              ]
+            },
+            {
+              "id": "C",
+              "box": [
+                20,
+                100,
+                72,
+                152
+              ],
+              "point": [
+                48,
+                126
+              ]
+            },
+            {
+              "id": "D",
+              "box": [
+                145,
+                99,
+                197,
+                152
+              ],
+              "point": [
+                171,
+                126
+              ]
+            },
+            {
+              "id": "E",
+              "box": [
+                20,
+                183,
+                72,
+                235
+              ],
+              "point": [
+                48,
+                209
+              ]
+            },
+            {
+              "id": "F",
+              "box": [
+                145,
+                183,
+                197,
+                235
+              ],
+              "point": [
+                171,
+                209
+              ]
+            }
+          ]
+        },
+        "raw_entries": [
+          {
+            "id": "A",
+            "box": [
+              35,
+              16,
+              87,
+              69
+            ],
+            "point": [
+              61,
+              42
+            ]
+          },
+          {
+            "id": "B",
+            "box": [
+              145,
+              17,
+              197,
+              69
+            ],
+            "point": [
+              171,
+              42
+            ]
+          },
+          {
+            "id": "C",
+            "box": [
+              20,
+              100,
+              72,
+              152
+            ],
+            "point": [
+              48,
+              126
+            ]
+          },
+          {
+            "id": "D",
+            "box": [
+              145,
+              99,
+              197,
+              152
+            ],
+            "point": [
+              171,
+              126
+            ]
+          },
+          {
+            "id": "E",
+            "box": [
+              20,
+              183,
+              72,
+              235
+            ],
+            "point": [
+              48,
+              209
+            ]
+          },
+          {
+            "id": "F",
+            "box": [
+              145,
+              183,
+              197,
+              235
+            ],
+            "point": [
+              171,
+              209
+            ]
+          }
+        ],
+        "entry_checks": [
+          {
+            "index": 0,
+            "id": "A",
+            "raw": {
+              "id": "A",
+              "box": [
+                35,
+                16,
+                87,
+                69
+              ],
+              "point": [
+                61,
+                42
+              ]
+            },
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 1,
+            "id": "B",
+            "raw": {
+              "id": "B",
+              "box": [
+                145,
+                17,
+                197,
+                69
+              ],
+              "point": [
+                171,
+                42
+              ]
+            },
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 2,
+            "id": "C",
+            "raw": {
+              "id": "C",
+              "box": [
+                20,
+                100,
+                72,
+                152
+              ],
+              "point": [
+                48,
+                126
+              ]
+            },
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 3,
+            "id": "D",
+            "raw": {
+              "id": "D",
+              "box": [
+                145,
+                99,
+                197,
+                152
+              ],
+              "point": [
+                171,
+                126
+              ]
+            },
+            "valid": true,
+            "errors": []
+          },
+          {
+            "index": 4,
+            "id": "E",
+            "raw": {
+              "id": "E",
+              "box": [
+                20,
+                183,
+                72,
+                235
+              ],
+              "point": [
+                48,
+                209
+              ]
+            },
+            "valid": false,
+            "errors": [
+              "Box must have positive area and lie inside processed224"
+            ]
+          },
+          {
+            "index": 5,
+            "id": "F",
+            "raw": {
+              "id": "F",
+              "box": [
+                145,
+                183,
+                197,
+                235
+              ],
+              "point": [
+                171,
+                209
+              ]
+            },
+            "valid": false,
+            "errors": [
+              "Box must have positive area and lie inside processed224"
+            ]
+          }
+        ],
+        "task": "drawn_geometry_readback",
+        "accepted_regions": [],
+        "accepted_region_count": 0,
+        "missing_ids": [],
+        "duplicate_ids": [],
+        "per_region": [
+          {
+            "entry_index": 0,
+            "id": "A",
+            "raw_box": [
+              35,
+              16,
+              87,
+              69
+            ],
+            "raw_point": [
+              61,
+              42
+            ],
+            "expected_box_processed": [
+              61.25,
+              17.5,
+              96.25,
+              52.5
+            ],
+            "expected_point_processed": [
+              78.75,
+              35.0
+            ],
+            "per_entry_contract_valid": true,
+            "contract_errors": [],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              -26.25,
+              -1.5,
+              -9.25,
+              16.5
+            ],
+            "box_center_error_processed_xy": [
+              -17.75,
+              7.5
+            ],
+            "box_iou": 0.29263738939849016,
+            "point_error_processed_xy": [
+              -17.75,
+              7.0
+            ],
+            "point_error_original_xy": [
+              -10.142857142857142,
+              4.0
+            ],
+            "point_l2_processed": 19.080421903092184,
+            "point_l2_original": 10.90309823033839,
+            "engineering_entry_pass": false
+          },
+          {
+            "entry_index": 1,
+            "id": "B",
+            "raw_box": [
+              145,
+              17,
+              197,
+              69
+            ],
+            "raw_point": [
+              171,
+              42
+            ],
+            "expected_box_processed": [
+              136.5,
+              17.5,
+              171.5,
+              52.5
+            ],
+            "expected_point_processed": [
+              154.0,
+              35.0
+            ],
+            "per_entry_contract_valid": true,
+            "contract_errors": [],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              8.5,
+              -0.5,
+              25.5,
+              16.5
+            ],
+            "box_center_error_processed_xy": [
+              17.0,
+              8.0
+            ],
+            "box_iou": 0.3090121605863735,
+            "point_error_processed_xy": [
+              17.0,
+              7.0
+            ],
+            "point_error_original_xy": [
+              9.714285714285714,
+              4.0
+            ],
+            "point_l2_processed": 18.384776310850235,
+            "point_l2_original": 10.505586463342992,
+            "engineering_entry_pass": false
+          },
+          {
+            "entry_index": 2,
+            "id": "C",
+            "raw_box": [
+              20,
+              100,
+              72,
+              152
+            ],
+            "raw_point": [
+              48,
+              126
+            ],
+            "expected_box_processed": [
+              14.0,
+              52.5,
+              49.0,
+              87.5
+            ],
+            "expected_point_processed": [
+              31.5,
+              70.0
+            ],
+            "per_entry_contract_valid": true,
+            "contract_errors": [],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              6.0,
+              47.5,
+              23.0,
+              64.5
+            ],
+            "box_center_error_processed_xy": [
+              14.5,
+              56.0
+            ],
+            "box_iou": 0.0,
+            "point_error_processed_xy": [
+              16.5,
+              56.0
+            ],
+            "point_error_original_xy": [
+              9.428571428571429,
+              32.0
+            ],
+            "point_l2_processed": 58.38021925275718,
+            "point_l2_original": 33.36012528728982,
+            "engineering_entry_pass": false
+          },
+          {
+            "entry_index": 3,
+            "id": "D",
+            "raw_box": [
+              145,
+              99,
+              197,
+              152
+            ],
+            "raw_point": [
+              171,
+              126
+            ],
+            "expected_box_processed": [
+              175.0,
+              87.5,
+              210.0,
+              122.5
+            ],
+            "expected_point_processed": [
+              192.5,
+              105.0
+            ],
+            "per_entry_contract_valid": true,
+            "contract_errors": [],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              -30.0,
+              11.5,
+              -13.0,
+              29.5
+            ],
+            "box_center_error_processed_xy": [
+              -21.5,
+              20.5
+            ],
+            "box_iou": 0.14924942263279445,
+            "point_error_processed_xy": [
+              -21.5,
+              21.0
+            ],
+            "point_error_original_xy": [
+              -12.285714285714286,
+              12.0
+            ],
+            "point_l2_processed": 30.054117854297438,
+            "point_l2_original": 17.173781631027108,
+            "engineering_entry_pass": false
+          },
+          {
+            "entry_index": 4,
+            "id": "E",
+            "raw_box": [
+              20,
+              183,
+              72,
+              235
+            ],
+            "raw_point": [
+              48,
+              209
+            ],
+            "expected_box_processed": [
+              61.25,
+              145.25,
+              96.25,
+              180.25
+            ],
+            "expected_point_processed": [
+              78.75,
+              162.75
+            ],
+            "per_entry_contract_valid": false,
+            "contract_errors": [
+              "Box must have positive area and lie inside processed224"
+            ],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              -41.25,
+              37.75,
+              -24.25,
+              54.75
+            ],
+            "box_center_error_processed_xy": [
+              -32.75,
+              46.25
+            ],
+            "box_iou": 0.0,
+            "point_error_processed_xy": [
+              -30.75,
+              46.25
+            ],
+            "point_error_original_xy": [
+              -17.571428571428573,
+              26.428571428571427
+            ],
+            "point_l2_processed": 55.53940042888472,
+            "point_l2_original": 31.73680024507698,
+            "engineering_entry_pass": false
+          },
+          {
+            "entry_index": 5,
+            "id": "F",
+            "raw_box": [
+              145,
+              183,
+              197,
+              235
+            ],
+            "raw_point": [
+              171,
+              209
+            ],
+            "expected_box_processed": [
+              126.0,
+              145.25,
+              161.0,
+              180.25
+            ],
+            "expected_point_processed": [
+              143.5,
+              162.75
+            ],
+            "per_entry_contract_valid": false,
+            "contract_errors": [
+              "Box must have positive area and lie inside processed224"
+            ],
+            "accepted_by_strict_parser": false,
+            "box_metrics_available": true,
+            "point_metrics_available": true,
+            "edge_errors_processed_xyxy": [
+              19.0,
+              37.75,
+              36.0,
+              54.75
+            ],
+            "box_center_error_processed_xy": [
+              27.5,
+              46.25
+            ],
+            "box_iou": 0.0,
+            "point_error_processed_xy": [
+              27.5,
+              46.25
+            ],
+            "point_error_original_xy": [
+              15.714285714285714,
+              26.428571428571427
+            ],
+            "point_l2_processed": 53.80810812507721,
+            "point_l2_original": 30.74749035718698,
+            "engineering_entry_pass": false
+          }
+        ],
+        "raw_box_metric_entry_count": 6,
+        "raw_point_metric_entry_count": 6,
+        "mean_box_iou": 0.12514982876960967,
+        "mean_point_l2_processed": 39.207840645826494,
+        "max_point_l2_processed": 58.38021925275718,
+        "engineering_pass": false,
+        "criterion": {
+          "all_six_unique_ids_required": true,
+          "format_valid_required": true,
+          "box_iou_strictly_greater_than": 0.5,
+          "point_l2_processed_at_most": 7.0,
+          "scope": "Predeclared engineering check, not biological segmentation performance."
+        },
+        "scope": "Readback of six drawn square bounds and centers; no nucleus decision, SAM or mask PQ. Continuous per-region errors summarize unmodified raw entries, including rejected answers, and do not imply formal acceptance."
+      },
+      "pixel_values_sha256": "6cbd494a052edb44652f1d4fa2454fa883abbd31477428218f5188f0ea83a889",
+      "input_ids_sha256": "8975d9c80086dad307ae4807b698bb5ed7f4a0647ce633de1f9e55f947abcc49",
+      "input_tokens": 340,
+      "completion_tokens": 192,
+      "hit_token_cap": false,
+      "generation_seconds": 9.973550191149116,
+      "fresh_context": true
+    }
+  },
+  "same_image_tensor_across_tasks": true,
+  "reference_result_sha256": "11a9c43df8163aa3048c46b0fd3467ff57f615bd4eff3821bf4c3fac9d1dc10a",
+  "input_sha256": "0c41ef27cb78b23e7f1c96441817f4d54f59388a7593173f14adec6987b860a6",
+  "original_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+  "manifest_sha256": "b102d63b4c1269d9ecd79a24b205e3fa98b7d9209fe27f68f89d35058a955284",
+  "prompt_size": [
+    224,
+    224
+  ],
+  "original_size": [
+    128,
+    128
+  ],
+  "candidate_manifest": {
+    "schema_version": 1,
+    "status": "locked_pre_inference",
+    "source_run": "/Users/conny/Desktop/RLVR/S-Seg-RLVR-/runs/multi_nucleus_probe_32b_20261015",
+    "source_image_sha256": "ca86c5b0a396030e0f0fca069dc8d272de4bf771fb1d522631ac1f746fef6856",
+    "source_mask_sha256": "db03f92be954226490d276e51d8f2d8754177f18db6e9c2f321e376f417bb495",
+    "candidate_image_sha256": "0c41ef27cb78b23e7f1c96441817f4d54f59388a7593173f14adec6987b860a6",
+    "original_size": [
+      128,
+      128
+    ],
+    "processed_size": [
+      224,
+      224
+    ],
+    "annotation_style": "All six 20x20 half-open squares use the same 1px cyan outline, 1px-radius cyan center cross and external cyan letter with black stroke. Letters do not overlap any GT foreground. No class-dependent style.",
+    "candidate_id_assignment": "Predeclared mixed A-F mapping provided before inference; three positive and three full-square-background candidates. No labels selected from model output.",
+    "candidate_count": 6,
+    "positive_count": 3,
+    "negative_count": 3,
+    "candidates": [
+      {
+        "id": "A",
+        "box_original": [
+          35,
+          10,
+          55,
+          30
+        ],
+        "point_original": [
+          45,
+          20
+        ],
+        "box_processed": [
+          61.25,
+          17.5,
+          96.25,
+          52.5
+        ],
+        "point_processed": [
+          78.75,
+          35.0
+        ],
+        "gt_instance_id": null,
+        "is_nucleus": false,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          35,
+          -2
+        ],
+        "label_bbox_original": [
+          33,
+          0,
+          43,
+          9
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      },
+      {
+        "id": "B",
+        "box_original": [
+          78,
+          10,
+          98,
+          30
+        ],
+        "point_original": [
+          88,
+          20
+        ],
+        "box_processed": [
+          136.5,
+          17.5,
+          171.5,
+          52.5
+        ],
+        "point_processed": [
+          154.0,
+          35.0
+        ],
+        "gt_instance_id": 276,
+        "is_nucleus": true,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          100,
+          10
+        ],
+        "label_bbox_original": [
+          99,
+          12,
+          108,
+          21
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      },
+      {
+        "id": "C",
+        "box_original": [
+          8,
+          30,
+          28,
+          50
+        ],
+        "point_original": [
+          18,
+          40
+        ],
+        "box_processed": [
+          14.0,
+          52.5,
+          49.0,
+          87.5
+        ],
+        "point_processed": [
+          31.5,
+          70.0
+        ],
+        "gt_instance_id": 157,
+        "is_nucleus": true,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          8,
+          52
+        ],
+        "label_bbox_original": [
+          7,
+          54,
+          16,
+          63
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      },
+      {
+        "id": "D",
+        "box_original": [
+          100,
+          50,
+          120,
+          70
+        ],
+        "point_original": [
+          110,
+          60
+        ],
+        "box_processed": [
+          175.0,
+          87.5,
+          210.0,
+          122.5
+        ],
+        "point_processed": [
+          192.5,
+          105.0
+        ],
+        "gt_instance_id": null,
+        "is_nucleus": false,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          100,
+          38
+        ],
+        "label_bbox_original": [
+          99,
+          40,
+          108,
+          49
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      },
+      {
+        "id": "E",
+        "box_original": [
+          35,
+          83,
+          55,
+          103
+        ],
+        "point_original": [
+          45,
+          93
+        ],
+        "box_processed": [
+          61.25,
+          145.25,
+          96.25,
+          180.25
+        ],
+        "point_processed": [
+          78.75,
+          162.75
+        ],
+        "gt_instance_id": null,
+        "is_nucleus": false,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          35,
+          71
+        ],
+        "label_bbox_original": [
+          34,
+          73,
+          43,
+          82
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      },
+      {
+        "id": "F",
+        "box_original": [
+          72,
+          83,
+          92,
+          103
+        ],
+        "point_original": [
+          82,
+          93
+        ],
+        "box_processed": [
+          126.0,
+          145.25,
+          161.0,
+          180.25
+        ],
+        "point_processed": [
+          143.5,
+          162.75
+        ],
+        "gt_instance_id": 228,
+        "is_nucleus": true,
+        "annotation_color_rgb": [
+          0,
+          255,
+          255
+        ],
+        "square_size_native": 20,
+        "outline_width_native": 1,
+        "cross_radius_native": 1,
+        "label_position_original": [
+          72,
+          71
+        ],
+        "label_bbox_original": [
+          71,
+          73,
+          79,
+          82
+        ],
+        "label_outside_square": true,
+        "label_overlaps_gt": false
+      }
+    ],
+    "geometry_engineering_criterion": {
+      "description": "Format valid, all six unique IDs, every box IoU strictly above 0.5 and every point L2 error at most 7 processed pixels (4 native pixels); continuous errors reported regardless. Not a biological-performance threshold.",
+      "box_iou_strictly_greater_than": 0.5,
+      "point_l2_processed_at_most": 7.0
+    },
+    "scope": "One deliberately marked training image. Recognition is candidate-assisted center classification; geometry is readback of drawn squares and centers. No SAM or training.",
+    "locked_utc": "2026-10-16T02:17:34.103070+00:00",
+    "visual_approval": "Parent agent reviewed the native128 candidate image and approved this exact image and A-F mapping before inference."
+  }
+}
