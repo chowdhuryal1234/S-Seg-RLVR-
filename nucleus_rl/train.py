@@ -173,9 +173,13 @@ def load_policy(args):
         args.model, revision=revision, min_pixels=args.min_pixels, max_pixels=args.max_pixels,
     )
     processor.tokenizer.padding_side = "left"
+    load_options = {"device_map": {"": "cuda"}, "low_cpu_mem_usage": True} if getattr(args, "direct_gpu_load", False) else {}
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         args.model, revision=revision, torch_dtype=torch.bfloat16, attn_implementation="sdpa",
-    ).to("cuda")
+        **load_options,
+    )
+    if not load_options:
+        model = model.to("cuda")
     model.requires_grad_(False)
     if args.adapter:
         from peft import PeftModel
@@ -183,6 +187,7 @@ def load_policy(args):
     metadata = {
         "model": args.model, "resolved_revision": revision,
         "processor_revision": revision, "adapter": args.adapter,
+        "direct_gpu_load": bool(load_options),
         "image_coordinate_system": args.coordinate_frame,
         "prompt_style": args.prompt_style,
         "adapter_replay_settings": getattr(args, "adapter_replay_settings", None),
