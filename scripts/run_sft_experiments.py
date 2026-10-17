@@ -134,7 +134,10 @@ def timing_from_canary(record, result, config):
     # and other overhead. Retaining all of it is deliberately conservative.
     residual = max(0.0, elapsed - result["training_elapsed_seconds"]
                    - result["before_evaluation_seconds"] - result["after_evaluation_seconds"])
-    evaluation = max(60.0, eval8 * main["validation_examples"] / 8 * budget["evaluation_safety_factor"])
+    # Successful SFT may emit many more objects than the untrained model.
+    # Short initial completions therefore cannot set a tiny evaluation timeout.
+    evaluation = max(budget["minimum_evaluation64_seconds"],
+                     eval8 * main["validation_examples"] / 8 * budget["evaluation_safety_factor"])
     periodic = (main["max_steps"] - 1) // main["eval_every"] if main["eval_every"] else 0
     training = step * main["max_steps"] * budget["step_safety_factor"]
     checkpoint = math.ceil(main["max_steps"] / main["save_steps"]) * budget["checkpoint_seconds"]

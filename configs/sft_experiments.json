@@ -16,5 +16,5 @@
   },
   "canary": {"max_steps": 20, "warmup_steps": 1, "train_limit": 4, "eval_limit": 8, "augmentation": "d4", "eval_every": 0, "save_steps": 20},
   "main": {"max_steps": 512, "warmup_steps": 16, "train_examples": 256, "validation_examples": 64, "augmentations": ["none", "d4"], "eval_every": 128, "save_steps": 128},
-  "budget": {"step_safety_factor": 2.0, "evaluation_safety_factor": 2.0, "load_safety_factor": 1.5, "checkpoint_seconds": 60, "final_save_seconds": 120, "termination_slack_seconds": 90, "allocation_reserve_seconds": 600, "canary_max_seconds": 7200}
+  "budget": {"step_safety_factor": 2.0, "evaluation_safety_factor": 2.0, "minimum_evaluation64_seconds": 3600, "load_safety_factor": 1.5, "checkpoint_seconds": 60, "final_save_seconds": 120, "termination_slack_seconds": 90, "allocation_reserve_seconds": 600, "canary_max_seconds": 7200}
 }

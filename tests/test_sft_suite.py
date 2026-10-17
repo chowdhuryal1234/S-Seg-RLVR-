@@ -107,9 +107,10 @@ class SuiteContracts(unittest.TestCase):
         timing = suite.timing_from_canary({"elapsed_seconds": 300}, canary_result(self.config), self.config)
         self.assertEqual(timing["training_seconds"], 512 * 5 * 2)
         self.assertEqual(timing["periodic_evaluations"], 3)
-        self.assertEqual(timing["seconds_per_evaluation64"], 30 * 8 * 2)
-        self.assertEqual(timing["before_after_evaluation_seconds"], 2 * 480)
-        self.assertEqual(timing["periodic_evaluation_seconds"], 3 * 480)
+        self.assertEqual(timing["seconds_per_evaluation64"],
+                         max(30 * 8 * 2, self.config["budget"]["minimum_evaluation64_seconds"]))
+        self.assertEqual(timing["before_after_evaluation_seconds"], 2 * timing["seconds_per_evaluation64"])
+        self.assertEqual(timing["periodic_evaluation_seconds"], 3 * timing["seconds_per_evaluation64"])
         self.assertEqual(timing["paired_hard_seconds"], 2 * timing["hard_seconds_per_arm"])
         self.assertGreater(timing["cold_load_and_audit_seconds"], 0)
 
