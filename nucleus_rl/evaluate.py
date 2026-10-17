@@ -51,8 +51,8 @@ def prepare_coordinate_rows(rows, processor, coordinate_frame):
     """Measure preprocessing geometry without looking at reference masks."""
     from PIL import Image
 
-    if coordinate_frame not in ("processed", "original"):
-        raise ValueError("coordinate_frame must be processed or original")
+    if coordinate_frame not in ("processed", "original", "normalized1000"):
+        raise ValueError("coordinate_frame must be processed, original, or normalized1000")
     prepared = []
     for row in rows:
         with Image.open(row["image_path"]) as source:
@@ -61,7 +61,8 @@ def prepare_coordinate_rows(rows, processor, coordinate_frame):
         image_inputs = processor.image_processor(images=image, return_tensors="pt")
         processed_width, processed_height = processed_image_size(processor, image_inputs)
         prompt_width, prompt_height = (
-            (processed_width, processed_height) if coordinate_frame == "processed" else image.size
+            (processed_width, processed_height) if coordinate_frame == "processed"
+            else (1000, 1000) if coordinate_frame == "normalized1000" else image.size
         )
         prepared.append({
             **row, "coordinate_frame": coordinate_frame,
@@ -76,18 +77,19 @@ def prompt_size_for_row(row, original_size):
     """Legacy oracle rows use original pixels; prepared policy rows are explicit."""
     width, height = original_size
     frame = row.get("coordinate_frame", "original")
-    if frame not in ("processed", "original"):
+    if frame not in ("processed", "original", "normalized1000"):
         raise ValueError(f"Unsupported coordinate frame: {frame}")
     if (row.get("original_width", width), row.get("original_height", height)) != original_size:
         raise ValueError("Image dimensions differ from the recorded original coordinate frame")
-    if frame == "processed" and not all(key in row for key in (
+    if frame in ("processed", "normalized1000") and not all(key in row for key in (
         "prompt_width", "prompt_height", "processed_width", "processed_height"
     )):
         raise ValueError("Processed coordinate rows require measured prompt and processed dimensions")
     prompt_size = row.get("prompt_width", width), row.get("prompt_height", height)
     if any(isinstance(value, bool) or not isinstance(value, int) or value <= 0 for value in prompt_size):
         raise ValueError("Prompt dimensions must be positive integers")
-    expected = (row["processed_width"], row["processed_height"]) if frame == "processed" else original_size
+    expected = ((row["processed_width"], row["processed_height"]) if frame == "processed"
+                else (1000, 1000) if frame == "normalized1000" else original_size)
     if prompt_size != expected:
         raise ValueError("Prompt dimensions do not match the declared coordinate frame")
     return prompt_size
@@ -115,11 +117,15 @@ def assert_processed_dimensions(processor, inputs, row):
 
 
 def prompt_for_image(width, height, max_objects=8, coordinate_frame="original", prompt_style="schema"):
-    if coordinate_frame not in ("processed", "original"):
-        raise ValueError("coordinate_frame must be processed or original")
+    if coordinate_frame not in ("processed", "original", "normalized1000"):
+        raise ValueError("coordinate_frame must be processed, original, or normalized1000")
     if prompt_style not in ("schema", "example"):
         raise ValueError("prompt_style must be schema or example")
     frame_description = "PROCESSED image shown to you" if coordinate_frame == "processed" else "ORIGINAL image before preprocessing"
+    if coordinate_frame == "normalized1000":
+        if (width, height) != (1000, 1000):
+            raise ValueError("Normalized coordinates require a 1000 by 1000 frame")
+        frame_description = "image expressed on a NORMALIZED 0-1000 coordinate grid"
     messages = [
         {"role": "system", "content": "You locate individual cell nuclei in microscopy images. Return only the requested answer."},
         {"role": "user", "content": (
