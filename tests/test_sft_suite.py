@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+import sys
 import tempfile
 import time
 import unittest
@@ -124,6 +125,16 @@ class SuiteContracts(unittest.TestCase):
 
 
 class OrchestrationTests(unittest.TestCase):
+    def test_main_preserves_the_virtual_environment_interpreter_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            interpreter = Path(directory) / "venv-python"
+            interpreter.symlink_to(sys.executable)
+            state = {"stage": "canary", "model_key": "7b", "status": "dry_run_verified_without_gpu_loading_or_training"}
+            with patch.object(suite, "run", return_value=state) as run:
+                suite.main(["--stage", "canary", "--model-key", "7b", "--root", directory,
+                            "--sam-checkpoint", "sam.pt", "--python", str(interpreter), "--dry-run"])
+            self.assertEqual(run.call_args.args[0].python, interpreter.absolute())
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)

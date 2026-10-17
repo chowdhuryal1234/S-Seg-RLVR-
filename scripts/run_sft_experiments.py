@@ -345,10 +345,13 @@ def parser():
 
 def main(argv=None):
     args = parser().parse_args(argv)
-    for key in ("code", "root", "sam_checkpoint", "python", "canary_root"):
+    for key in ("code", "root", "sam_checkpoint", "canary_root"):
         value = getattr(args, key)
         if value is not None:
             setattr(args, key, value.resolve())
+    # Resolving a venv's interpreter symlink escapes its environment and loads
+    # the base interpreter's packages instead. Preserve the selected venv path.
+    args.python = args.python.absolute()
     args.config = (args.config or args.code / "configs/sft_experiments.json").resolve()
     def request_stop(signum, frame):
         global STOP_REQUESTED
