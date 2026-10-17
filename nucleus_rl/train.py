@@ -47,6 +47,8 @@ def build_parser():
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--beta", type=float, default=0.04)
     parser.add_argument("--save-steps", type=int, default=10)
+    parser.add_argument("--direct-gpu-load", action="store_true",
+                        help="Stream model shards to the single CUDA device to reduce host RAM demand")
     parser.add_argument("--min-pixels", type=int, default=224 * 224, action=ReplaySettingAction)
     parser.add_argument("--max-pixels", type=int, default=448 * 448, action=ReplaySettingAction)
     parser.add_argument("--coordinate-frame", choices=("processed", "original"), default="processed",
@@ -173,9 +175,15 @@ def load_policy(args):
         args.model, revision=revision, min_pixels=args.min_pixels, max_pixels=args.max_pixels,
     )
     processor.tokenizer.padding_side = "left"
+    # Large inference checkpoints can exceed the job's host-RAM allocation.
+    # Stream shards directly to one GPU only when explicitly requested.
+    load_options = {"device_map": {"": "cuda"}, "low_cpu_mem_usage": True} if getattr(args, "direct_gpu_load", False) else {}
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
         args.model, revision=revision, torch_dtype=torch.bfloat16, attn_implementation="sdpa",
-    ).to("cuda")
+        **load_options,
+    )
+    if not load_options:
+        model = model.to("cuda")
     model.requires_grad_(False)
     if args.adapter:
         from peft import PeftModel
@@ -183,6 +191,7 @@ def load_policy(args):
     metadata = {
         "model": args.model, "resolved_revision": revision,
         "processor_revision": revision, "adapter": args.adapter,
+        "direct_gpu_load": bool(load_options),
         "image_coordinate_system": args.coordinate_frame,
         "prompt_style": args.prompt_style,
         "adapter_replay_settings": getattr(args, "adapter_replay_settings", None),

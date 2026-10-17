@@ -196,9 +196,17 @@ class ArtifactScorer:
             if parsed.valid else np.zeros(reference.shape, dtype=np.int32)
         )
         metrics = evaluate_prediction(text, instances, reference, max_objects=self.max_objects, prompt_size=prompt_size)
+        # Diagnostics use SAM masks before overlap resolution; rewards are unchanged.
+        from nucleus_rl.ablation_metrics import duplicate_metrics
+        raw_masks = (getattr(self.segmenter, "last_raw_masks", None) if parsed.valid
+                     else np.zeros((0, height, width), dtype=bool))
+        if raw_masks is not None:
+            metrics.update(duplicate_metrics(raw_masks, reference))
         self.counter += 1
         stem = f"{self.counter:06d}"
         np.save(self.output / f"{stem}.npy", instances, allow_pickle=False)
+        if raw_masks is not None:
+            np.savez_compressed(self.output / f"{stem}_raw_masks.npz", masks=raw_masks)
         (self.output / f"{stem}.txt").write_text(text)
         # Green marks prediction boundaries; red marks reference boundaries.
         overlay = np.asarray(image).copy()
@@ -244,6 +252,9 @@ class ArtifactScorer:
             summary[f"mean_{metric}"] = statistics.mean(values) if values else None
         summary["invalid_completions"] = sum(not row["format_valid"] for row in self.results)
         summary["groups_with_reward_variation"] = sum(row["reward_std"] > 0 for row in self.groups)
+        if self.results and all("same_gt_duplicate_count" in row for row in self.results):
+            from nucleus_rl.ablation_metrics import summarize_records
+            summary["instance_diagnostics"] = summarize_records(self.results)
         write_json(self.output / "summary.json", summary)
         return summary
 
