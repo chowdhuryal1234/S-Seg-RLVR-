@@ -2,7 +2,7 @@
 # Execute inside the user's existing A100 allocation; never requests a GPU.
 set -euo pipefail
 : "${SFT_ROOT:?Set SFT_ROOT to the staged experiment workspace}"
-: "${SFT_DEADLINE_EPOCH:?Set the existing allocation's actual end timestamp}"
+: "${SFT_DEADLINE_EPOCH:?Set the actual end timestamp of the existing allocation}"
 export HF_HOME="$SFT_ROOT/cache/huggingface"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
