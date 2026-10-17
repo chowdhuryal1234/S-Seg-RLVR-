@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "dataset": "data/monuseg_official30_grpo_v1",
+  "models": {
+    "7b": {"model": "Qwen/Qwen2.5-VL-7B-Instruct", "revision": "cc594898137f460bfe9f0759e9844b3ce807cfb5", "coordinate_frame": "processed"},
+    "32b": {"model": "Qwen/Qwen2.5-VL-32B-Instruct", "revision": "7cfb30d71a1f4f49a57592323337a4a4727301da", "coordinate_frame": "processed"},
+    "9b": {"model": "Qwen/Qwen3.5-9B", "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a", "coordinate_frame": "normalized1000"},
+    "27b": {"model": "Qwen/Qwen3.6-27B", "revision": "6a9e13bd6fc8f0983b9b99948120bc37f49c13e9", "coordinate_frame": "normalized1000"}
+  },
+  "shared": {
+    "gradient_accumulation": 4, "learning_rate": 0.0001, "seed": 42,
+    "lora_rank": 16, "lora_alpha": 32, "lora_dropout": 0.05,
+    "max_sequence_length": 2048, "max_completion_length": 1024,
+    "max_objects": 8, "min_pixels": 50176, "max_pixels": 200704,
+    "fixed_loss_examples": 4
+  },
+  "canary": {"max_steps": 20, "warmup_steps": 1, "train_limit": 4, "eval_limit": 8, "augmentation": "d4", "eval_every": 0, "save_steps": 20},
+  "main": {"max_steps": 512, "warmup_steps": 16, "train_examples": 256, "validation_examples": 64, "augmentations": ["none", "d4"], "eval_every": 128, "save_steps": 128},
+  "budget": {"step_safety_factor": 2.0, "evaluation_safety_factor": 2.0, "minimum_evaluation64_seconds": 3600, "load_safety_factor": 1.5, "checkpoint_seconds": 60, "final_save_seconds": 120, "termination_slack_seconds": 90, "allocation_reserve_seconds": 600, "canary_max_seconds": 7200}
+}
