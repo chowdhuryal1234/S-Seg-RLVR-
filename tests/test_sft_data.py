@@ -172,6 +172,15 @@ class DataIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "image_sha256"):
             validate_sft_splits([train], [self.validation])
 
+    def test_all_validation_masks_are_decoded_and_shape_count_checked_before_gpu(self):
+        mask_path = Path(self.validation["mask_path"])
+        Image.fromarray(np.ones((3, 4), dtype=np.uint16)).save(mask_path)
+        with self.assertRaisesRegex(ValueError, "dimensions differ"):
+            validate_sft_splits([self.train], [self.validation])
+        Image.fromarray(np.zeros((7, 11), dtype=np.uint16)).save(mask_path)
+        with self.assertRaisesRegex(ValueError, "instance count"):
+            validate_sft_splits([self.train], [self.validation])
+
     def test_same_source_patient_or_row_cannot_cross_splits(self):
         bad = {**self.train, "split": "validation"}
         with self.assertRaisesRegex(ValueError, "overlap"):
