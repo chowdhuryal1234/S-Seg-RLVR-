@@ -245,6 +245,22 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True):
                     record[hash_key] = digest
                     if key == "image_path":
                         split_hashes.add(digest)
+                # Decode all rows before any model loading. Validation masks
+                # are checked structurally here and never converted to prompts.
+                with Image.open(row["image_path"]) as source:
+                    source.load()
+                    image_size = source.size
+                mask_path = Path(row["mask_path"])
+                if mask_path.suffix.lower() == ".npy":
+                    labels = _instance_map(np.load(mask_path, allow_pickle=False))
+                else:
+                    with Image.open(mask_path) as source:
+                        labels = _instance_map(np.array(source))
+                if image_size != (labels.shape[1], labels.shape[0]):
+                    raise ValueError(f"Image/mask dimensions differ before GPU loading: {row['id']}")
+                count = len(np.unique(labels[labels > 0]))
+                if not 1 <= count <= 8 or ("instance_count" in row and row["instance_count"] != count):
+                    raise ValueError(f"Invalid one-to-eight instance count before GPU loading: {row['id']}")
                 files.append(record)
             image_hashes.append(split_hashes)
         if image_hashes[0] & image_hashes[1]:
