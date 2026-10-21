@@ -355,7 +355,7 @@ def run_cli(argv, local_output, remote_output, upload_every=600):
     local_output = Path(local_output)
     log_path = local_output.with_name(local_output.name + ".log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    sent, lock, stop = {}, threading.Lock(), threading.Event()
+    sent, repeats, lock, stop = {}, {}, threading.Lock(), threading.Event()
 
     def upload():
         with lock:
@@ -378,9 +378,13 @@ def run_cli(argv, local_output, remote_output, upload_every=600):
                                    text=True, bufsize=1, env=os.environ.copy())
         try:
             for line in process.stdout:
-                print(line, end="", flush=True)
-                log.write(line)
+                log.write(line)  # The log keeps every line.
                 log.flush()
+                # The notebook shows each identical line at most three times, so repeated library
+                # warnings cannot push results past the cell's output limit.
+                repeats[line] = repeats.get(line, 0) + 1
+                if repeats[line] <= 3:
+                    print(line, end="", flush=True)
             code = process.wait()
         except BaseException:
             process.terminate()
@@ -392,6 +396,9 @@ def run_cli(argv, local_output, remote_output, upload_every=600):
         finally:
             stop.set()
             worker.join()
+    hidden = {line.strip(): count - 3 for line, count in repeats.items() if count > 3}
+    for line, count in sorted(hidden.items(), key=lambda item: -item[1])[:5]:
+        print(f"[{count} more repeats hidden, kept in the log] {line[:160]}", flush=True)
     print(f"uploaded {upload()} files to {remote_output}", flush=True)
     print(f"exit code {code} after {time.time() - started:.0f}s; log: {remote_output}.log", flush=True)
     if code:

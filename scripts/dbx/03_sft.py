@@ -39,7 +39,8 @@ dbx.configure_environment()
 from scripts.run_sft_experiments import canary_errors, main_run_errors
 
 MODEL_KEY = "7b"                 # Harvard compared 7b/32b/9b/27b; 7b fits one H100 comfortably.
-STAGES = ["canary", "main"]      # Drop "canary" once it has passed on this environment.
+#STAGES = ["canary", "main"]      # Drop "canary" once it has passed on this environment.
+STAGES = ["main"]
 ARMS = ["none", "d4"]            # Main-stage augmentation arms, run one after another.
 
 config = dbx.sft_config()
@@ -89,3 +90,22 @@ index = dbx.remote("runs", f"sft-{MODEL_KEY}-latest.json")
 merged = {**dbx.read_json_remote(index), **runs}
 dbx.volume().write_text(index, json.dumps(merged, indent=2) + "\n")
 print(index, json.dumps(merged, indent=2))
+
+# COMMAND ----------
+
+import os, sys, json
+os.environ["DATABRICKS_DISABLE_EXPERIMENTAL_FILES_API_CLIENT"] = "true"
+sys.path.insert(0, "/Workspace/Users/xukan_zhang@dfci.harvard.edu/S-Seg-RLVR-/scripts/dbx")
+import dbx_common as dbx
+
+index = dbx.read_json_remote(dbx.remote("runs", "sft-7b-latest.json"))
+keys = ("invalid_completions", "mean_seg_reward", "mean_pq", "mean_precision", "mean_recall", "mean_count_error")
+for arm in ("none", "d4"):
+    s = json.loads(dbx.volume().read_text(index[arm] + "/summary.json"))
+    print(f"== {arm}: {s['status']}, steps={s['optimizer_steps']}, train {s['training_elapsed_seconds']/60:.0f} min")
+    for phase in ("before", "after"):
+        v = s[phase]
+        print(f"  {phase:6}", {k: round(v[k], 4) for k in keys}, "box_recall", round(v["localization"]["micro_box_recall"], 4))
+    for e in s.get("periodic_evaluations", []):
+        v = e["summary"]
+        print("  step", e["step"], {k: round(v[k], 4) for k in ("mean_pq", "mean_recall", "mean_count_error")})

@@ -119,9 +119,10 @@ class DatabricksNotebookTests(unittest.TestCase):
                 patch("builtins.print"):
             local, destination = Path(tmp, "local/runs/r"), "/Volumes/c/s/processed/runs/r"
             script = f"import pathlib,sys; p=pathlib.Path({str(local)!r}); p.mkdir(parents=True); " \
-                     "(p/'summary.json').write_text('{}'); print('step 1'); sys.exit(3)"
-            with self.assertRaises(RuntimeError):
+                     "(p/'summary.json').write_text('{}'); print('step 1'); [print('noisy') for _ in range(9)]; sys.exit(3)"
+            with patch("builtins.print") as shown, self.assertRaises(RuntimeError):
                 dbx.run_cli(["-c", script], local, destination)
+            self.assertEqual(sum(call.args[0] == "noisy\n" for call in shown.call_args_list), 3)
             self.assertEqual(dbx.volume().read_text(destination + "/summary.json"), "{}")
             self.assertIn("step 1", dbx.volume().read_text(destination + ".log"))
 
