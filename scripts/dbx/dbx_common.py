@@ -114,6 +114,10 @@ class Volume:
     @property
     def files(self):
         if self._files is None:
+            # Newer SDKs upload and download through presigned cloud-storage URLs, which Serverless GPU
+            # cannot reach here ("Exceeded max retry attempts"). This switch keeps every transfer on the
+            # plain Files API endpoints (5 GB per file), which do work.
+            os.environ.setdefault("DATABRICKS_DISABLE_EXPERIMENTAL_FILES_API_CLIENT", "true")
             from databricks.sdk import WorkspaceClient
             self._files = WorkspaceClient().files
         return self._files
