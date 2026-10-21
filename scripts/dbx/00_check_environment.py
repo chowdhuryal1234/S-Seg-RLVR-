@@ -3,11 +3,11 @@
 # MAGIC # 00 · Check the Serverless GPU environment
 # MAGIC
 # MAGIC Run this first on **Serverless GPU, 1×H100, environment Standard v6**. It installs nothing and changes nothing
-# MAGIC except a small probe folder on the Volume. It answers:
+# MAGIC except a small probe file on the Volume. It answers:
 # MAGIC
 # MAGIC 1. Which GPU, driver, Python, and how much local disk?
 # MAGIC 2. **Can this compute reach Hugging Face, PyPI, GitHub, and the SAM2 checkpoint host?**
-# MAGIC 3. Can it write, rename, and symlink on the Unity Catalog Volume?
+# MAGIC 3. Can it list, write and read the Unity Catalog Volume through the Files API (which all notebooks use)?
 # MAGIC
 # MAGIC If every network row is `OK`, notebooks 01–04 download what they need. If any row fails, see the
 # MAGIC "offline" notes printed at the end and in `README.md`.
@@ -78,49 +78,53 @@ for name, url in PROBES:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Volume behavior
+# MAGIC ## Volume access
 # MAGIC
-# MAGIC Runs write to local disk and are mirrored to the Volume, so a failed rename or symlink here is expected and harmless.
-# MAGIC Write and read must succeed.
+# MAGIC The notebooks use the Files API, which must pass. The `/Volumes` mount row is informational only: on Serverless
+# MAGIC GPU it can fail to reach the storage account (`Input/output error`, `Resource temporarily unavailable`).
 
 # COMMAND ----------
 
-probe_dir = dbx.artifact("_env_probe", time.strftime("%Y%m%d-%H%M%S"))
-checks = {}
+store, checks = dbx.volume(), {}
 try:
-    probe_dir.mkdir(parents=True)
-    (probe_dir / "a.txt").write_text("ok")
-    checks["write+read"] = (probe_dir / "a.txt").read_text() == "ok"
-    for name, action in (("file rename", lambda: (probe_dir / "a.txt").rename(probe_dir / "b.txt")),
-                         ("directory rename", lambda: ((probe_dir / "d1").mkdir(), (probe_dir / "d1").rename(probe_dir / "d2"))),
-                         ("symlink", lambda: os.symlink(probe_dir / "b.txt", probe_dir / "link"))):
-        try:
-            action(); checks[name] = True
-        except OSError as error:
-            checks[name] = f"not supported ({error.strerror})"
-finally:
-    shutil.rmtree(probe_dir, ignore_errors=True)
+    images = [rel for rel, _ in store.walk(dbx.PATHS["train_dir"])]
+    checks["list training folder"] = (f"{sum(r.lower().endswith(('.tif', '.tiff')) for r in images)} images, "
+                                      f"{sum(r.lower().endswith('.xml') for r in images)} annotations")
+except Exception as error:
+    checks["list training folder"] = f"FAIL {type(error).__name__}: {error}"
+probe = dbx.remote("_env_probe", time.strftime("%Y%m%d-%H%M%S") + ".txt")
+try:
+    store.write_text(probe, "ok")
+    checks["write+read artifacts"] = "OK" if store.read_text(probe) == "ok" else "FAIL content differs"
+    store.files.delete(probe)
+except Exception as error:
+    checks["write+read artifacts"] = f"FAIL {type(error).__name__}: {error}"
+try:
+    os.listdir(dbx.PATHS["train_dir"])
+    checks["/Volumes mount (info)"] = "OK"
+except OSError as error:
+    checks["/Volumes mount (info)"] = f"unavailable ({error.strerror}); not needed"
 for name, value in checks.items():
-    print(f"{name:18} {value}")
+    print(f"{name:24} {value}")
 print("Volume artifacts root:", dbx.PATHS["artifacts"])
-print("Training images folder exists:", dbx.PATHS["train_dir"].is_dir())
 
 # COMMAND ----------
 
 failed = [name for name, status in results.items() if status == "FAIL"]
 if not failed:
-    print("All network probes passed: run 01_setup_assets next; it downloads Qwen and SAM2 and mirrors them to the Volume.")
+    print("All network probes passed: run 01_setup_assets next; it installs packages and downloads Qwen and SAM2.")
 else:
     print("Blocked:", failed)
     print("""
-Offline fallback (do this from any machine with internet, then upload to the Volume):
+Offline fallback (do this from any machine with internet, then upload to the Volume, e.g. with the Catalog UI):
   * Hugging Face blocked -> on a connected machine run
         hf download Qwen/Qwen2.5-VL-7B-Instruct --revision <sha> --cache-dir hub
     and upload the folder  hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/<sha>  (files, no symlinks)
     to  <artifacts>/cache/huggingface/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/<sha>.
   * PyPI or GitHub blocked -> build a wheelhouse on Linux x86_64 / Python 3.12:
         pip download -r requirements-databricks.txt -d wheels   (and: pip wheel <SAM-2 url> -w wheels)
-    upload to <artifacts>/wheels and install with  --no-index --find-links <artifacts>/wheels.
+    upload to <artifacts>/wheels, download it to local disk with dbx.volume().download_tree(...), and install with
+    --no-index --find-links <local wheels folder>.
     Ask your workspace admin whether a PyPI mirror/proxy is configured first.
   * SAM2 host blocked -> upload sam2.1_hiera_tiny.pt to <artifacts>/checkpoints/.
 See scripts/dbx/README.md.""")

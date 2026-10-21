@@ -27,7 +27,7 @@ os.environ["SAM2_BUILD_CUDA"] = "0"
 
 # COMMAND ----------
 
-import os, sys, json, shutil
+import os, sys, json
 from pathlib import Path
 sys.path.insert(0, os.getcwd())
 import dbx_common as dbx
@@ -35,7 +35,7 @@ dbx.configure_environment()
 
 MODEL_KEY = "7b"
 SFT_ARM = "d4"                 # Which SFT run to start from (key in runs/sft-<model>-latest.json).
-INIT_ADAPTER = None            # Or an explicit Volume path to an SFT run's "adapter" folder.
+INIT_ADAPTER = None            # Or an explicit Volume path (string) to an SFT run's "adapter" folder.
 CANARY = True                  # 10 steps on 4 train / 8 validation crops; set False for the full run.
 OBJECTIVES = ["grpo"]          # Add "sft" for the continued-SFT control.
 # Overrides of the runner defaults in dbx.GRPO_SETTINGS (canary limits: dbx.GRPO_CANARY).
@@ -44,27 +44,28 @@ print("GRPO settings:", {**dbx.GRPO_SETTINGS, **SETTINGS, **(dbx.GRPO_CANARY if 
 
 config = dbx.sft_config()
 model = config["models"][MODEL_KEY]
-data = dbx.dataset_dir()
 if INIT_ADAPTER is None:
-    index = json.loads(dbx.artifact("runs", f"sft-{MODEL_KEY}-latest.json").read_text())
-    INIT_ADAPTER = Path(index[SFT_ARM]) / "adapter"
-INIT_ADAPTER = Path(INIT_ADAPTER)
-assert (INIT_ADAPTER / "adapter_model.safetensors").is_file(), f"No finished SFT adapter at {INIT_ADAPTER}"
+    index = dbx.read_json_remote(dbx.remote("runs", f"sft-{MODEL_KEY}-latest.json"))
+    assert SFT_ARM in index, f"No finished SFT '{SFT_ARM}' run recorded; run 03_sft first"
+    INIT_ADAPTER = index[SFT_ARM] + "/adapter"
+assert dbx.volume().is_file(INIT_ADAPTER + "/adapter_model.safetensors"), f"No finished SFT adapter at {INIT_ADAPTER}"
 print("SFT adapter:", INIT_ADAPTER)
-print(dbx.ensure_model(model["model"], model["revision"]))
 
-# Read the adapter from local disk; the run records its hash either way.
-local_adapter = dbx.local_root() / "init-adapters" / f"{INIT_ADAPTER.parent.name}"
-if not local_adapter.is_dir():
-    shutil.copytree(INIT_ADAPTER, local_adapter, copy_function=shutil.copyfile)
+# Inputs on local disk: dataset, SAM checkpoint, pinned Qwen snapshot, and the SFT adapter.
+dbx.ensure_dataset()
+dbx.ensure_sam()
+print(dbx.ensure_model(model["model"], model["revision"]))
+local_adapter = dbx.local_root() / "init-adapters" / INIT_ADAPTER.rstrip("/").split("/")[-2]
+if not (local_adapter / "adapter_model.safetensors").is_file():
+    dbx.volume().download_tree(INIT_ADAPTER, local_adapter)
 
 # COMMAND ----------
 
 keys = ("completions", "invalid_completions", "mean_seg_reward", "mean_pq", "mean_recall", "mean_count_error")
 for objective in OBJECTIVES:
     name = f"{objective}-{MODEL_KEY}-from-sft-{SFT_ARM}" + ("-canary" if CANARY else "")
-    local, volume = dbx.new_run_dirs(name)
-    dbx.run_cli(dbx.grpo_argv(MODEL_KEY, objective, local, local_adapter, SETTINGS, CANARY, config), local, volume)
+    local, remote = dbx.new_run_dirs(name)
+    dbx.run_cli(dbx.grpo_argv(MODEL_KEY, objective, local, local_adapter, SETTINGS, CANARY, config), local, remote)
     summary = json.loads((local / "summary.json").read_text())
     print(f"== {name}: {summary['status']}, {summary['optimizer_steps']} steps, "
           f"{summary['groups_with_signal']}/{summary['groups_seen']} groups with reward signal")
@@ -72,4 +73,4 @@ for objective in OBJECTIVES:
         values = summary.get(phase) or {}
         print(f"{phase:6}", {k: values.get(k) for k in keys},
               "micro_box_recall:", values.get("localization", {}).get("micro_box_recall"))
-    print("Volume:", volume)
+    print("Volume:", remote)

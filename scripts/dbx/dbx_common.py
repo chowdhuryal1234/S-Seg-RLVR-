@@ -1,9 +1,14 @@
 """Shared helpers for the Databricks Serverless GPU notebooks in this folder.
 
-Notebooks import this module after adding this folder to sys.path. It holds
-the workspace paths in one place, keeps the Hugging Face cache on fast local
-disk (with an optional Unity Catalog Volume mirror), runs the repository CLIs
-in a subprocess, and mirrors run directories to the Volume while they run.
+Notebooks import this module after adding this folder to sys.path. It keeps
+the workspace paths in one place, runs the repository CLIs in a subprocess,
+and moves data between fast local disk and a Unity Catalog Volume.
+
+All Volume access goes through the Databricks Files API (`Volume` below), not
+the /Volumes FUSE mount: on Serverless GPU the mount can fail to reach the
+storage account while the Files API still works. Inputs are downloaded to
+local disk, every runner reads and writes local paths only, and run
+directories are uploaded to the Volume while they run and when they finish.
 Edit the PATHS block once for your workspace; nothing else is hard-coded.
 """
 from __future__ import annotations
@@ -11,28 +16,30 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import urllib.request
 
 REPO = Path(__file__).resolve().parents[2]
 
 # ---------- Edit for your workspace ----------
-CATALOG_ROOT = Path("/Volumes/aistudio_dev_catalog/aios_segrlvr_dev")
+VOLUME_ROOT = "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev"
 PATHS = {
     # Extracted MoNuSeg 2018 training data (30 official images), as already uploaded.
-    "train_dir": CATALOG_ROOT / "raw/monuseg/train",
-    # Persistent outputs: data, checkpoints, model cache mirror, runs.
-    "artifacts": CATALOG_ROOT / "processed/segrlvr",
+    "train_dir": f"{VOLUME_ROOT}/raw/monuseg/train",
+    # Persistent outputs: dataset, SAM checkpoint, runs (and an optional offline model copy).
+    "artifacts": f"{VOLUME_ROOT}/processed/segrlvr",
 }
 # ---------------------------------------------
 
 DATASET_NAME = "monuseg_official30_grpo_v1"
-SAM_URL = "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt"
+SAM_NAME = "sam2.1_hiera_tiny.pt"
+SAM_URL = f"https://dl.fbaipublicfiles.com/segment_anything_2/092824/{SAM_NAME}"
 SAM_SHA256 = "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69"
 # Manifest digests from the Harvard run. Manifests embed the absolute source
 # archive path, so these match only if that path is identical; compare_manifests
@@ -44,8 +51,10 @@ HARVARD_MANIFEST_SHA256 = {
 }
 
 
+# ---------- Paths ----------
+
 def local_root():
-    """Fast ephemeral disk for the model cache and in-progress runs."""
+    """Fast ephemeral disk for inputs, the model cache and in-progress runs."""
     base = Path("/local_disk0") if Path("/local_disk0").is_dir() and os.access("/local_disk0", os.W_OK) \
         else Path(tempfile.gettempdir())
     path = base / "segrlvr"
@@ -53,16 +62,17 @@ def local_root():
     return path
 
 
-def artifact(*parts):
-    return PATHS["artifacts"].joinpath(*parts)
+def remote(*parts):
+    """A path under the Volume artifacts folder (a Files API path, not a mounted file)."""
+    return str(PurePosixPath(PATHS["artifacts"], *parts))
 
 
 def dataset_dir():
-    return artifact("data", DATASET_NAME)
+    return local_root() / "data" / DATASET_NAME
 
 
 def sam_checkpoint():
-    return artifact("checkpoints", "sam2.1_hiera_tiny.pt")
+    return local_root() / "checkpoints" / SAM_NAME
 
 
 def sft_config():
@@ -85,6 +95,192 @@ def configure_environment():
     if str(REPO) not in sys.path:
         sys.path.insert(0, str(REPO))
     return hf_home
+
+
+# ---------- Unity Catalog Volume through the Files API ----------
+
+def _is_hidden(relative):
+    # Hidden names are in-progress writes (e.g. ".writing-checkpoint-128/").
+    return any(part.startswith(".") for part in PurePosixPath(relative).parts)
+
+
+class Volume:
+    """Minimal Volume client. `files` is a WorkspaceClient().files (or a test double)."""
+
+    def __init__(self, files=None):
+        self._files = files
+        self._made = set()
+
+    @property
+    def files(self):
+        if self._files is None:
+            from databricks.sdk import WorkspaceClient
+            self._files = WorkspaceClient().files
+        return self._files
+
+    @staticmethod
+    def _missing(error):
+        return isinstance(error, FileNotFoundError) or type(error).__name__ in ("NotFound", "ResourceDoesNotExist")
+
+    def is_file(self, path):
+        try:
+            self.files.get_metadata(path)
+            return True
+        except Exception as error:
+            if self._missing(error):
+                return False
+            raise
+
+    def is_dir(self, path):
+        try:
+            self.files.get_directory_metadata(path)
+            return True
+        except Exception as error:
+            if self._missing(error):
+                return False
+            raise
+
+    def mkdir(self, path):
+        if path not in self._made:
+            self.files.create_directory(path)  # Creates parents as needed.
+            self._made.add(path)
+
+    def walk(self, path):
+        """Yield (relative path, size) for every file below `path`."""
+        root = PurePosixPath(path)
+        for entry in self.files.list_directory_contents(str(root)):
+            if entry.is_directory:
+                for relative, size in self.walk(entry.path):
+                    yield str(PurePosixPath(entry.path).relative_to(root) / relative), size
+            else:
+                yield str(PurePosixPath(entry.path).relative_to(root)), entry.file_size
+
+    def download(self, path, local_path):
+        local_path = Path(local_path)
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        partial = local_path.with_name(f".{local_path.name}.partial")
+        stream = self.files.download(path).contents
+        try:
+            with partial.open("wb") as output:
+                shutil.copyfileobj(stream, output, 1 << 20)
+        finally:
+            stream.close()
+        partial.replace(local_path)
+
+    def download_tree(self, path, local_dir):
+        count = 0
+        for relative, _ in self.walk(path):
+            self.download(f"{path}/{relative}", Path(local_dir) / relative)
+            count += 1
+        return count
+
+    def upload(self, local_path, path):
+        self.mkdir(str(PurePosixPath(path).parent))
+        with Path(local_path).open("rb") as stream:
+            self.files.upload(path, stream, overwrite=True)
+
+    def upload_tree(self, local_dir, path, state=None):
+        """Upload new or changed files; `state` remembers what was sent. Never deletes."""
+        state = {} if state is None else state
+        local_dir, sent = Path(local_dir), 0
+        for file in sorted(local_dir.rglob("*")):
+            relative = file.relative_to(local_dir).as_posix()
+            if not file.is_file() or _is_hidden(relative):
+                continue
+            try:
+                stat = file.stat()
+                key = (stat.st_size, stat.st_mtime_ns)
+                if state.get(relative) == key:
+                    continue
+                self.upload(file, f"{path}/{relative}")
+            except FileNotFoundError:
+                continue  # The runner replaced a file mid-upload; the next pass catches up.
+            state[relative] = key
+            sent += 1
+        return sent
+
+    def read_text(self, path):
+        stream = self.files.download(path).contents
+        try:
+            return stream.read().decode()
+        finally:
+            stream.close()
+
+    def write_text(self, path, text):
+        import io
+        self.mkdir(str(PurePosixPath(path).parent))
+        self.files.upload(path, io.BytesIO(text.encode()), overwrite=True)
+
+
+_VOLUME = None
+
+
+def volume():
+    global _VOLUME
+    if _VOLUME is None:
+        _VOLUME = Volume()
+    return _VOLUME
+
+
+# ---------- Inputs on local disk ----------
+
+def ensure_dataset():
+    """Local copy of the frozen dataset written by 02_prepare_data."""
+    local = dataset_dir()
+    if not (local / "frozen_protocol.json").is_file():
+        source = remote("data", DATASET_NAME)
+        if not volume().is_dir(source):
+            raise FileNotFoundError(f"{source} not found; run 02_prepare_data first")
+        print(f"downloaded {volume().download_tree(source, local)} dataset files from {source}")
+    return local
+
+
+def ensure_sam():
+    """SAM2.1 tiny checkpoint on local disk, hash-checked; also kept on the Volume."""
+    local, stored = sam_checkpoint(), remote("checkpoints", SAM_NAME)
+    if not local.is_file():
+        if volume().is_file(stored):
+            volume().download(stored, local)
+        else:
+            local.parent.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(SAM_URL, local)
+    digest = file_sha256(local)
+    if digest != SAM_SHA256:
+        local.unlink()
+        raise ValueError(f"SAM checkpoint hash {digest} differs from the frozen baseline")
+    if not volume().is_file(stored):
+        volume().upload(local, stored)
+    return local
+
+
+def _snapshot(cache, model, revision):
+    return Path(cache) / "hub" / ("models--" + model.replace("/", "--")) / "snapshots" / revision
+
+
+def ensure_model(model, revision):
+    """Make one pinned model snapshot available in the local HF cache.
+
+    Downloads from Hugging Face. Without internet access, upload the snapshot
+    files to <artifacts>/cache/huggingface/hub/models--<org>--<name>/snapshots/<revision>/
+    and they are copied from the Volume instead (HF_HUB_OFFLINE=1 is then set).
+    """
+    hf_home = configure_environment()
+    local = _snapshot(hf_home, model, revision)
+    marker = local / ".segrlvr-complete"  # Written last, so a partial copy is never trusted.
+    if marker.is_file():
+        return {"source": "local_cache", "path": str(local)}
+    started = time.time()
+    mirrored = remote(*_snapshot("cache/huggingface", model, revision).parts)
+    if volume().is_dir(mirrored):
+        volume().download_tree(mirrored, local)
+        os.environ["HF_HUB_OFFLINE"] = os.environ["TRANSFORMERS_OFFLINE"] = "1"
+        source = "volume_copy"
+    else:
+        from huggingface_hub import snapshot_download
+        snapshot_download(model, revision=revision, cache_dir=str(hf_home / "hub"))  # Resumes partial downloads.
+        source = "huggingface_download"
+    marker.write_text(revision + "\n")
+    return {"source": source, "path": str(local), "seconds": round(time.time() - started, 1)}
 
 
 # ---------- Command lines for the repository runners ----------
@@ -131,119 +327,47 @@ def grpo_argv(model_key, objective, output, init_adapter, settings=None, canary=
     return argv + (["--skip-before-eval"] if canary else [])
 
 
-# ---------- Hugging Face cache with a Volume mirror ----------
-
-def _hub_dir(cache, model):
-    return Path(cache) / "hub" / ("models--" + model.replace("/", "--"))
-
-
-def _snapshot(cache, model, revision):
-    return _hub_dir(cache, model) / "snapshots" / revision
-
-
-COMPLETE = ".segrlvr-complete"  # Written last, so a partial copy is never mistaken for a snapshot.
-
-
-def _copy_snapshot(source_hub, target_hub, revision):
-    """Copy refs plus one snapshot as plain files (Volumes keep no symlinks), then mark it complete."""
-    if (source_hub / "refs").is_dir():
-        shutil.copytree(source_hub / "refs", target_hub / "refs", dirs_exist_ok=True, copy_function=shutil.copyfile)
-    final = target_hub / "snapshots" / revision
-    (final / COMPLETE).unlink(missing_ok=True)
-    shutil.copytree(source_hub / "snapshots" / revision, final, symlinks=False, dirs_exist_ok=True,
-                    copy_function=shutil.copyfile, ignore=shutil.ignore_patterns(COMPLETE))
-    (final / COMPLETE).write_text(revision + "\n")
-
-
-def _snapshot_complete(path):
-    """Marker from _copy_snapshot, or a manually uploaded snapshot with every indexed weight shard."""
-    if (path / COMPLETE).is_file():
-        return True
-    index = path / "model.safetensors.index.json"
-    if not (path / "config.json").is_file() or not index.is_file():
-        return False
-    shards = set(json.loads(index.read_text())["weight_map"].values())
-    return all((path / shard).is_file() for shard in shards)
-
-
-def ensure_model(model, revision, mirror=True):
-    """Make one pinned model snapshot available in the local HF cache.
-
-    Order: local cache, then the Volume mirror (offline-capable), then a
-    Hugging Face download, which is mirrored to the Volume when `mirror`.
-    Sets HF_HUB_OFFLINE=1 when the model came from the mirror.
-    """
-    hf_home = configure_environment()
-    local = _snapshot(hf_home, model, revision)
-    volume_cache = artifact("cache", "huggingface")
-    mirrored = _snapshot(volume_cache, model, revision)
-    if (local / COMPLETE).is_file():
-        return {"source": "local_cache", "path": str(local)}
-    started = time.time()
-    if _snapshot_complete(mirrored):
-        _copy_snapshot(_hub_dir(volume_cache, model), _hub_dir(hf_home, model), revision)
-        os.environ["HF_HUB_OFFLINE"] = os.environ["TRANSFORMERS_OFFLINE"] = "1"
-        return {"source": "volume_mirror", "path": str(local), "seconds": round(time.time() - started, 1)}
-    from huggingface_hub import snapshot_download
-    snapshot_download(model, revision=revision, cache_dir=str(hf_home / "hub"))  # Resumes partial downloads.
-    (local / COMPLETE).write_text(revision + "\n")
-    result = {"source": "huggingface_download", "path": str(local), "seconds": round(time.time() - started, 1)}
-    if mirror:
-        _copy_snapshot(_hub_dir(hf_home, model), _hub_dir(volume_cache, model), revision)
-        result["mirrored_to"] = str(mirrored)
-    return result
-
-
 # ---------- Running the repository CLIs ----------
 
-def mirror_tree(source, target):
-    """Incrementally copy new or changed files; never deletes on the Volume."""
-    source, target = Path(source), Path(target)
-    copied = 0
-    for path in sorted(source.rglob("*")):
-        relative = path.relative_to(source)
-        # Hidden names are in-progress writes (e.g. ".writing-checkpoint-128/").
-        if not path.is_file() or any(part.startswith(".") for part in relative.parts):
-            continue
-        destination = target / relative
-        try:
-            stat = path.stat()
-            if destination.is_file() and destination.stat().st_size == stat.st_size \
-                    and destination.stat().st_mtime >= stat.st_mtime:
-                continue
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, destination)
-            copied += 1
-        except FileNotFoundError:
-            continue  # The runner replaced a file mid-copy; the next pass catches up.
-    return copied
+def new_run_dirs(name):
+    """Fresh local run directory and its Volume destination; refuses to reuse a name."""
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    local, destination = local_root() / "runs" / f"{name}-{stamp}", remote("runs", f"{name}-{stamp}")
+    if volume().is_dir(destination):
+        raise FileExistsError(destination)
+    return local, destination
 
 
-def run_cli(argv, local_output=None, volume_output=None, log_name="run.log", mirror_every=600):
+def run_cli(argv, local_output, remote_output, upload_every=600):
     """Run `python -m ...` from the repository root, streaming output to the notebook.
 
-    If both output paths are given, the local run directory is mirrored to the
-    Volume every `mirror_every` seconds and once more at the end, success or not.
+    The local run directory is uploaded to `remote_output` every `upload_every`
+    seconds and once more at the end, success or not. The log is kept beside
+    the run directory (local and Volume), so it survives a refused start.
     """
     configure_environment()
     command = [sys.executable, *map(str, argv)]
     print("$", " ".join(command), flush=True)
-    # The log sits beside the run directory, so it survives even if the runner
-    # refuses to start because its output directory is not empty.
-    anchor = Path(volume_output or local_output or local_root() / "logs" / "run")
-    log_path = anchor.with_name(f"{anchor.name}.{log_name}")
+    local_output = Path(local_output)
+    log_path = local_output.with_name(local_output.name + ".log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    stop = threading.Event()
+    sent, lock, stop = {}, threading.Lock(), threading.Event()
 
-    def mirror_loop():
-        while not stop.wait(mirror_every):
-            if Path(local_output).is_dir():
-                mirror_tree(local_output, volume_output)
+    def upload():
+        with lock:
+            count = volume().upload_tree(local_output, remote_output, sent) if local_output.is_dir() else 0
+            volume().upload(log_path, remote_output + ".log")
+            return count
 
-    worker = None
-    if local_output and volume_output:
-        worker = threading.Thread(target=mirror_loop, daemon=True)
-        worker.start()
+    def upload_loop():
+        while not stop.wait(upload_every):
+            try:
+                upload()
+            except Exception as error:  # A transient upload failure must not stop training.
+                print(f"[upload deferred: {type(error).__name__}: {error}]", flush=True)
+
+    worker = threading.Thread(target=upload_loop, daemon=True)
+    worker.start()
     started = time.time()
     with log_path.open("a") as log:
         process = subprocess.Popen(command, cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -252,6 +376,7 @@ def run_cli(argv, local_output=None, volume_output=None, log_name="run.log", mir
             for line in process.stdout:
                 print(line, end="", flush=True)
                 log.write(line)
+                log.flush()
             code = process.wait()
         except BaseException:
             process.terminate()
@@ -262,23 +387,16 @@ def run_cli(argv, local_output=None, volume_output=None, log_name="run.log", mir
             raise
         finally:
             stop.set()
-            if worker:
-                worker.join()
-            if local_output and volume_output and Path(local_output).is_dir():
-                print(f"mirrored {mirror_tree(local_output, volume_output)} files to {volume_output}", flush=True)
-    print(f"exit code {code} after {time.time() - started:.0f}s; log: {log_path}", flush=True)
+            worker.join()
+    print(f"uploaded {upload()} files to {remote_output}", flush=True)
+    print(f"exit code {code} after {time.time() - started:.0f}s; log: {remote_output}.log", flush=True)
     if code:
-        raise RuntimeError(f"Command failed with exit code {code}; see {log_path}")
+        raise RuntimeError(f"Command failed with exit code {code}; see {remote_output}.log")
     return code
 
 
-def new_run_dirs(name):
-    """Fresh local and Volume directories for one run; refuses to reuse a name."""
-    stamp = time.strftime("%Y%m%d-%H%M%S")
-    local, volume = local_root() / "runs" / f"{name}-{stamp}", artifact("runs", f"{name}-{stamp}")
-    if volume.exists():
-        raise FileExistsError(volume)
-    return local, volume
+def read_json_remote(path):
+    return json.loads(volume().read_text(path)) if volume().is_file(path) else {}
 
 
 def read_jsonl(path):
@@ -286,7 +404,7 @@ def read_jsonl(path):
 
 
 def compare_manifests(produced_dir, reference_dir):
-    """Path-independent comparison of crop rows against a reference dataset copy."""
+    """Path-independent comparison of crop rows against a local reference dataset copy."""
     report = {}
     for name in ("train", "validation", "validation_benchmark8"):
         mine, theirs = Path(produced_dir) / f"{name}.jsonl", Path(reference_dir) / f"{name}.jsonl"
