@@ -168,7 +168,12 @@ def main(args):
         write_rows(out / f'{name}.jsonl', subset)
     prior_overlap = {}
     for prior in ('monuseg_iris_pilot_v1', 'monuseg_engineering_v1'):
-        prior_rows = [json.loads(line) for line in (root / 'data' / prior / 'manifest.jsonl').read_text().splitlines()]
+        prior_path = root / 'data' / prior / 'manifest.jsonl'
+        if not prior_path.is_file():
+            # Fresh environments (e.g. Databricks) do not carry the older pilot datasets.
+            prior_overlap[prior] = {'status': 'not_available', 'expected_path': str(prior_path)}
+            continue
+        prior_rows = [json.loads(line) for line in prior_path.read_text().splitlines()]
         prior_lookup = {r['id']: r for r in prior_rows}
         prior_overlap[prior] = {'identical_crop_ids': sorted({r['id'] for r in rows} & set(prior_lookup)),
             'current_validation_prior_train_patient_overlap': sorted({r['patient_id'] for r in validation} & {r['patient_id'] for r in prior_rows if r['split']=='train'}),

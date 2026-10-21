@@ -1,0 +1,15 @@
+# Databricks Serverless GPU (environment "Standard v6", Python 3.12) for SFT and GRPO.
+# Same pins as requirements-sft.txt. SAM-2 comes from a GitHub source archive
+# rather than git+https, because the serverless image may not provide git.
+# Install torch/torchvision first, then this file with --no-build-isolation.
+torch==2.8.0
+torchvision==0.23.0
+transformers==5.7.0
+peft==0.19.0
+accelerate==1.12.0
+huggingface-hub==1.5.0
+tokenizers==0.22.2
+safetensors==0.7.0
+numpy==2.2.6
+pillow==11.3.0
+SAM-2 @ https://github.com/facebookresearch/sam2/archive/2b90b9f5ceec907a1c18123530e92e794ad901a4.zip

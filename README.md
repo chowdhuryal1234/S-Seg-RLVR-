@@ -41,7 +41,7 @@ Prepare a local MoNuSeg training archive, then provide separate patient-disjoint
   --output runs/pilot --max-steps 10
 ```
 
-The Databricks preparation script reads its input recipe from `configs/monuseg_databricks.json`; it does not require generated reports. Use the data preparation options to set patient assignments and crop policy before training. Keep the official test set separate from training and model selection. Training writes artifacts locally; do not add them to Git.
+To run the full data → SFT → GRPO workflow on Databricks Serverless GPU, use the notebooks in [`scripts/dbx/`](scripts/dbx/README.md). The Databricks preparation script reads its input recipe from `configs/monuseg_databricks.json`; it does not require generated reports. Use the data preparation options to set patient assignments and crop policy before training. Keep the official test set separate from training and model selection. Training writes artifacts locally; do not add them to Git.
 
 ## Baseline attribution
 
