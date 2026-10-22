@@ -94,6 +94,10 @@ class GRPOBatchTests(unittest.TestCase):
             values = token_logprobs(Fixed(), batch, 2, keep)
             expected = 2.0 - torch.logsumexp(torch.tensor([2.0] + [0.0] * 9), 0)
             self.assertTrue(torch.allclose(values, expected.expand(1, 2)), values)
+            # Sampling at temperature 2 halves every logit before the softmax.
+            values = token_logprobs(Fixed(), batch, 2, keep, temperature=2.0)
+            expected = 1.0 - torch.logsumexp(torch.tensor([1.0] + [0.0] * 9), 0)
+            self.assertTrue(torch.allclose(values, expected.expand(1, 2)), values)
 
 
 if __name__ == "__main__":

@@ -183,15 +183,19 @@ def completion_batch(inputs, rows, pad_id):
     return batch, mask, longest
 
 
-def token_logprobs(model, batch, completion_length, keep_logits):
-    """Log-probabilities of the last `completion_length` tokens, one row at a time."""
+def token_logprobs(model, batch, completion_length, keep_logits, temperature=1.0):
+    """Log-probabilities of the last `completion_length` tokens, one row at a time.
+
+    Logits are divided by the sampling temperature, so the loss scores answers under the
+    distribution they were sampled from (the policy and the KL reference alike).
+    """
     import torch
     extra = {"logits_to_keep": completion_length + 1} if keep_logits else {}
     logits = model(**batch, use_cache=False, **extra).logits[:, -(completion_length + 1):-1, :]
     targets = batch["input_ids"][:, -completion_length:]
     values = []
     for row_logits, row_targets in zip(logits, targets):
-        row_logits = row_logits.float()
+        row_logits = row_logits.float() / temperature
         values.append(row_logits.gather(-1, row_targets[:, None]).squeeze(-1) - torch.logsumexp(row_logits, dim=-1))
     return torch.stack(values)
 
@@ -284,9 +288,9 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
     batch, completion_mask, longest = completion_batch(inputs, rows, pad_id)
     batch = {key: value.to(device) if hasattr(value, "to") else value for key, value in batch.items()}
     completion_mask = completion_mask.to(device)
-    logprobs = token_logprobs(policy, batch, longest, keep_logits)
+    logprobs = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
     with torch.no_grad(), policy.disable_adapter():
-        reference = token_logprobs(policy, batch, longest, keep_logits)
+        reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
     advantage = torch.tensor(advantages, device=device, dtype=torch.float32)[:, None]
     delta = reference - logprobs
     kl = torch.exp(delta) - delta - 1
