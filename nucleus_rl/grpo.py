@@ -44,7 +44,7 @@ def build_parser():
     parser.add_argument("--coordinate-frame", choices=("processed", "normalized1000"), required=True)
     parser.add_argument("--min-pixels", type=int, required=True)
     parser.add_argument("--max-pixels", type=int, required=True)
-    parser.add_argument("--augmentation", choices=("none", "d4"), default="d4")
+    parser.add_argument("--augmentation", choices=("none", "d4", "d4_stain"), default="d4")
     parser.add_argument("--reward", default="format=1,pq=1",
                         help="Weighted components: format, fg_iou, pq, count, separation")
     parser.add_argument("--group-size", type=int, default=8, help="Sampled answers per image")
@@ -69,6 +69,9 @@ def build_parser():
     parser.add_argument("--skip-before-eval", action="store_true", help="Canary-only: skip initial validation")
     parser.add_argument("--wall-time-minutes", type=float, help="Training-stage soft limit; final evaluation is extra")
     parser.add_argument("--resume-from-checkpoint", help="Checkpoint written by this runner; use a new --output")
+    parser.add_argument("--eval-only", action="store_true",
+                        help="Only evaluate --eval-manifest: the merged SFT model, or it plus --eval-adapter")
+    parser.add_argument("--eval-adapter", help="With --eval-only: a finished adapter of this runner to evaluate")
     return parser
 
 
@@ -81,8 +84,13 @@ def validate_args(args):
         raise ValueError("GRPO needs at least two sampled answers per image")
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):
         raise ValueError("Pin --revision to the 40-character base commit used for SFT")
-    if args.max_pixels < args.min_pixels or not 1 <= args.max_objects <= 8:
-        raise ValueError("Require max-pixels >= min-pixels and 1 <= max-objects <= 8")
+    from nucleus_rl.sft import MAX_OBJECTS
+    if args.max_pixels < args.min_pixels or not 1 <= args.max_objects <= MAX_OBJECTS:
+        raise ValueError(f"Require max-pixels >= min-pixels and 1 <= max-objects <= {MAX_OBJECTS}")
+    if args.eval_adapter and not args.eval_only:
+        raise ValueError("--eval-adapter requires --eval-only")
+    if args.eval_only and args.resume_from_checkpoint:
+        raise ValueError("--eval-only does not resume training")
     for key in ("temperature", "learning_rate"):
         if not math.isfinite(getattr(args, key)) or getattr(args, key) <= 0:
             raise ValueError(f"{key} must be finite and positive")
@@ -120,20 +128,22 @@ def check_init_adapter(args):
 
 def exposure(index, row_count, seed, augmentation):
     """Shuffled base-image order per epoch; with d4, an independent seeded view per exposure."""
-    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4"):
+    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain"):
         raise ValueError("Invalid exposure schedule")
     epoch, offset = divmod(index, row_count)
     order = list(range(row_count))
     random.Random(seed + epoch).shuffle(order)
-    transform = random.Random(f"{seed}:{index}").randrange(8) if augmentation == "d4" else 0
+    transform = random.Random(f"{seed}:{index}").randrange(8) if augmentation != "none" else 0
     return order[offset], transform
 
 
-def training_view(row, transform, processor, frame, max_objects):
+def training_view(row, transform, processor, frame, max_objects, stain_seed=None):
     """Augmented image, its matching reference mask, the prompt frame and messages."""
     from nucleus_rl.evaluate import processed_image_size
-    from nucleus_rl.sft_data import _load_training_pair, apply_d4, coordinate_size, sft_prompt_messages
+    from nucleus_rl.sft_data import _load_training_pair, apply_d4, coordinate_size, sft_prompt_messages, stain_jitter
     image, mask = apply_d4(*_load_training_pair(row), transform)
+    if stain_seed is not None:
+        image = stain_jitter(image, stain_seed)
     processed = processed_image_size(processor, processor.image_processor(images=image, return_tensors="pt"))
     prompt_size = coordinate_size(image.size, coordinate_mode=frame,
                                   prompt_size=processed if frame == "processed" else None)
@@ -235,7 +245,8 @@ def evaluate(policy, processor, rows, segmenter, directory, args):
     return evaluate_policy(policy, processor, rows, segmenter, directory, settings)
 
 
-def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, eos_ids, pad_id, keep_logits):
+def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, eos_ids, pad_id, keep_logits,
+               stain_seed=None):
     """Sample a group for one image, score it with SAM, and backpropagate the GRPO loss."""
     import numpy as np
     import torch
@@ -243,7 +254,7 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
     from nucleus_rl.rewards import parse_completion
     from nucleus_rl.sft import inference_inputs
     image, mask, prompt_size, messages = training_view(row, transform, processor, args.coordinate_frame,
-                                                       args.max_objects)
+                                                       args.max_objects, stain_seed)
     _, inputs = inference_inputs(processor, {"image": image, "messages": messages})
     device = policy.device
     policy.eval()
@@ -305,7 +316,7 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
     return info
 
 
-def sft_micro(policy, visual, processor, row, transform, args):
+def sft_micro(policy, visual, processor, row, transform, args, stain_seed=None):
     """Continued-SFT control: answer-token cross entropy on the same image view."""
     import torch
     from nucleus_rl.sft import encode_example
@@ -313,7 +324,8 @@ def sft_micro(policy, visual, processor, row, transform, args):
     policy.train()
     visual.eval()
     example = prepare_example(row, processor, augmentation_id=transform,
-                              coordinate_frame=args.coordinate_frame, max_objects=args.max_objects)
+                              coordinate_frame=args.coordinate_frame, max_objects=args.max_objects,
+                              stain_seed=stain_seed)
     encoded, token_counts = encode_example(processor, example, args.max_sequence_length)
     loss = policy(**encoded.to(policy.device)).loss
     if not torch.isfinite(loss).item():
@@ -337,12 +349,43 @@ def save_checkpoint(path, policy, optimizer, scheduler, state):
     return str(path.resolve())
 
 
+def evaluate_only(args, validation, audit, output):
+    """Greedy validation of the merged SFT model, optionally with a finished adapter of this runner on top."""
+    from peft import PeftModel
+    from nucleus_rl.segmenter import FrozenSAM2
+    from nucleus_rl.sft import json_write, load_model
+    from nucleus_rl.training_budget import file_digest
+    init = check_init_adapter(args)
+    model, processor = load_model(args)
+    policy = PeftModel.from_pretrained(model, args.init_adapter, is_trainable=False).merge_and_unload()
+    evaluated = None
+    if args.eval_adapter:
+        path = Path(args.eval_adapter)
+        coordinates = json.loads((path / "coordinate_config.json").read_text())
+        if coordinates.get("init_adapter_sha256") != init["adapter_sha256"]:
+            raise ValueError("--eval-adapter was trained from a different SFT adapter than --init-adapter")
+        policy = PeftModel.from_pretrained(policy, str(path), is_trainable=False)
+        evaluated = {"path": str(path.resolve()), "adapter_sha256": file_digest(path / "adapter_model.safetensors"),
+                     "coordinate_config": coordinates}
+    policy.requires_grad_(False)
+    sam = FrozenSAM2(args.sam_checkpoint, args.sam_config, device=args.eval_sam_device)
+    started = time.monotonic()
+    after = evaluate(policy, processor, validation, sam, output / "after", args)
+    result = {"status": "evaluation_only", "model": args.model, "resolved_revision": args.revision,
+              "init_adapter": init, "eval_adapter": evaluated, "validation_examples": len(validation),
+              "max_objects": args.max_objects, "evaluation_seconds": time.monotonic() - started,
+              "sam_freeze_verification": sam.verify_unchanged(), "data_audit": audit, "after": after}
+    json_write(output / "summary.json", result)
+    json_write(output / "progress.json", {"phase": "complete", "status": result["status"]})
+    return result
+
+
 def run(args, rows, validation, audit, output):
     import inspect
     import torch
     from transformers import GenerationConfig, set_seed
     from nucleus_rl.segmenter import FrozenSAM2, parameter_sha256
-    from nucleus_rl.sft import (_package_versions, assert_frozen, frozen_versions, json_write,
+    from nucleus_rl.sft import (_package_versions, assert_frozen, frozen_versions, json_write, stain_seed,
                                 trainable_language_adapters)
     from nucleus_rl.training_budget import load_training_state, restore_rng
 
@@ -424,9 +467,10 @@ def run(args, rows, validation, audit, output):
         for offset in range(args.prompts_per_step):
             index = step_index * args.prompts_per_step + offset
             row_index, transform = exposure(index, len(rows), args.seed, args.augmentation)
+            stain = stain_seed(index, args.seed, args.augmentation)
             if args.objective == "grpo":
                 info = grpo_micro(policy, visual, processor, reward_sam, rows[row_index], transform, args,
-                                  sampling, eos_ids, pad_id, keep_logits)
+                                  sampling, eos_ids, pad_id, keep_logits, stain)
                 groups_seen += 1
                 groups_with_signal += not info["skipped"]
                 with (output / "samples.jsonl").open("a") as stream:
@@ -434,7 +478,7 @@ def run(args, rows, validation, audit, output):
                         stream.write(json.dumps({"step": step_index + 1, "id": info["id"],
                                                  "transform": transform, **record}, allow_nan=False) + "\n")
             else:
-                info = sft_micro(policy, visual, processor, rows[row_index], transform, args)
+                info = sft_micro(policy, visual, processor, rows[row_index], transform, args, stain)
             micro.append(info)
         gradients = [parameter.grad for parameter in trainable if parameter.grad is not None]
         if gradients and any(not torch.isfinite(gradient).all().item() for gradient in gradients):
@@ -533,7 +577,7 @@ def main(argv=None):
         from nucleus_rl.sft import json_write
         from nucleus_rl.sft_data import validate_sft_splits
         rows, validation = read_manifest(args.manifest), read_manifest(args.eval_manifest)
-        audit = validate_sft_splits(rows, validation, verify_files=True)
+        audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects)
         if args.cohort_protocol:
             from nucleus_rl.cohort import load_official30_cohort
             from nucleus_rl.training_budget import check_cohort
@@ -552,6 +596,8 @@ def main(argv=None):
         json_write(output / "arguments.json", vars(args))
         json_write(output / "preflight.json", {"status": "passed_before_gpu_load", "selected_train": len(rows),
                                                "selected_validation": len(validation)})
+        if args.eval_only:
+            return evaluate_only(args, validation, audit, output)
         return run(args, rows, validation, audit, output)
     except Exception as error:
         if owns_output:

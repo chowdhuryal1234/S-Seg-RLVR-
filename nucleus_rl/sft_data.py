@@ -87,6 +87,26 @@ def apply_d4(image, mask, transform=0):
     return Image.fromarray(np.ascontiguousarray(rgb)), np.array(labels, copy=True, order="C")
 
 
+# Ruifrok & Johnston H&E stain vectors (rows: hematoxylin, eosin, residual), as in skimage.color.rgb2hed.
+_HED_FROM_RGB = np.array([[0.65, 0.70, 0.29], [0.07, 0.99, 0.11], [0.27, 0.57, 0.78]])
+_RGB_FROM_HED = np.linalg.inv(_HED_FROM_RGB)
+
+
+def stain_jitter(image, seed, strength=0.05):
+    """Seeded H&E colour augmentation (Tellez et al. 2018): scale and shift the
+    hematoxylin and eosin optical densities by up to +-strength. Geometry is untouched,
+    so the mask and prompts stay valid."""
+    rng = np.random.default_rng(seed)
+    rgb = np.asarray(image.convert("RGB"), dtype=np.float64)
+    od = -np.log((rgb + 1.0) / 256.0)
+    hed = od.reshape(-1, 3) @ _RGB_FROM_HED
+    scale = np.array([*rng.uniform(1 - strength, 1 + strength, 2), 1.0])
+    shift = np.array([*rng.uniform(-strength, strength, 2), 0.0])
+    od = (hed * scale + shift) @ _HED_FROM_RGB
+    out = np.clip(256.0 * np.exp(-od) - 1.0, 0, 255).round().astype(np.uint8)
+    return Image.fromarray(out.reshape(rgb.shape))
+
+
 def instance_prompt_objects(mask, *, max_objects=8, prompt_size=None, coordinate_mode="original"):
     """Derive visible-instance prompts after augmentation, sorted top-to-bottom.
 
@@ -188,10 +208,12 @@ def build_sft_example(row, *, transform=0, prompt_size=None, coordinate_mode="or
             "augmentation_id": int(transform), "augmentation": D4_TRANSFORMS[int(transform)]}
 
 
-def prepare_example(row, processor, augmentation_id=0, coordinate_frame="processed", max_objects=8):
+def prepare_example(row, processor, augmentation_id=0, coordinate_frame="processed", max_objects=8, stain_seed=None):
     """Create one train-only teacher-forcing example in the model's measured frame."""
     image, mask = _load_training_pair(row)
     image, mask = apply_d4(image, mask, augmentation_id)
+    if stain_seed is not None:
+        image = stain_jitter(image, stain_seed)
     processed = processed_image_size(processor, processor.image_processor(images=image, return_tensors="pt"))
     prompt_size = coordinate_size(image.size, coordinate_mode=coordinate_frame,
                                   prompt_size=processed if coordinate_frame == "processed" else None)
@@ -207,7 +229,7 @@ def prepare_example(row, processor, augmentation_id=0, coordinate_frame="process
             "geometry": geometry, "augmentation_id": int(augmentation_id)}
 
 
-def validate_sft_splits(train_rows, validation_rows, *, verify_files=True):
+def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_objects=8):
     """Audit the complete fixed split before any canary truncation or model loading.
 
     Exact image-byte duplicates across splits are rejected in addition to source
@@ -259,8 +281,8 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True):
                 if image_size != (labels.shape[1], labels.shape[0]):
                     raise ValueError(f"Image/mask dimensions differ before GPU loading: {row['id']}")
                 count = len(np.unique(labels[labels > 0]))
-                if not 1 <= count <= 8 or ("instance_count" in row and row["instance_count"] != count):
-                    raise ValueError(f"Invalid one-to-eight instance count before GPU loading: {row['id']}")
+                if not 1 <= count <= max_objects or ("instance_count" in row and row["instance_count"] != count):
+                    raise ValueError(f"Invalid instance count (allowed 1..{max_objects}) before GPU loading: {row['id']}")
                 files.append(record)
             image_hashes.append(split_hashes)
         if image_hashes[0] & image_hashes[1]:
