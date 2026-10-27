@@ -195,6 +195,16 @@ class DataIsolationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "instance count"):
             validate_sft_splits([self.train], [self.validation])
 
+    def test_validation_may_hold_more_objects_than_training_targets(self):
+        mask = np.zeros((7, 11), dtype=np.uint16)
+        for index in range(10):
+            mask[index % 7, index] = index + 1
+        Image.fromarray(mask).save(self.validation["mask_path"])
+        validation = {key: value for key, value in self.validation.items() if key not in ("instance_count", "mask_sha256")}
+        with self.assertRaisesRegex(ValueError, "instance count"):
+            validate_sft_splits([self.train], [validation])
+        validate_sft_splits([self.train], [validation], validation_max_objects=32)
+
     def test_same_source_patient_or_row_cannot_cross_splits(self):
         bad = {**self.train, "split": "validation"}
         with self.assertRaisesRegex(ValueError, "overlap"):

@@ -229,8 +229,11 @@ def prepare_example(row, processor, augmentation_id=0, coordinate_frame="process
             "geometry": geometry, "augmentation_id": int(augmentation_id)}
 
 
-def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_objects=8):
+def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_objects=8, validation_max_objects=None):
     """Audit the complete fixed split before any canary truncation or model loading.
+
+    Training targets need at most max_objects instances; validation crops are only
+    scored, so they may hold up to validation_max_objects (default: max_objects).
 
     Exact image-byte duplicates across splits are rejected in addition to source
     and patient overlap. Identical mask bytes alone do not imply image leakage.
@@ -252,7 +255,8 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_o
     files = []
     if verify_files:
         image_hashes = []
-        for rows in (train_rows, validation_rows):
+        limits = (max_objects, validation_max_objects or max_objects)
+        for rows, limit in zip((train_rows, validation_rows), limits):
             split_hashes = set()
             for row in rows:
                 record = {"id": row["id"], "split": row["split"]}
@@ -281,8 +285,8 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_o
                 if image_size != (labels.shape[1], labels.shape[0]):
                     raise ValueError(f"Image/mask dimensions differ before GPU loading: {row['id']}")
                 count = len(np.unique(labels[labels > 0]))
-                if not 1 <= count <= max_objects or ("instance_count" in row and row["instance_count"] != count):
-                    raise ValueError(f"Invalid instance count (allowed 1..{max_objects}) before GPU loading: {row['id']}")
+                if not 1 <= count <= limit or ("instance_count" in row and row["instance_count"] != count):
+                    raise ValueError(f"Invalid instance count (allowed 1..{limit}) before GPU loading: {row['id']}")
                 files.append(record)
             image_hashes.append(split_hashes)
         if image_hashes[0] & image_hashes[1]:

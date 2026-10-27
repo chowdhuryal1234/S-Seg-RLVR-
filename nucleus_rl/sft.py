@@ -567,7 +567,8 @@ def main(argv=None):
         from nucleus_rl.sft_data import validate_sft_splits
         rows, validation = read_manifest(args.manifest), read_manifest(args.eval_manifest)
         # Validate the entire source manifests before applying canary limits.
-        audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects)
+        audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects,
+                                    validation_max_objects=MAX_OBJECTS)
         if args.cohort_protocol:
             from nucleus_rl.cohort import load_official30_cohort
             from nucleus_rl.training_budget import check_cohort
