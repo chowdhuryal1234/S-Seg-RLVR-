@@ -8,6 +8,7 @@ patient split, rasterizer and grid, selecting crops with min..max nuclei instead
     validation.jsonl    dense validation crops (validation patients only)
     train.jsonl         dense training crops
     train_mixed.jsonl   the frozen sparse training crops plus the dense ones
+    validation_combined.jsonl  the frozen sparse validation crops plus the dense ones
 
 The sparse validation set stays where it is, so old and new runs remain comparable.
 No test data is read.
@@ -66,22 +67,24 @@ def main(args):
     train = [row for row in rows if row['split'] == 'train']
     validation = [row for row in rows if row['split'] == 'validation']
     relative_base = Path('..') / base.name
-    sparse_train = [{**row, **{key: (relative_base / row[key]).as_posix() for key in ('image_path', 'mask_path', 'gt_mask')}}
-                    for row in base_rows if row['split'] == 'train']
+    sparse = {split: [{**row, **{key: (relative_base / row[key]).as_posix() for key in ('image_path', 'mask_path', 'gt_mask')}}
+                      for row in base_rows if row['split'] == split] for split in ('train', 'validation')}
     for name, subset in (('manifest', rows), ('train', train), ('validation', validation),
-                         ('train_mixed', sparse_train + train)):
+                         ('train_mixed', sparse['train'] + train),
+                         ('validation_combined', sparse['validation'] + validation)):
         write_rows(out / f'{name}.jsonl', subset)
 
     summary = {
         'dataset_id': out.name, 'base_dataset': base.name, 'seed': args.seed,
         'nuclei_per_crop': [args.min_nuclei, args.max_nuclei], 'patient_groups': groups,
-        'selected': {'train': len(train), 'validation': len(validation), 'train_mixed': len(sparse_train) + len(train)},
+        'selected': {'train': len(train), 'validation': len(validation), 'train_mixed': len(sparse['train']) + len(train),
+                     'validation_combined': len(sparse['validation']) + len(validation)},
         'candidates': report['candidate_crop_counts'],
         'histograms': {split: dict(sorted(Counter(r['instance_count'] for r in subset).items()))
                        for split, subset in (('train', train), ('validation', validation))},
         'by_patient': {split: dict(sorted(Counter(r['patient_id'] for r in subset).items()))
                        for split, subset in (('train', train), ('validation', validation))},
-        'manifest_sha256': {name: digest(out / f'{name}.jsonl') for name in ('train', 'validation', 'train_mixed', 'manifest')},
+        'manifest_sha256': {name: digest(out / f'{name}.jsonl') for name in ('train', 'validation', 'train_mixed', 'validation_combined', 'manifest')},
         'note': f'Crops with more than {args.max_nuclei} nuclei are still excluded; grid crops only, no overlap with the sparse dataset.',
     }
     (out / 'dense_summary.json').write_text(json.dumps(summary, indent=2) + '\n')
