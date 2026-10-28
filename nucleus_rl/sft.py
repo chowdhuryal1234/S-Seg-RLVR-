@@ -16,6 +16,9 @@ import random
 import re
 import time
 
+# Dense crops in monuseg_official30_dense_v1 hold up to 32 visible nuclei.
+MAX_OBJECTS = 32
+
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -29,7 +32,8 @@ def build_parser():
     parser.add_argument("--sam-device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--cohort-protocol")
     parser.add_argument("--coordinate-frame", choices=("processed", "normalized1000"), default="processed")
-    parser.add_argument("--augmentation", choices=("none", "d4"), default="none")
+    parser.add_argument("--augmentation", choices=("none", "d4", "d4_stain"), default="none",
+                        help="d4_stain adds seeded H&E colour jitter to every training view")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=512)
     parser.add_argument("--eval-every", type=int, default=128)
@@ -60,8 +64,8 @@ def validate_args(args):
         raise ValueError("Step, batch, rank, token, image, and fixed-loss limits must be positive")
     if args.max_steps > 8192 or args.eval_every < 0 or not 0 <= args.warmup_steps < args.max_steps:
         raise ValueError("Require max-steps <=8192, eval-every >=0, and 0<=warmup-steps<max-steps")
-    if args.max_pixels < args.min_pixels or not 1 <= args.max_objects <= 8:
-        raise ValueError("Require max-pixels>=min-pixels and 1<=max-objects<=8")
+    if args.max_pixels < args.min_pixels or not 1 <= args.max_objects <= MAX_OBJECTS:
+        raise ValueError(f"Require max-pixels>=min-pixels and 1<=max-objects<={MAX_OBJECTS}")
     if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         raise ValueError("learning-rate must be finite and positive")
     if not math.isfinite(args.lora_dropout) or not 0 <= args.lora_dropout < 1:
@@ -77,12 +81,17 @@ def validate_args(args):
 
 def exposure_for_index(index, row_count, seed, augmentation):
     """Paired base-image order, with each D4 view seen once per eight epochs."""
-    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4"):
+    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain"):
         raise ValueError("Invalid exposure schedule")
     epoch, offset = divmod(index, row_count)
     order = list(range(row_count))
     random.Random(seed + epoch).shuffle(order)
-    return order[offset], (epoch % 8 if augmentation == "d4" else 0)
+    return order[offset], (epoch % 8 if augmentation != "none" else 0)
+
+
+def stain_seed(index, seed, augmentation):
+    """Seed for one exposure's colour jitter, or None when stain augmentation is off."""
+    return seed * 1_000_003 + index if augmentation == "d4_stain" else None
 
 
 def assistant_label_mask(prefix_ids, full_ids, max_length):
@@ -282,6 +291,8 @@ def evaluate_policy(model, processor, rows, segmenter, directory, args):
             scorer.record_group([record])
             with Image.open(row["mask_path"]) as source:
                 reference = np.asarray(source)
+            if len(record["raw_objects"]) > 8 or record["gt_count"] > 8:
+                continue  # the localization diagnostic is defined for small crops only
             localization = analyze(record["raw_objects"], record["converted_objects"], reference,
                                    processed_size=tuple(record["prompt_size"]))
             localization.update({"id": row["id"], "format_valid": record["format_valid"],
@@ -291,9 +302,14 @@ def evaluate_policy(model, processor, rows, segmenter, directory, args):
             with (Path(directory) / "localizations.jsonl").open("a") as stream:
                 stream.write(json.dumps(localization, allow_nan=False) + "\n")
     summary = scorer.summary()
+    if not localizations:
+        summary["localization"] = None
+        json_write(Path(directory) / "summary.json", summary)
+        return summary
     predictions = sum(item["prediction_count"] for item in localizations)
     foreground = sum(pred["point_status"] == "foreground" for item in localizations for pred in item["predictions"])
     summary["localization"] = {
+        "crops": len(localizations),
         "macro_box_recall": sum(item["box_recall"] for item in localizations) / len(localizations),
         "micro_box_recall": sum(item["box_true_positive_count"] for item in localizations) / sum(item["gt_count"] for item in localizations),
         "predicted_points": predictions, "foreground_points": foreground,
@@ -441,7 +457,8 @@ def run(args, rows, validation, audit, output):
             row_index, transform = exposure_for_index(index, len(rows), args.seed, args.augmentation)
             row = rows[row_index]
             example = prepare_example(row, processor, augmentation_id=transform,
-                                      coordinate_frame=args.coordinate_frame, max_objects=args.max_objects)
+                                      coordinate_frame=args.coordinate_frame, max_objects=args.max_objects,
+                                      stain_seed=stain_seed(index, args.seed, args.augmentation))
             encoded, token_counts = encode_example(processor, example, args.max_sequence_length)
             encoded = encoded.to(model.device)
             loss = model(**encoded).loss
@@ -550,7 +567,8 @@ def main(argv=None):
         from nucleus_rl.sft_data import validate_sft_splits
         rows, validation = read_manifest(args.manifest), read_manifest(args.eval_manifest)
         # Validate the entire source manifests before applying canary limits.
-        audit = validate_sft_splits(rows, validation, verify_files=True)
+        audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects,
+                                    validation_max_objects=MAX_OBJECTS)
         if args.cohort_protocol:
             from nucleus_rl.cohort import load_official30_cohort
             from nucleus_rl.training_budget import check_cohort

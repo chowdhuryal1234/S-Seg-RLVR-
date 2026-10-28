@@ -102,7 +102,7 @@ def rasterize_regions(regions: list[dict], width: int, height: int):
 
 
 def candidate_crops(labels, crop_size: int = 128, max_nuclei: int = 8,
-                    forbidden_ids=(), border_policy: str = "complete") -> list[dict]:
+                    forbidden_ids=(), border_policy: str = "complete", min_nuclei: int = 1) -> list[dict]:
     """Non-overlapping grid crops with an explicit boundary supervision policy.
 
     The default complete policy compares crop/full-image pixel counts, including
@@ -112,8 +112,8 @@ def candidate_crops(labels, crop_size: int = 128, max_nuclei: int = 8,
     """
     import numpy as np
 
-    if crop_size < 1 or max_nuclei < 1:
-        raise ValueError("Crop size and max nuclei must be positive")
+    if crop_size < 1 or not 1 <= min_nuclei <= max_nuclei:
+        raise ValueError("Crop size must be positive and 1 <= min nuclei <= max nuclei")
     if border_policy not in {"complete", "visible"}:
         raise ValueError("border_policy must be complete or visible")
     height, width = labels.shape
@@ -124,7 +124,7 @@ def candidate_crops(labels, crop_size: int = 128, max_nuclei: int = 8,
         for x in range(0, width - crop_size + 1, crop_size):
             crop = labels[y:y + crop_size, x:x + crop_size]
             ids, counts = np.unique(crop[crop > 0], return_counts=True)
-            if not 1 <= len(ids) <= max_nuclei:
+            if not min_nuclei <= len(ids) <= max_nuclei:
                 continue
             source_clipped = sorted(set(int(i) for i in ids) & forbidden)
             truncated = [int(i) for i, count in zip(ids, counts) if count != full_counts[i]]
@@ -170,6 +170,7 @@ def prepare(args) -> dict:
 
     archive_path = Path(args.train_archive).resolve()
     border_policy = getattr(args, "border_policy", "complete")
+    min_nuclei = getattr(args, "min_nuclei", 1)
     if "test" in archive_path.name.lower():
         raise ValueError("Refusing a test archive: preparation accepts original training data only")
     out = Path(args.out).resolve()
@@ -221,7 +222,7 @@ def prepare(args) -> dict:
             regions = parse_regions(archive.read(pair["xml_member"]))
             labels, raster_log = rasterize_regions(regions, width, height)
             forbidden = [r["instance_id"] for r in raster_log if r["clipped_to_image"]]
-            candidates = candidate_crops(labels, args.crop_size, args.max_nuclei, forbidden, border_policy)
+            candidates = candidate_crops(labels, args.crop_size, args.max_nuclei, forbidden, border_policy, min_nuclei)
             spacing = {"um_per_pixel": None, "source": "not_verified", "tiff_resolution_tags": tiff_resolution,
                        "note": "TIFF display resolution is not assumed to be physical tissue spacing; no resizing performed."}
             for candidate in candidates:
@@ -240,7 +241,7 @@ def prepare(args) -> dict:
         except ValueError as error:
             detail = {item["id"]: item["eligible_crops"] for item in image_audits if item["split"] == split}
             raise ValueError(f"{split}: {error} Per-image eligible counts: {detail}") from error
-    condition = {"crop_size": args.crop_size, "grid_stride": args.crop_size, "min_nuclei": 1,
+    condition = {"crop_size": args.crop_size, "grid_stride": args.crop_size, "min_nuclei": min_nuclei,
                  "max_nuclei": args.max_nuclei, "border_policy": border_policy,
                  "zero_foreground_border": border_policy == "complete",
                  "all_visible_instances_complete_in_source_mask": border_policy == "complete",
@@ -248,7 +249,8 @@ def prepare(args) -> dict:
                  "negative_roa_images_excluded": True,
                  "degenerate_polygon_images_excluded": True,
                  "partial_instance_policy": "All visible pixels of every included instance remain supervised; truncated IDs are listed per crop.",
-                 "selection_bias": f"At most {args.max_nuclei} visible nuclei and selected engineering patients; not representative whole-slide performance."}
+                 "selection_bias": (f"At most {args.max_nuclei}" if min_nuclei == 1 else f"{min_nuclei} to {args.max_nuclei}")
+                 + " visible nuclei and selected engineering patients; not representative whole-slide performance."}
     out.mkdir(parents=True, exist_ok=True)
     (out / "images").mkdir()
     (out / "masks").mkdir()
@@ -302,6 +304,7 @@ def main(argv=None) -> int:
     parser.add_argument("--cohort", choices=("official30",), default=None,
                         help="Explicitly enforce exact official PDF image IDs before annotation-quality filtering; omission preserves the original engineering behavior")
     parser.add_argument("--crop-size", type=int, default=128)
+    parser.add_argument("--min-nuclei", type=int, default=1)
     parser.add_argument("--max-nuclei", type=int, default=8)
     parser.add_argument("--border-policy", choices=("complete", "visible"), default="complete",
                         help="complete requires every nucleus fully inside the crop; visible supervises every visible instance including recorded partial objects")

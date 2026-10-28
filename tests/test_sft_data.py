@@ -15,8 +15,22 @@ from nucleus_rl.rewards import parse_completion
 from nucleus_rl.sft_data import (
     D4_TRANSFORMS, apply_d4, assistant_token_labels, build_sft_example,
     coordinate_size, instance_prompt_objects, prepare_example,
-    sft_prompt_messages, target_completion, validate_sft_splits,
+    sft_prompt_messages, stain_jitter, target_completion, validate_sft_splits,
 )
+
+
+class StainJitterTests(unittest.TestCase):
+    def test_seeded_colour_change_keeps_shape_and_white(self):
+        rng = np.random.default_rng(0)
+        rgb = rng.integers(60, 200, (16, 16, 3), dtype=np.uint8)
+        rgb[0, 0] = 255
+        image = Image.fromarray(rgb)
+        a, b, c = (np.asarray(stain_jitter(image, seed)) for seed in (1, 1, 2))
+        np.testing.assert_array_equal(a, b)
+        self.assertFalse(np.array_equal(a, c))
+        self.assertEqual(a.shape, rgb.shape)
+        self.assertLess(np.abs(a.astype(int) - rgb).mean(), 25)
+        self.assertGreaterEqual(a[0, 0].min(), 250)
 
 
 class GeometryTests(unittest.TestCase):
@@ -180,6 +194,16 @@ class DataIsolationTests(unittest.TestCase):
         Image.fromarray(np.zeros((7, 11), dtype=np.uint16)).save(mask_path)
         with self.assertRaisesRegex(ValueError, "instance count"):
             validate_sft_splits([self.train], [self.validation])
+
+    def test_validation_may_hold_more_objects_than_training_targets(self):
+        mask = np.zeros((7, 11), dtype=np.uint16)
+        for index in range(10):
+            mask[index % 7, index] = index + 1
+        Image.fromarray(mask).save(self.validation["mask_path"])
+        validation = {key: value for key, value in self.validation.items() if key not in ("instance_count", "mask_sha256")}
+        with self.assertRaisesRegex(ValueError, "instance count"):
+            validate_sft_splits([self.train], [validation])
+        validate_sft_splits([self.train], [validation], validation_max_objects=32)
 
     def test_same_source_patient_or_row_cannot_cross_splits(self):
         bad = {**self.train, "split": "validation"}

@@ -39,6 +39,16 @@ class GRPOArgumentTests(unittest.TestCase):
         self.assertEqual(many, set(range(8)))
         self.assertEqual({exposure(index, 5, 42, "none")[1] for index in range(20)}, {0})
         self.assertEqual([r for r, _ in rows], [exposure(index, 5, 42, "none")[0] for index in range(10)])
+        self.assertEqual([exposure(index, 5, 42, "d4_stain") for index in range(10)], rows)
+
+    def test_dense_object_cap_and_eval_only_flags(self):
+        validate_args(self.args("--max-objects", "32"))
+        validate_args(self.args("--eval-only"))
+        validate_args(self.args("--eval-only", "--eval-adapter", "adapter"))
+        for flags in (("--max-objects", "33"), ("--eval-adapter", "adapter"),
+                      ("--eval-only", "--resume-from-checkpoint", "checkpoint-50")):
+            with self.subTest(flags=flags), self.assertRaises(ValueError):
+                validate_args(self.args(*flags))
 
     def test_init_adapter_must_match_model_and_input_contract(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -150,6 +150,17 @@ class ImagePreparationTests(unittest.TestCase):
         labels[2, 7:9] = 3
         self.assertEqual(len(candidate_crops(labels, 8)), 1)
 
+    def test_min_nuclei_selects_dense_crops_only(self):
+        import numpy as np
+        labels = np.zeros((16, 16), dtype=np.uint16)
+        for index in range(3):
+            labels[1, 2 * index] = index + 1
+        labels[9, 9] = 4
+        crops = candidate_crops(labels, 8, max_nuclei=8, border_policy="visible", min_nuclei=2)
+        self.assertEqual([crop["instance_count"] for crop in crops], [3])
+        with self.assertRaises(ValueError):
+            candidate_crops(labels, 8, max_nuclei=2, min_nuclei=3)
+
     def test_visible_policy_keeps_partial_objects_and_records_them_without_erasing_pixels(self):
         import numpy as np
         labels = np.zeros((8, 16), dtype=np.uint16)
