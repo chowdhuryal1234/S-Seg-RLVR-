@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 from PIL import Image
 
-from nucleus_rl.cohort import load_official30_cohort, validate_training_rows
+from nucleus_rl.cohort import load_official30_cohort, validate_source_rows
 from nucleus_rl.evaluate import processed_image_size, prompt_for_image
 from nucleus_rl.rewards import parse_completion
 
@@ -177,7 +178,7 @@ def sft_prompt_messages(width, height, *, coordinate_mode="original", max_object
 def _load_training_pair(row):
     if row.get("split") != "train":
         raise ValueError("Supervised target creation accepts training rows only")
-    validate_training_rows([row])
+    validate_source_rows([row])
     with Image.open(row["image_path"]) as source:
         image = source.convert("RGB")
     mask_path = Path(row["mask_path"])
@@ -240,10 +241,10 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_o
     Relative paths must already have been resolved by evaluate.read_manifest.
     """
     cohort = load_official30_cohort()
-    train_audit = validate_training_rows(train_rows, cohort)
+    train_audit = validate_source_rows(train_rows, cohort)
     if not validation_rows or any(row.get("split") != "validation" for row in validation_rows):
         raise ValueError("Expected a nonempty, entirely validation-only manifest")
-    validate_training_rows([{**row, "split": "train"} for row in validation_rows], cohort)
+    validate_source_rows([{**row, "split": "train"} for row in validation_rows], cohort)
     for key in ("id", "patient_id", "source_image_id"):
         overlap = {row[key] for row in train_rows} & {row[key] for row in validation_rows}
         if overlap:
@@ -285,7 +286,10 @@ def validate_sft_splits(train_rows, validation_rows, *, verify_files=True, max_o
                 if image_size != (labels.shape[1], labels.shape[0]):
                     raise ValueError(f"Image/mask dimensions differ before GPU loading: {row['id']}")
                 count = len(np.unique(labels[labels > 0]))
-                if not 1 <= count <= limit or ("instance_count" in row and row["instance_count"] != count):
+                # Whole-image tiling rows (prepare_stitch_eval.py) are scored only after stitching:
+                # they may be empty or denser than any training crop.
+                low, high = (0, math.inf) if row.get("stitch") and row["split"] == "validation" else (1, limit)
+                if not low <= count <= high or ("instance_count" in row and row["instance_count"] != count):
                     raise ValueError(f"Invalid instance count (allowed 1..{limit}) before GPU loading: {row['id']}")
                 files.append(record)
             image_hashes.append(split_hashes)
