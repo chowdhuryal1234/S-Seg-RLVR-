@@ -34,6 +34,9 @@ def build_parser():
     parser.add_argument("--coordinate-frame", choices=("processed", "normalized1000"), default="processed")
     parser.add_argument("--augmentation", choices=("none", "d4", "d4_stain"), default="none",
                         help="d4_stain adds seeded H&E colour jitter to every training view")
+    parser.add_argument("--d4-schedule", choices=("epoch", "rotating"), default="epoch",
+                        help="epoch: every tile uses view epoch%%8 (needs >=8 epochs to see all views); "
+                             "rotating: tile i uses view (epoch+i)%%8, so views stay balanced in short schedules")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=512)
     parser.add_argument("--eval-every", type=int, default=128)
@@ -81,14 +84,22 @@ def validate_args(args):
         raise ValueError("SFT runner is single-process, single-GPU")
 
 
-def exposure_for_index(index, row_count, seed, augmentation):
-    """Paired base-image order, with each D4 view seen once per eight epochs."""
-    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain"):
+def exposure_for_index(index, row_count, seed, augmentation, schedule="epoch"):
+    """Paired base-image order, with each D4 view seen once per eight epochs.
+
+    schedule="epoch" keeps the original contract (view = epoch % 8). schedule="rotating" offsets the view by the
+    row index, so every epoch already covers all eight views evenly and each row still cycles through all eight.
+    """
+    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain") \
+            or schedule not in ("epoch", "rotating"):
         raise ValueError("Invalid exposure schedule")
     epoch, offset = divmod(index, row_count)
     order = list(range(row_count))
     random.Random(seed + epoch).shuffle(order)
-    return order[offset], (epoch % 8 if augmentation != "none" else 0)
+    row = order[offset]
+    if augmentation == "none":
+        return row, 0
+    return row, ((epoch + row) % 8 if schedule == "rotating" else epoch % 8)
 
 
 def stain_seed(index, seed, augmentation):
@@ -376,7 +387,10 @@ def run(args, rows, validation, audit, output):
                      "warmup_steps", "lora_rank", "lora_alpha", "lora_dropout", "coordinate_frame",
                      "augmentation", "max_sequence_length", "max_completion_length", "max_objects",
                      "min_pixels", "max_pixels", "eval_every", "save_steps", "train_limit", "eval_limit")
-    contract = {"config": {key: getattr(args, key) for key in contract_keys},
+    config = {key: getattr(args, key) for key in contract_keys}
+    if getattr(args, "d4_schedule", "epoch") != "epoch":
+        config["d4_schedule"] = args.d4_schedule  # absent for the original schedule, so old contracts stay identical
+    contract = {"config": config,
                 "train_data": dataset_identity(rows), "validation_data": dataset_identity(validation),
                 "data_audit": audit, "sam_checkpoint_sha256": file_digest(args.sam_checkpoint),
                 "sam_config": args.sam_config, "packages": _package_versions(),
@@ -474,7 +488,7 @@ def run(args, rows, validation, audit, output):
         losses, tokens, exposures = [], [], []
         for micro in range(args.gradient_accumulation):
             index = step_index * args.gradient_accumulation + micro
-            row_index, transform = exposure_for_index(index, len(rows), args.seed, args.augmentation)
+            row_index, transform = exposure_for_index(index, len(rows), args.seed, args.augmentation, args.d4_schedule)
             row = rows[row_index]
             example = prepare_example(row, processor, augmentation_id=transform,
                                       coordinate_frame=args.coordinate_frame, max_objects=args.max_objects,
