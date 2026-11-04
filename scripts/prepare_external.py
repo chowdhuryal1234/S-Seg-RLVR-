@@ -5,10 +5,17 @@
     python scripts/prepare_external.py puma --source <dir with 01_training_dataset_tif_ROIs and
         01_training_dataset_geojson_nuclei> --output data/puma_v1
     python scripts/prepare_external.py merge --inputs data/consep_v1 data/puma_v1 --output data/cleanmix_v1
+    python scripts/prepare_external.py consep --source consep.zip --output data/consep_v2 \
+        --train-crops all --dense-train-crops 256
 
 Each dataset folder gets sparse crops (1-8 visible nuclei; train.jsonl, validation.jsonl) and dense validation crops
 (9-32; validation_dense.jsonl), cut on the same 128 px grid with the same "visible" border policy as the MoNuSeg
 datasets. Images are not resampled: CoNSeP is 0.25 um/px like MoNuSeg, PUMA 0.226 um/px.
+
+Optional, off by default (so the same arguments still give the same files): --dense-train-crops N > 0 adds a dense
+(9-32) training pool written to train_dense.jsonl (not part of manifest.jsonl). --train-crops is a cap: fewer eligible
+crops means all of them are taken; --train-crops all takes every eligible sparse training crop. Each pool is
+selected independently with the seed, so changing the train caps never changes the validation selections.
 
 Splits are by source group and are fixed by the seed before any crop is chosen:
 - CoNSeP: the official Test folder is never opened. The 27 Train images are split by image (CoNSeP publishes no
@@ -158,6 +165,9 @@ def crop_rows(sources, split_of, out, dataset, args):
     from PIL import Image
 
     pools = {('train', SPARSE): [], ('validation', SPARSE): [], ('validation', DENSE): []}
+    dense_train = getattr(args, 'dense_train_crops', 0)
+    if dense_train is None or dense_train > 0:
+        pools[('train', DENSE)] = []
     cache, audits = {}, []
     for source_id, group, image, labels, meta in sources:
         split = split_of[group]
@@ -174,8 +184,9 @@ def crop_rows(sources, split_of, out, dataset, args):
         cache[source_id] = (image, labels)
         audits.append(audit)
     wanted = {('train', SPARSE): args.train_crops, ('validation', SPARSE): args.val_crops,
-              ('validation', DENSE): args.dense_val_crops}
-    chosen = {key: select_balanced(pool, min(wanted[key], len(pool)), args.seed) for key, pool in pools.items()}
+              ('validation', DENSE): args.dense_val_crops, ('train', DENSE): dense_train}
+    chosen = {key: select_balanced(pool, len(pool) if wanted[key] is None else min(wanted[key], len(pool)), args.seed)
+              for key, pool in pools.items()}
     (out / 'images').mkdir(parents=True)
     (out / 'masks').mkdir()
     written, files = {}, {}
@@ -201,7 +212,7 @@ def crop_rows(sources, split_of, out, dataset, args):
                          'sampling_condition': {'crop_size': CROP, 'grid_stride': CROP, 'min_nuclei': low,
                                                 'max_nuclei': high, 'border_policy': 'visible'}})
         name = {('train', SPARSE): 'train', ('validation', SPARSE): 'validation',
-                ('validation', DENSE): 'validation_dense'}[(split, (low, high))]
+                ('validation', DENSE): 'validation_dense', ('train', DENSE): 'train_dense'}[(split, (low, high))]
         write_rows(out / f'{name}.jsonl', rows)
         files[name] = rows
     write_rows(out / 'manifest.jsonl', files['train'] + files['validation'])
@@ -266,6 +277,16 @@ def merge(args):
     return report
 
 
+def crop_cap(value):
+    """A non-negative crop cap, or 'all' (None) for every eligible crop."""
+    if value == 'all':
+        return None
+    count = int(value)
+    if count < 0:
+        raise argparse.ArgumentTypeError('crop caps must be >= 0 or "all"')
+    return count
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='dataset', required=True)
@@ -273,7 +294,9 @@ def main(argv=None):
         p = sub.add_parser(name)
         p.add_argument('--source', required=True)
         p.add_argument('--output', required=True)
-        p.add_argument('--train-crops', type=int, default=256)
+        p.add_argument('--train-crops', type=crop_cap, default=256, help='Cap on sparse train crops, or "all"')
+        p.add_argument('--dense-train-crops', type=crop_cap, default=0,
+                       help='Cap on dense (9-32) train crops in train_dense.jsonl; 0 (default) skips the pool')
         p.add_argument('--val-crops', type=int, default=64)
         p.add_argument('--dense-val-crops', type=int, default=64)
         p.add_argument('--val-fraction', type=float, default=0.2 if name == 'consep' else 0.15)

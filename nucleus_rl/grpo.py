@@ -22,7 +22,7 @@ import shutil
 import time
 from types import SimpleNamespace
 
-from nucleus_rl.grpo_rewards import (completion_lengths, group_advantages, parse_reward_spec,
+from nucleus_rl.grpo_rewards import (check_wpq_weights, completion_lengths, group_advantages, parse_reward_spec,
                                      reward_components, total_reward)
 
 
@@ -46,7 +46,11 @@ def build_parser():
     parser.add_argument("--max-pixels", type=int, required=True)
     parser.add_argument("--augmentation", choices=("none", "d4", "d4_stain"), default="d4")
     parser.add_argument("--reward", default="format=1,pq=1",
-                        help="Weighted components: format, fg_iou, pq, count, separation")
+                        help="Weighted components: format, fg_iou, pq, count, separation, wpq")
+    parser.add_argument("--wpq-fp-weight", type=float, default=0.5,
+                        help="False-positive weight in the wpq reward denominator (0.5 = standard PQ)")
+    parser.add_argument("--wpq-fn-weight", type=float, default=0.5,
+                        help="False-negative weight in the wpq reward denominator (0.5 = standard PQ)")
     parser.add_argument("--group-size", type=int, default=8, help="Sampled answers per image")
     parser.add_argument("--prompts-per-step", type=int, default=2, help="Training images per optimizer step")
     parser.add_argument("--temperature", type=float, default=1.0)
@@ -106,6 +110,7 @@ def validate_args(args):
     if int(os.environ.get("WORLD_SIZE", "1")) != 1:
         raise ValueError("This runner is single-process, single-GPU")
     args.reward_weights = parse_reward_spec(args.reward)
+    check_wpq_weights(args.wpq_fp_weight, args.wpq_fn_weight)
 
 
 def check_init_adapter(args):
@@ -277,7 +282,8 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
         else:
             instances = np.zeros(mask.shape, dtype=np.int32)
             raw = np.zeros((0, *mask.shape), dtype=bool)
-        components = reward_components(parsed.valid, len(objects), instances, raw, mask)
+        components = reward_components(parsed.valid, len(objects), instances, raw, mask,
+                                       wpq_fp_weight=args.wpq_fp_weight, wpq_fn_weight=args.wpq_fn_weight)
         records.append({"text": text, "tokens": length, "finished": finished, "valid": parsed.valid,
                         "objects": len(objects), "gt": int(np.count_nonzero(np.unique(mask))),
                         "components": components, "reward": total_reward(components, args.reward_weights)})
