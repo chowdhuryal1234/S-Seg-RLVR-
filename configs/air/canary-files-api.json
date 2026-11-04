@@ -1,0 +1,30 @@
+{
+  "name": "canary-files-api-a10",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_1xA10",
+  "num_accelerators": 1,
+  "timeout_minutes": 120,
+  "sync_minutes": 2,
+  "purpose": "Canary for the Files-API launcher: code tarball download, manifest-driven staging of trustmix_v2 validation (MoNuSeg 64 + CoNSeP 42 + PUMA 64 crops, only the files the rows name), nucleus_rl + SAM-2 import, CUDA, and a marker uploaded back to runs/canary-files-api-a10/. Needs data/trustmix_v2/validation.jsonl on the Volume first.",
+  "stage": {
+    "data": {
+      "path": "data",
+      "manifests": [
+        "trustmix_v2/validation.jsonl"
+      ]
+    }
+  },
+  "module": "scripts.air.canary",
+  "args": [
+    "--manifest",
+    "{stage:data}/trustmix_v2/validation.jsonl",
+    "--output",
+    "{output}",
+    "--expect",
+    "monuseg=64",
+    "consep=42",
+    "puma=64",
+    "--fuse-probe",
+    "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny"
+  ]
+}
