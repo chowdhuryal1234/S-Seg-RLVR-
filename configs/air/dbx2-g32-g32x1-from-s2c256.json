@@ -82,6 +82,8 @@
     "--seed",
     "42",
     "--wall-time-minutes",
-    "720"
+    "720",
+    "--backward-chunk",
+    "8"
   ]
 }

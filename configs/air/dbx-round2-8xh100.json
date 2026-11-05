@@ -1,0 +1,17 @@
+{
+  "name": "dbx-round2-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 1200,
+  "sync_minutes": 10,
+  "stagger_seconds": 60,
+  "prefetch_models": true,
+  "purpose": "Databricks round 2: the group-size lever (G=16 replicates across seed and init, G=16 + wpq, G=32), with --backward-chunk 8.",
+  "lanes": [
+    "configs/air/dbx2-g32-g32x1-from-s2c256.json",
+    "configs/air/dbx2-g6i4-g16-from-s4c256.json",
+    "configs/air/dbx2-g6s43-g16-from-s2c256.json",
+    "configs/air/dbx2-g6wpq-g16-wpq-from-s2c256.json"
+  ]
+}
