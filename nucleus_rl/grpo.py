@@ -52,6 +52,8 @@ def build_parser():
     parser.add_argument("--wpq-fn-weight", type=float, default=0.5,
                         help="False-negative weight in the wpq reward denominator (0.5 = standard PQ)")
     parser.add_argument("--group-size", type=int, default=8, help="Sampled answers per image")
+    parser.add_argument("--backward-chunk", type=int,
+                        help="Backpropagate each group in chunks of this many answers (same gradient, less memory)")
     parser.add_argument("--prompts-per-step", type=int, default=2, help="Training images per optimizer step")
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--beta", type=float, default=0.04, help="KL weight toward the SFT policy")
@@ -86,6 +88,8 @@ def validate_args(args):
         raise ValueError("Group, batch, step, rank, token and pixel settings must be positive")
     if args.objective == "grpo" and args.group_size < 2:
         raise ValueError("GRPO needs at least two sampled answers per image")
+    if getattr(args, "backward_chunk", None) is not None and args.backward_chunk <= 0:
+        raise ValueError("--backward-chunk must be positive")
     if not re.fullmatch(r"[0-9a-f]{40}", args.revision):
         raise ValueError("Pin --revision to the 40-character base commit used for SFT")
     from nucleus_rl.sft import MAX_OBJECTS
@@ -302,24 +306,60 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
         return info
     policy.train()
     visual.eval()
-    batch, completion_mask, longest = completion_batch(inputs, rows, pad_id)
-    batch = {key: value.to(device) if hasattr(value, "to") else value for key, value in batch.items()}
-    completion_mask = completion_mask.to(device)
-    logprobs = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
-    with torch.no_grad(), policy.disable_adapter():
-        reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
-    advantage = torch.tensor(advantages, device=device, dtype=torch.float32)[:, None]
-    delta = reference - logprobs
-    kl = torch.exp(delta) - delta - 1
-    per_token = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
-    tokens = completion_mask.sum(1)
-    loss = ((per_token * completion_mask).sum(1) / tokens).mean()
-    if not torch.isfinite(loss).item():
-        raise RuntimeError("Nonfinite GRPO loss")
-    (loss / args.prompts_per_step).backward()
-    info["loss"] = float(loss.detach().cpu())
-    info["kl"] = float(((kl.detach() * completion_mask).sum(1) / tokens).mean().cpu())
+    info["loss"], info["kl"] = group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args)
     return info
+
+
+def group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args):
+    """GRPO loss for one group, backpropagated; returns (loss, mean per-token KL).
+
+    loss = mean over the group's answers of the token-mean of
+    -exp(logp - sg(logp)) * A + beta * k3_KL(reference || policy).
+    With --backward-chunk K the group is split into chunks of K answers, each backpropagated on its own; the
+    per-answer terms are independent, so the summed gradient equals the whole-group gradient while peak memory
+    holds only K answers' activations. Without it the original single pass runs unchanged.
+    """
+    import torch
+    device = policy.device
+    chunk = getattr(args, "backward_chunk", None)
+    if not chunk or chunk >= len(rows):
+        batch, completion_mask, longest = completion_batch(inputs, rows, pad_id)
+        batch = {key: value.to(device) if hasattr(value, "to") else value for key, value in batch.items()}
+        completion_mask = completion_mask.to(device)
+        logprobs = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
+        with torch.no_grad(), policy.disable_adapter():
+            reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
+        advantage = torch.tensor(advantages, device=device, dtype=torch.float32)[:, None]
+        delta = reference - logprobs
+        kl = torch.exp(delta) - delta - 1
+        per_token = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
+        tokens = completion_mask.sum(1)
+        loss = ((per_token * completion_mask).sum(1) / tokens).mean()
+        if not torch.isfinite(loss).item():
+            raise RuntimeError("Nonfinite GRPO loss")
+        (loss / args.prompts_per_step).backward()
+        return float(loss.detach().cpu()), float(((kl.detach() * completion_mask).sum(1) / tokens).mean().cpu())
+    total_loss, total_kl, count = 0.0, 0.0, len(rows)
+    for start in range(0, count, chunk):
+        part = rows[start:start + chunk]
+        batch, completion_mask, longest = completion_batch(inputs, part, pad_id)
+        batch = {key: value.to(device) if hasattr(value, "to") else value for key, value in batch.items()}
+        completion_mask = completion_mask.to(device)
+        logprobs = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
+        with torch.no_grad(), policy.disable_adapter():
+            reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
+        advantage = torch.tensor(advantages[start:start + chunk], device=device, dtype=torch.float32)[:, None]
+        delta = reference - logprobs
+        kl = torch.exp(delta) - delta - 1
+        per_token = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
+        tokens = completion_mask.sum(1)
+        part_loss = ((per_token * completion_mask).sum(1) / tokens).sum() / count
+        if not torch.isfinite(part_loss).item():
+            raise RuntimeError("Nonfinite GRPO loss")
+        (part_loss / args.prompts_per_step).backward()
+        total_loss += float(part_loss.detach().cpu())
+        total_kl += float(((kl.detach() * completion_mask).sum(1) / tokens).sum().cpu())
+    return total_loss, total_kl / count
 
 
 def sft_micro(policy, visual, processor, row, transform, args, stain_seed=None):
