@@ -1,0 +1,21 @@
+{
+  "name": "dbx-round1-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 960,
+  "sync_minutes": 10,
+  "stagger_seconds": 60,
+  "prefetch_models": true,
+  "purpose": "Databricks round 1: G5 (recall-weighted reward) replicates + dose + clean-prompt arm, and per-dataset suites for the GRPO inits and G6.",
+  "lanes": [
+    "configs/air/dbx-g5s43-wpq-from-s2c256.json",
+    "configs/air/dbx-g5i4-wpq-from-s4c256.json",
+    "configs/air/dbx-g5w28-wpq02-08-from-s2c256.json",
+    "configs/air/dbx-g5w46-wpq04-06-from-s2c256.json",
+    "configs/air/dbx-g5clean-wpq-from-s2c256.json",
+    "configs/air/dbx-suite-s2c256.json",
+    "configs/air/dbx-suite-s4c256.json",
+    "configs/air/dbx-suite-g6final.json"
+  ]
+}
