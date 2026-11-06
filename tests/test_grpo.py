@@ -43,9 +43,10 @@ class GRPOArgumentTests(unittest.TestCase):
 
     def test_dense_object_cap_and_eval_only_flags(self):
         validate_args(self.args("--max-objects", "32"))
+        validate_args(self.args("--max-objects", "176"))  # 256 px all-nuclei tiles
         validate_args(self.args("--eval-only"))
         validate_args(self.args("--eval-only", "--eval-adapter", "adapter"))
-        for flags in (("--max-objects", "33"), ("--eval-adapter", "adapter"),
+        for flags in (("--max-objects", "257"), ("--eval-adapter", "adapter"),
                       ("--eval-only", "--resume-from-checkpoint", "checkpoint-50")):
             with self.subTest(flags=flags), self.assertRaises(ValueError):
                 validate_args(self.args(*flags))

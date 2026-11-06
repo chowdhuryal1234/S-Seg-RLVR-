@@ -706,9 +706,9 @@ def main(argv=None):
         from nucleus_rl.sft import json_write
         from nucleus_rl.sft_data import validate_sft_splits
         rows, validation = read_manifest(args.manifest), read_manifest(args.eval_manifest)
-        from nucleus_rl.sft import MAX_OBJECTS
+        # Validation crops are only scored: never capped (GT beyond --max-objects counts as FN, see ArtifactScorer).
         audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects,
-                                    validation_max_objects=MAX_OBJECTS)
+                                    validation_max_objects=math.inf)
         if args.cohort_protocol:
             from nucleus_rl.cohort import load_official30_cohort
             from nucleus_rl.training_budget import check_cohort

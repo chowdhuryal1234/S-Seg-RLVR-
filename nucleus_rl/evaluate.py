@@ -173,6 +173,27 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
 
 
+def answer_cap_summary(results, max_objects):
+    """GT nuclei beyond the answer cap (unavoidable FN, included in fn) and pooled PQ over all scored GT.
+
+    Pooled PQ = sum of matched IoU / (TP + FP/2 + FN/2) over all completions (the whole-set definition used for
+    full-tile benchmarks); mean_pq stays the per-crop average.
+    """
+    tp = sum(int(row["tp"]) for row in results)
+    fp = sum(int(row["fp"]) for row in results)
+    fn = sum(int(row["fn"]) for row in results)
+    iou = sum(float(row["pq"]) * (int(row["tp"]) + .5 * int(row["fp"]) + .5 * int(row["fn"])) for row in results)
+    denominator = tp + .5 * fp + .5 * fn
+    return {"max_objects": max_objects,
+            "gt_total": sum(int(row["gt_count"]) for row in results),
+            "gt_beyond_answer_cap": sum(max(0, int(row["gt_count"]) - max_objects) for row in results),
+            "crops_with_gt_over_cap": sum(int(row["gt_count"]) > max_objects for row in results),
+            "pooled_tp": tp, "pooled_fp": fp, "pooled_fn": fn,
+            "pooled_pq": iou / denominator if denominator else None,
+            "pooled_recall": tp / (tp + fn) if tp + fn else None,
+            "pooled_precision": tp / (tp + fp) if tp + fp else None}
+
+
 class ArtifactScorer:
     """Score one completion at a time; never use count/PQ as training rewards."""
     def __init__(self, segmenter, output, max_objects=8):
@@ -233,6 +254,10 @@ class ArtifactScorer:
             "text": text, "prediction_path": str((self.output / f"{stem}.npy").resolve()),
             "overlay_path": str((self.output / f"{stem}.png").resolve()),
             **metrics,
+            # GT is never dropped: every reference nucleus is scored. Nuclei beyond the answer cap can never be
+            # matched, so they are a floor on FN (already inside fn).
+            "answer_cap": self.max_objects,
+            "gt_beyond_answer_cap": max(0, int(metrics["gt_count"]) - self.max_objects),
         }
         with (self.output / "completions.jsonl").open("a") as stream:
             stream.write(json.dumps(result, allow_nan=False) + "\n")
@@ -257,6 +282,7 @@ class ArtifactScorer:
             values = [float(row[metric]) for row in self.results if row.get(metric) is not None]
             summary[f"mean_{metric}"] = statistics.mean(values) if values else None
         summary["invalid_completions"] = sum(not row["format_valid"] for row in self.results)
+        summary["answer_cap"] = answer_cap_summary(self.results, self.max_objects)
         summary["groups_with_reward_variation"] = sum(row["reward_std"] > 0 for row in self.groups)
         if self.results and all("same_gt_duplicate_count" in row for row in self.results):
             from nucleus_rl.ablation_metrics import summarize_records

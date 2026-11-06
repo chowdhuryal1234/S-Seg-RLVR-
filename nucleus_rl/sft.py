@@ -16,8 +16,10 @@ import random
 import re
 import time
 
-# Dense crops in monuseg_official30_dense_v1 hold up to 32 visible nuclei.
-MAX_OBJECTS = 32
+# Ceiling for --max-objects (the answer cap). Dense 128 px crops hold up to 32 visible nuclei; 256 px tiles with all
+# nuclei (scripts/build_tiles256.py, trustmix256_v1) up to 168. Validation tiles are never capped: every GT nucleus is
+# scored, and GT beyond the answer cap is counted as unavoidable FN (evaluate.ArtifactScorer reports how many).
+MAX_OBJECTS = 256
 
 
 def build_parser():
@@ -603,7 +605,7 @@ def main(argv=None):
         rows, validation = read_manifest(args.manifest), read_manifest(args.eval_manifest)
         # Validate the entire source manifests before applying canary limits.
         audit = validate_sft_splits(rows, validation, verify_files=True, max_objects=args.max_objects,
-                                    validation_max_objects=MAX_OBJECTS)
+                                    validation_max_objects=math.inf)
         if args.cohort_protocol:
             from nucleus_rl.cohort import load_official30_cohort
             from nucleus_rl.training_budget import check_cohort
