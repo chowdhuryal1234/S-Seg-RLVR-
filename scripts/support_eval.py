@@ -124,27 +124,43 @@ def main(argv=None):
     if args.samples < 1 or not math.isfinite(args.temperature) or args.temperature <= 0 \
             or not 0 < args.iou_threshold < 1 or args.max_new_tokens < 1:
         raise ValueError("Require samples >= 1, temperature > 0, 0 < iou-threshold < 1, max-new-tokens >= 1")
+    if args.wall_time_minutes is not None and (not math.isfinite(args.wall_time_minutes) or args.wall_time_minutes <= 0):
+        raise ValueError("wall-time-minutes must be finite and positive")
+    if args.limit is not None and args.limit <= 0:
+        raise ValueError("limit must be positive")
     output = Path(args.output).resolve()
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a new empty output directory; existing artifacts are preserved")
+    from nucleus_rl.evaluate import read_manifest
+    from nucleus_rl.grpo import check_init_adapter
+    rows = read_manifest(args.eval_manifest)
+    if any(row["split"] != "validation" for row in rows):
+        raise ValueError("Support evaluation reads validation rows only")
+    init = check_init_adapter(args)  # before any output is written
+    output.mkdir(parents=True, exist_ok=True)
+    try:
+        return run(args, rows, init, output)
+    except Exception as error:
+        from nucleus_rl.sft import json_write
+        json_write(output / "failure.json", {"error_type": type(error).__name__, "error": str(error)})
+        raise
+
+
+def run(args, rows, init, output):
     import numpy as np
     import torch
     from PIL import Image
     from peft import PeftModel
     from transformers import GenerationConfig
-    from nucleus_rl.evaluate import (assert_processed_dimensions, objects_to_original, prepare_coordinate_rows,
-                                     read_manifest)
-    from nucleus_rl.grpo import check_init_adapter, completion_lengths, end_token_ids, repeat_inputs
+    from nucleus_rl.evaluate import assert_processed_dimensions, objects_to_original, prepare_coordinate_rows
+    from nucleus_rl.grpo import completion_lengths, end_token_ids, repeat_inputs
     from nucleus_rl.rewards import parse_completion
     from nucleus_rl.sft import inference_inputs, json_write, load_model
     from nucleus_rl.sft_data import sft_prompt_messages
 
-    rows = read_manifest(args.eval_manifest)
     if args.limit:
         rows = rows[:args.limit]
-    output.mkdir(parents=True, exist_ok=True)
     json_write(output / "arguments.json", vars(args))
-    init = check_init_adapter(args)
     model, processor = load_model(SimpleArgs(args))
     model = PeftModel.from_pretrained(model, args.init_adapter, is_trainable=False).merge_and_unload()
     model.requires_grad_(False)

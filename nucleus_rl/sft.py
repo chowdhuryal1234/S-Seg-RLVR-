@@ -455,6 +455,10 @@ def run(args, rows, validation, audit, output):
             task_type="CAUSAL_LM", r=args.lora_rank, lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout, target_modules=targets, bias="none", revision=args.revision,
         ))
+        # PEFT matches target names by suffix: prove it adapted exactly the requested modules (scope included).
+        targeted = set(getattr(model.base_model, "targeted_module_names", targets))
+        if targeted != set(targets):
+            raise RuntimeError(f"PEFT adapted {len(targeted)} modules, not the {len(targets)} requested")
     trainable_names = trainable_language_adapters(model, allow_vision=vision_scope != "none")
     visual_name, visual = vision_encoder(model)
     # Base vision weights only: under --vision-lora the encoder's LoRA tensors train, its own weights must not.
