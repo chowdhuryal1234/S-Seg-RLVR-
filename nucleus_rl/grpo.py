@@ -52,6 +52,14 @@ def build_parser():
     parser.add_argument("--wpq-fn-weight", type=float, default=0.5,
                         help="False-negative weight in the wpq reward denominator (0.5 = standard PQ)")
     parser.add_argument("--group-size", type=int, default=8, help="Sampled answers per image")
+    parser.add_argument("--gt-members", type=int, default=0,
+                        help="Off-policy guidance: append this many ground-truth answers (the SFT target of the "
+                             "same augmented view) to every group; they are scored like samples and share the "
+                             "group's advantage normalisation (LUFFY-style mixed-policy GRPO)")
+    parser.add_argument("--gt-shaping", choices=("luffy", "none"), default="luffy",
+                        help="Weight on ground-truth tokens: luffy = p/(p+gamma) policy shaping; none = plain "
+                             "policy gradient (advantage-weighted SFT)")
+    parser.add_argument("--gt-gamma", type=float, default=0.1, help="gamma of the luffy shaping")
     parser.add_argument("--backward-chunk", type=int,
                         help="Backpropagate each group in chunks of this many answers (same gradient, less memory)")
     parser.add_argument("--prompts-per-step", type=int, default=2, help="Training images per optimizer step")
@@ -115,6 +123,12 @@ def validate_args(args):
         raise ValueError("This runner is single-process, single-GPU")
     args.reward_weights = parse_reward_spec(args.reward)
     check_wpq_weights(args.wpq_fp_weight, args.wpq_fn_weight)
+    gt_members = getattr(args, "gt_members", 0)
+    if gt_members < 0 or (gt_members and args.objective != "grpo"):
+        raise ValueError("--gt-members must be >= 0 and needs --objective grpo")
+    gamma = getattr(args, "gt_gamma", 0.1)
+    if not math.isfinite(gamma) or gamma <= 0:
+        raise ValueError("--gt-gamma must be finite and positive")
 
 
 def check_init_adapter(args):
@@ -264,7 +278,7 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
     from nucleus_rl.sft import inference_inputs
     image, mask, prompt_size, messages = training_view(row, transform, processor, args.coordinate_frame,
                                                        args.max_objects, stain_seed)
-    _, inputs = inference_inputs(processor, {"image": image, "messages": messages})
+    prefix, inputs = inference_inputs(processor, {"image": image, "messages": messages})
     device = policy.device
     policy.eval()
     with torch.inference_mode():
@@ -275,8 +289,17 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
     lengths = completion_lengths(sampled, eos_ids)
     rows = [tokens[:length] for tokens, (length, _) in zip(sampled, lengths)]
     texts = processor.batch_decode(rows, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+    offpolicy = [False] * len(rows)
+    gt_members = getattr(args, "gt_members", 0)
+    if gt_members:
+        gt_tokens, gt_text = ground_truth_answer(processor, image, mask, prefix, inputs, prompt_size, args)
+        for _ in range(gt_members):
+            rows.append(list(gt_tokens))
+            texts.append(gt_text)
+            lengths.append((len(gt_tokens), True))
+            offpolicy.append(True)
     records = []
-    for text, (length, finished) in zip(texts, lengths):
+    for text, (length, finished), is_gt in zip(texts, lengths, offpolicy):
         parsed = parse_completion(text, width=prompt_size[0], height=prompt_size[1], max_objects=args.max_objects)
         objects = parsed.objects if parsed.valid else ()
         if objects:
@@ -288,29 +311,87 @@ def grpo_micro(policy, visual, processor, sam, row, transform, args, sampling, e
             raw = np.zeros((0, *mask.shape), dtype=bool)
         components = reward_components(parsed.valid, len(objects), instances, raw, mask,
                                        wpq_fp_weight=args.wpq_fp_weight, wpq_fn_weight=args.wpq_fn_weight)
-        records.append({"text": text, "tokens": length, "finished": finished, "valid": parsed.valid,
-                        "objects": len(objects), "gt": int(np.count_nonzero(np.unique(mask))),
-                        "components": components, "reward": total_reward(components, args.reward_weights)})
+        record = {"text": text, "tokens": length, "finished": finished, "valid": parsed.valid,
+                  "objects": len(objects), "gt": int(np.count_nonzero(np.unique(mask))),
+                  "components": components, "reward": total_reward(components, args.reward_weights)}
+        if is_gt:
+            record["gt_member"] = True
+        records.append(record)
     rewards = [record["reward"] for record in records]
     advantages = group_advantages(rewards)
-    info = {"id": row["id"], "transform": transform, "rewards": rewards,
-            "reward_mean": sum(rewards) / len(rewards), "reward_std": float(np.std(rewards)),
-            "components": {name: sum(r["components"][name] for r in records) / len(records)
-                           for name in records[0]["components"]},
-            "tokens": [record["tokens"] for record in records],
-            "unfinished": sum(not record["finished"] for record in records),
-            "invalid": sum(not record["valid"] for record in records),
-            "objects": [record["objects"] for record in records], "gt": records[0]["gt"],
+    # Statistics describe the policy's own samples only, so they stay comparable with unguided runs.
+    own = [record for record, is_gt in zip(records, offpolicy) if not is_gt]
+    own_rewards = [record["reward"] for record in own]
+    info = {"id": row["id"], "transform": transform, "rewards": own_rewards,
+            "reward_mean": sum(own_rewards) / len(own_rewards), "reward_std": float(np.std(own_rewards)),
+            "components": {name: sum(r["components"][name] for r in own) / len(own)
+                           for name in own[0]["components"]},
+            "tokens": [record["tokens"] for record in own],
+            "unfinished": sum(not record["finished"] for record in own),
+            "invalid": sum(not record["valid"] for record in own),
+            "objects": [record["objects"] for record in own], "gt": records[0]["gt"],
             "skipped": not any(advantages), "records": records}
+    if gt_members:
+        gt_index = offpolicy.index(True)
+        info["gt_reward"] = rewards[gt_index]
+        info["gt_advantage"] = advantages[gt_index]
     if info["skipped"]:
         return info
     policy.train()
     visual.eval()
-    info["loss"], info["kl"] = group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args)
+    info["loss"], info["kl"] = group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args,
+                                              offpolicy=offpolicy if gt_members else None)
     return info
 
 
-def group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args):
+def ground_truth_answer(processor, image, mask, prefix, inputs, prompt_size, args):
+    """Token IDs (through the end token) and text of the SFT target for this augmented view.
+
+    Tokenised together with the exact generation prefix, as in sft.encode_example, so the answer tokens are
+    the ones the policy would have to emit after this prompt.
+    """
+    from nucleus_rl.sft_data import target_completion
+    text = target_completion(mask, max_objects=args.max_objects, prompt_size=prompt_size,
+                             coordinate_mode=args.coordinate_frame)
+    eos = processor.tokenizer.eos_token
+    if not isinstance(eos, str) or not eos or eos in text:
+        raise ValueError("Expected an unambiguous assistant end token")
+    full = processor(text=[prefix + text + eos], images=[image], padding=False, return_tensors="pt")
+    prefix_ids = inputs["input_ids"][0].tolist()
+    full_ids = full["input_ids"][0].tolist()
+    if full_ids[:len(prefix_ids)] != prefix_ids:
+        raise ValueError("Ground-truth answer changed the tokenisation of the prompt")
+    answer = full_ids[len(prefix_ids):]
+    if not answer or answer[-1] != processor.tokenizer.eos_token_id:
+        raise ValueError("Ground-truth answer must end with the assistant end token")
+    return answer, text
+
+
+def group_terms(logprobs, reference, advantage, offpolicy, args):
+    """Per-token loss terms for one batch of answers.
+
+    On-policy rows: -exp(logp - sg(logp)) * A + beta * k3_KL (unchanged GRPO).
+    Off-policy (ground-truth) rows: -w * A with w = p/(p+gamma) (luffy) or exp(logp - sg(logp)) (none); no KL term,
+    because k3 on tokens the policy did not sample is not an estimate of KL(reference || policy).
+    Returns (per_token, kl), both [rows, tokens].
+    """
+    import torch
+    delta = reference - logprobs
+    kl = torch.exp(delta) - delta - 1
+    on = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
+    if offpolicy is None or not any(offpolicy):
+        return on, kl
+    if getattr(args, "gt_shaping", "luffy") == "luffy":
+        probability = torch.exp(logprobs)
+        weight = probability / (probability + args.gt_gamma)
+    else:
+        weight = torch.exp(logprobs - logprobs.detach())
+    off = -weight * advantage
+    flags = torch.tensor(offpolicy, device=logprobs.device, dtype=torch.bool)[:, None]
+    return torch.where(flags, off, on), torch.where(flags, torch.zeros_like(kl), kl)
+
+
+def group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args, offpolicy=None):
     """GRPO loss for one group, backpropagated; returns (loss, mean per-token KL).
 
     loss = mean over the group's answers of the token-mean of
@@ -330,9 +411,7 @@ def group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args):
         with torch.no_grad(), policy.disable_adapter():
             reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
         advantage = torch.tensor(advantages, device=device, dtype=torch.float32)[:, None]
-        delta = reference - logprobs
-        kl = torch.exp(delta) - delta - 1
-        per_token = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
+        per_token, kl = group_terms(logprobs, reference, advantage, offpolicy, args)
         tokens = completion_mask.sum(1)
         loss = ((per_token * completion_mask).sum(1) / tokens).mean()
         if not torch.isfinite(loss).item():
@@ -349,9 +428,8 @@ def group_backward(policy, inputs, rows, advantages, pad_id, keep_logits, args):
         with torch.no_grad(), policy.disable_adapter():
             reference = token_logprobs(policy, batch, longest, keep_logits, args.temperature)
         advantage = torch.tensor(advantages[start:start + chunk], device=device, dtype=torch.float32)[:, None]
-        delta = reference - logprobs
-        kl = torch.exp(delta) - delta - 1
-        per_token = -torch.exp(logprobs - logprobs.detach()) * advantage + args.beta * kl
+        per_token, kl = group_terms(logprobs, reference, advantage,
+                                    offpolicy[start:start + chunk] if offpolicy else None, args)
         tokens = completion_mask.sum(1)
         part_loss = ((per_token * completion_mask).sum(1) / tokens).sum() / count
         if not torch.isfinite(part_loss).item():
@@ -483,6 +561,11 @@ def run(args, rows, validation, audit, output):
                 "logits_to_keep": keep_logits, "data_audit": audit, "reference": "adapter-disabled merged SFT policy",
                 "loss": "GRPO, one update per sample, per-sequence token mean, k3 KL to reference"
                 if args.objective == "grpo" else "answer-token cross entropy (continued SFT control)",
+                "ground_truth_guidance": {"members_per_group": args.gt_members, "shaping": args.gt_shaping,
+                                          "gamma": args.gt_gamma,
+                                          "note": "GT answers join the group's advantage normalisation; no KL on "
+                                                  "their tokens; samples.jsonl marks them gt_member"}
+                if getattr(args, "gt_members", 0) else None,
                 "scope": "canary" if args.train_limit or args.eval_limit else "main",
                 "resumed_from_step": start_step}
     json_write(output / "metadata.json", metadata)
