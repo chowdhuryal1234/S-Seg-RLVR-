@@ -68,7 +68,7 @@ def flag_values(argv):
 class DatabricksNotebookTests(unittest.TestCase):
     def test_notebooks_are_valid_python_sources(self):
         notebooks = sorted((ROOT / "scripts/dbx").glob("0*.py"))
-        self.assertEqual(len(notebooks), 5)
+        self.assertEqual(len(notebooks), 6)
         for path in notebooks:
             text = path.read_text()
             self.assertTrue(text.startswith("# Databricks notebook source"), path.name)

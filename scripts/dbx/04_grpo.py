@@ -36,8 +36,8 @@ dbx.configure_environment()
 MODEL_KEY = "7b"
 SFT_ARM = "d4"                 # Which SFT run to start from (key in runs/sft-<model>-latest.json).
 INIT_ADAPTER = None            # Or an explicit Volume path (string) to an SFT run's "adapter" folder.
-CANARY = True                  # 10 steps on 4 train / 8 validation crops; set False for the full run.
-OBJECTIVES = ["grpo"]          # Add "sft" for the continued-SFT control.
+CANARY = False #True                  # 10 steps on 4 train / 8 validation crops; set False for the full run.
+OBJECTIVES = ["grpo", "sft"]          # Add "sft" for the continued-SFT control.
 # Overrides of the runner defaults in dbx.GRPO_SETTINGS (canary limits: dbx.GRPO_CANARY).
 SETTINGS = {}
 print("GRPO settings:", {**dbx.GRPO_SETTINGS, **SETTINGS, **(dbx.GRPO_CANARY if CANARY else {})})

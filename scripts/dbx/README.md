@@ -23,6 +23,7 @@ and cache paths. `tests/test_dbx_notebooks.py` checks that the SFT arguments mat
 | `02_prepare_data` | any | Downloads the training folder, zips it on local disk and builds `monuseg_official30_grpo_v1`: 256 train, 64 validation and 8 benchmark crops. |
 | `03_sft` | GPU | SFT canary (20 steps), then the `none` and `d4` arms (512 steps each), validated with the Harvard criteria. |
 | `04_grpo` | GPU | GRPO from the SFT `d4` adapter: a 10-step canary first, then the full 600-step run, optionally with the continued-SFT control. |
+| `07_sam_oracle` | GPU (A10 is enough) | Labels-vs-SAM check: perfect GT-derived prompts → frozen SAM2 on MoNuSeg and CoNSeP crops cut the same way (`scripts/monuseg_layout.py`, `scripts/prepare_consep.py`, `scripts/sam_oracle.py`). No Qwen, no training. |
 
 Run 03 and 04 as notebook **jobs** for full runs, so a closed browser tab does not stop training. Sessions are limited
 to two days. Each notebook downloads its inputs (dataset, SAM checkpoint, Qwen, SFT adapter) to local disk if this
