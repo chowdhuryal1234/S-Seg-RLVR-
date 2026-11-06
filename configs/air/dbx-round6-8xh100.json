@@ -1,0 +1,21 @@
+{
+  "name": "dbx-round6-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 1200,
+  "sync_minutes": 10,
+  "stagger_seconds": 60,
+  "prefetch_models": true,
+  "purpose": "Round 6 (2026-11-05 night): ground-truth-guided GRPO (LUFFY-style, --gt-members) seeds 44/45, S4 init, +wpq, 2 members, G=4, plain-gradient replicate, continued-SFT control seed 43. All GRPO lanes --backward-chunk to fit 80 GB.",
+  "lanes": [
+    "configs/air/dbx6-gt-s44.json",
+    "configs/air/dbx6-gt-s45.json",
+    "configs/air/dbx6-gt-i4.json",
+    "configs/air/dbx6-gt-wpq.json",
+    "configs/air/dbx6-gt-m2.json",
+    "configs/air/dbx6-gt-g4.json",
+    "configs/air/dbx6-gtplain-s43.json",
+    "configs/air/dbx6-sftctl-s43.json"
+  ]
+}
