@@ -32,6 +32,10 @@ def build_parser():
     p.add_argument("--max-steps", type=int, help="Optimizer steps; overrides --epochs")
     p.add_argument("--gradient-accumulation", type=int, default=16, help="Per rank; effective batch = this x GPUs")
     p.add_argument("--learning-rate", type=float, default=1e-5)
+    p.add_argument("--embedding-lr-scale", type=float, default=10.0,
+                   help="Learning-rate multiplier for the (tied) token embedding / output head, which hold the new tokens")
+    p.add_argument("--coord-init", choices=("digits", "mean"), default="digits",
+                   help="Initial coordinate-token embeddings (see modeling.initialize_new_rows)")
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--weight-decay", type=float, default=0.0)
     p.add_argument("--max-grad-norm", type=float, default=1.0)
@@ -99,14 +103,17 @@ def run(args):
     periodic = validation[:args.eval_limit] if args.eval_limit else validation
 
     model, processor, first_id = load_policy(args.model, args.revision, bins=args.bins, dtype="float32",
-                                             device=device, train_merger=args.train_merger)
+                                             device=device, train_merger=args.train_merger, coord_init=args.coord_init)
     dist.broadcast_parameters(model)
     kernel = gaussian_targets(args.bins, args.sigma, device=model.device)
     trainable = [p for p in model.parameters() if p.requires_grad]
     if main:
         print(f"trainable parameters: {sum(p.numel() for p in trainable) / 1e9:.3f} B; GPUs: {world}", flush=True)
-    optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate, weight_decay=args.weight_decay,
-                                  betas=(0.9, 0.999), eps=1e-8)
+    embedding_ids = {id(m.weight) for m in (model.get_input_embeddings(), model.get_output_embeddings())}
+    groups = [{"params": [p for p in trainable if id(p) not in embedding_ids], "scale": 1.0},
+              {"params": [p for p in trainable if id(p) in embedding_ids], "scale": args.embedding_lr_scale}]
+    optimizer = torch.optim.AdamW([g for g in groups if g["params"]], lr=args.learning_rate,
+                                  weight_decay=args.weight_decay, betas=(0.9, 0.999), eps=1e-8)
     per_step = args.gradient_accumulation * world
     total = args.max_steps or max(1, int(args.epochs * len(train) / per_step))
     warmup = max(1, int(args.warmup_ratio * total))
@@ -127,7 +134,7 @@ def run(args):
             stopped_early = True
             break
         for group_lr in optimizer.param_groups:
-            group_lr["lr"] = lr_at(step, total, warmup, args.learning_rate)
+            group_lr["lr"] = lr_at(step, total, warmup, args.learning_rate) * group_lr["scale"]
         for _ in range(args.gradient_accumulation):
             exposure = exposure_index(micro, rank, world)
             micro += 1

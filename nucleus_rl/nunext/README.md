@@ -47,7 +47,8 @@ LVGF/FGAS increments on top.
 | Bins K | 256 (≈1 px on 256 px images) | **Assumed** |
 | SASS σ | 1 bin | **Assumed** |
 | Tuning | Full fine-tuning of the language model, embeddings and head; vision tower frozen; fp32 master weights, bf16 autocast | **Assumed** |
-| New-token init | Mean of existing embeddings plus small noise | **Assumed** |
+| New-token init | Place-value mix of the digit-token embeddings of each bin's 0–999 value, plus 10% noise (`--coord-init digits`; `mean` = old-vocabulary mean, which plateaued near ln 256 on PanNuke) | **Assumed** |
+| Embedding / head learning rate | 10 × the base rate (`--embedding-lr-scale`) | **Assumed** |
 | Input size | 448 × 448 (16 × 16 visual tokens) | **Assumed** |
 | SFT | 3 epochs, effective batch 16, lr 1e-5 cosine, 3% warm-up, D4 augmentation | **Assumed** |
 | Match radius r | 12 px (6 µm at 40×, the usual PanNuke detection radius) | **Assumed** |

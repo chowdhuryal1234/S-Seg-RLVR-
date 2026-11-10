@@ -163,6 +163,16 @@ class SoftLabels(unittest.TestCase):
         self.assertTrue(torch.allclose(kernel.sum(1), torch.ones(bins)))
 
 
+class CoordinateInit(unittest.TestCase):
+    def test_digit_codes_are_distinct_and_ordered(self):
+        from nucleus_rl.nunext.modeling import digit_weights
+        codes = [tuple(d for d, _ in digit_weights(k, 256)) for k in range(256)]
+        self.assertEqual(len(set(codes)), 256)
+        self.assertEqual(codes, sorted(codes))
+        self.assertEqual(codes[0], ("0", "0", "0"))
+        self.assertEqual(codes[-1], ("9", "9", "9"))
+
+
 class PanNukePreparation(unittest.TestCase):
     def test_convert_fold_writes_centroids(self):
         from scripts.prepare_pannuke import convert_fold, instance_centroids

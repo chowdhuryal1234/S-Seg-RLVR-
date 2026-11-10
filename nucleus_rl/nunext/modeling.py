@@ -33,25 +33,51 @@ def coordinate_first_id(tokenizer, bins: int) -> int:
     return ids[0]
 
 
-def initialize_new_rows(model, first_id: int, bins: int, original_rows: int) -> None:
-    """Set new coordinate-token embedding (and untied output) rows to the mean of the old vocabulary.
+COORD_INITS = ("digits", "mean")
 
-    New ids may land in Qwen's unused padding rows (the embedding matrix is larger than the
-    tokenizer), which are not trained, so they are overwritten either way.
+
+def digit_weights(index: int, bins: int) -> list[tuple[str, float]]:
+    """Bin index -> its 3-digit value on a 0-999 scale, as (digit token, weight) pairs, leading digit heaviest."""
+    value = round(index / (bins - 1) * 999)
+    return list(zip(f"{value:03d}", (0.7, 0.25, 0.05)))
+
+
+def initialize_new_rows(model, first_id: int, bins: int, original_rows: int, tokenizer=None,
+                        mode: str = "digits") -> None:
+    """Initialise the coordinate-token embedding (and untied output) rows.
+
+    "mean": the mean of the old vocabulary plus 2% noise. All 256 rows start almost identical, so the model
+    cannot tell which coordinate it just emitted; an 8-GPU PanNuke run plateaued near the uniform loss
+    (ln 256) with this. "digits" (default): a place-value-weighted mix of the embeddings of the digit tokens
+    of the bin's 0-999 value plus 10% noise, so rows are distinct and ordered from the start.
+    New ids may land in Qwen's unused padding rows, which are overwritten either way.
     """
     import torch
 
+    if mode not in COORD_INITS:
+        raise ValueError(f"coord init must be one of {COORD_INITS}")
     with torch.no_grad():
         for layer in {id(m): m for m in (model.get_input_embeddings(), model.get_output_embeddings())}.values():
             weight = layer.weight
-            mean = weight[:original_rows].float().mean(dim=0)
-            noise = torch.randn(bins, weight.shape[1], device=weight.device) * weight[:original_rows].float().std() * 0.02
-            weight[first_id:first_id + bins] = (mean + noise).to(weight.dtype)
+            old = weight[:original_rows].float()
+            scale = old.std()
+            noise = torch.randn(bins, weight.shape[1], device=weight.device)
+            if mode == "mean":
+                rows = old.mean(dim=0) + noise * scale * 0.02
+            else:
+                if tokenizer is None:
+                    raise ValueError("digits init needs the tokenizer")
+                digit_ids = {d: tokenizer.convert_tokens_to_ids(d) for d in "0123456789"}
+                if any(i is None or i == tokenizer.unk_token_id or i >= original_rows for i in digit_ids.values()):
+                    raise RuntimeError("Tokenizer lacks single-digit tokens; use --coord-init mean")
+                rows = torch.stack([sum(w * old[digit_ids[d]] for d, w in digit_weights(k, bins))
+                                    for k in range(bins)]) + noise * scale * 0.1
+            weight[first_id:first_id + bins] = rows.to(weight.dtype)
 
 
 def load_policy(model_name: str, revision: str, *, bins: int | None = None, dtype: str = "float32",
                 device: str | None = None, freeze_vision: bool = True, train_merger: bool = False,
-                gradient_checkpointing: bool = True, trainable: bool = True):
+                gradient_checkpointing: bool = True, trainable: bool = True, coord_init: str = "digits"):
     """Load Qwen2.5-VL and its processor.
 
     With ``bins`` set, coordinate tokens are added (base model). Without it, the tokenizer must
@@ -72,7 +98,7 @@ def load_policy(model_name: str, revision: str, *, bins: int | None = None, dtyp
         rows = model.get_input_embeddings().weight.shape[0]
         if len(processor.tokenizer) > rows:
             model.resize_token_embeddings(len(processor.tokenizer), pad_to_multiple_of=64, mean_resizing=False)
-        initialize_new_rows(model, first_id, bins, original_tokens)
+        initialize_new_rows(model, first_id, bins, original_tokens, processor.tokenizer, coord_init)
     else:
         first_id = None
     for name, parameter in model.named_parameters():

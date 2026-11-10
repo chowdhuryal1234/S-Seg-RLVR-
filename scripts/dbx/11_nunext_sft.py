@@ -47,8 +47,8 @@ import dbx_common as dbx
 dbx.configure_environment()
 import nunext_common as nx
 
-STAGES = ["canary", "main"]      # Drop "canary" once it has passed here.
-ARMS = ["nsft", "sass"]          # Run one after another; "nsft" alone answers the first question.
+STAGES = ["main"]      # Drop "canary" once it has passed here.
+ARMS = ["nsft"]          # Run one after another; "nsft" alone answers the first question.
 SETTINGS = {}                    # Overrides of nx.SFT_SETTINGS, e.g. {"epochs": 1}
 
 EFFECTIVE_BATCH = 16           # Images per optimizer step across all GPUs
@@ -107,3 +107,16 @@ if "main" in STAGES:
     index = {**dbx.read_json_remote(dbx.remote("runs", "nunext-sft-latest.json")), **runs}
     dbx.volume().write_text(dbx.remote("runs", "nunext-sft-latest.json"), json.dumps(index, indent=2))
     print(json.dumps(index, indent=2))
+
+# COMMAND ----------
+
+import sys, json, collections
+sys.path.insert(0, "/Workspace/Users/xukan_zhang@dfci.harvard.edu/S-Seg-RLVR-/scripts/dbx")
+import dbx_common as dbx
+rows = [json.loads(l) for l in dbx.volume().read_text(
+    dbx.remote("runs", "nunext-sft-nsft-20261110-051921", "eval-step500", "predictions.jsonl")).splitlines()]
+print(collections.Counter(r["error"] for r in rows))
+print([len(r["pred"]) for r in rows if r["valid"]][:20])
+
+# COMMAND ----------
+
