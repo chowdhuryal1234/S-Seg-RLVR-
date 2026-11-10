@@ -20,27 +20,33 @@ def score_completion(ids, row, first_id, bins, stop_ids, radius):
 
 def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batch_size, max_new_tokens,
              output: Path | None = None, keep_predictions: bool = True) -> dict:
+    """Under torchrun each rank scores rows[rank::world]; every rank returns the full summary, rank 0 writes."""
+    from nucleus_rl.nunext import dist
+    from nucleus_rl.nunext.matching import Match
     from nucleus_rl.nunext.modeling import end_ids, generate
 
     started = time.time()
     stop_ids = end_ids(processor, model)
     model.eval()
-    matches, invalid, records = [], 0, []
-    for start in range(0, len(rows), batch_size):
-        chunk = rows[start:start + batch_size]
+    records = []
+    shard = rows[dist.rank()::dist.world_size()]
+    for start in range(0, len(shard), batch_size):
+        chunk = shard[start:start + batch_size]
         examples = [load_example(row, bins, 0, image_size) for row in chunk]
         sequences = generate(model, processor, [e["image"] for e in examples], do_sample=False,
                              temperature=1.0, max_new_tokens=max_new_tokens)
         for row, ids in zip(chunk, sequences):
             parsed, points, match = score_completion(ids, row, first_id, bins, stop_ids, radius)
-            invalid += not parsed.valid
-            matches.append(match)
-            if keep_predictions:
-                records.append({"id": row["id"], "valid": parsed.valid, "error": parsed.error,
-                                "pred": [[round(x, 1), round(y, 1)] for x, y in points],
-                                "tp": match.tp, "fp": match.fp, "fn": match.fn})
+            records.append({"id": row["id"], "valid": parsed.valid, "error": parsed.error,
+                            "pred": [[round(x, 1), round(y, 1)] for x, y in points],
+                            "tp": match.tp, "fp": match.fp, "fn": match.fn})
+    records = dist.gather_objects(records)
+    order = {row["id"]: index for index, row in enumerate(rows)}
+    records.sort(key=lambda record: order[record["id"]])
+    matches = [Match(r["tp"], r["fp"], r["fn"]) for r in records]
+    invalid = sum(not r["valid"] for r in records)
     summary = {**aggregate(matches), "invalid": invalid, "radius": radius, "seconds": round(time.time() - started, 1)}
-    if output is not None:
+    if output is not None and dist.is_main():
         output.mkdir(parents=True, exist_ok=True)
         (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
         if keep_predictions:

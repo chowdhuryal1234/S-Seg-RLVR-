@@ -232,6 +232,18 @@ class CommandLines(unittest.TestCase):
         grpo.build_parser().parse_args(["--init-model", "m", "--train-manifest", "a", "--eval-manifest", "b",
                                         "--output", "o"])
 
+    def test_ranks_interleave_without_overlap(self):
+        from nucleus_rl.nunext.sft import exposure_index
+        seen = sorted(exposure_index(m, r, 4) for m in range(5) for r in range(4))
+        self.assertEqual(seen, list(range(20)))  # 4 ranks x 5 micro-steps = single-process order 0..19
+
+    def test_dist_helpers_are_noops_without_torchrun(self):
+        from nucleus_rl.nunext import dist
+        self.assertFalse(dist.enabled())
+        self.assertEqual(dist.gather_objects([1, 2]), [1, 2])
+        self.assertEqual(dist.mean(3.5), 3.5)
+        self.assertTrue(dist.any_true(True))
+
     def test_lr_schedule(self):
         from nucleus_rl.nunext.sft import lr_at
         self.assertAlmostEqual(lr_at(0, 100, 10, 1.0), 0.1)

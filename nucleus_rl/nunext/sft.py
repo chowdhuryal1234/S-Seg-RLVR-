@@ -3,7 +3,9 @@
 ``--sigma 0`` is naive SFT (NSFT, one-hot next-token loss). ``--sigma > 0`` adds spatial-aware
 soft supervision (SASS). Chain-of-visual-thought is not implemented (see README.md).
 The language model, its embeddings and output head are fully fine-tuned; the vision tower is frozen.
-Single process, single GPU; micro-batch of one image with gradient accumulation.
+Micro-batch of one image with gradient accumulation. Under torchrun (single node) every rank
+processes different images and gradients are averaged, so the effective batch is
+--gradient-accumulation x world size; validation is sharded across ranks.
 """
 from __future__ import annotations
 
@@ -28,7 +30,7 @@ def build_parser():
     p.add_argument("--augmentation", choices=("none", "d4"), default="d4")
     p.add_argument("--epochs", type=float, default=3.0)
     p.add_argument("--max-steps", type=int, help="Optimizer steps; overrides --epochs")
-    p.add_argument("--gradient-accumulation", type=int, default=16)
+    p.add_argument("--gradient-accumulation", type=int, default=16, help="Per rank; effective batch = this x GPUs")
     p.add_argument("--learning-rate", type=float, default=1e-5)
     p.add_argument("--warmup-ratio", type=float, default=0.03)
     p.add_argument("--weight-decay", type=float, default=0.0)
@@ -60,6 +62,11 @@ def validate(args):
         raise FileExistsError(f"{args.output} is not empty; use a new output directory")
 
 
+def exposure_index(micro_step: int, rank: int, world: int) -> int:
+    """Global sample index of a rank's micro-step: ranks interleave, so no image is seen twice per epoch."""
+    return micro_step * world + rank
+
+
 def lr_at(step, total, warmup, peak):
     """Linear warm-up, then cosine decay to zero."""
     if step < warmup:
@@ -72,14 +79,18 @@ def run(args):
     import torch
     from transformers import set_seed
 
+    from nucleus_rl.nunext import dist
     from nucleus_rl.nunext.data import epoch_order, load_example, read_manifests
     from nucleus_rl.nunext.evaluate import evaluate
     from nucleus_rl.nunext.modeling import (completion_logits, encode_training_example, finite_or_raise,
                                             gaussian_targets, load_policy, soft_label_loss)
 
+    device = dist.setup()
+    world, rank, main = dist.world_size(), dist.rank(), dist.is_main()
     output = Path(args.output)
-    output.mkdir(parents=True, exist_ok=True)
-    (output / "arguments.json").write_text(json.dumps(vars(args), indent=2) + "\n")
+    if main:
+        output.mkdir(parents=True, exist_ok=True)
+        (output / "arguments.json").write_text(json.dumps({**vars(args), "world_size": world}, indent=2) + "\n")
     set_seed(args.seed)
     random.seed(args.seed)
     train = read_manifests(args.train_manifest, args.train_limit)
@@ -87,35 +98,41 @@ def run(args):
     periodic = validation[:args.eval_limit] if args.eval_limit else validation
 
     model, processor, first_id = load_policy(args.model, args.revision, bins=args.bins, dtype="float32",
-                                             train_merger=args.train_merger)
+                                             device=device, train_merger=args.train_merger)
+    dist.broadcast_parameters(model)
     kernel = gaussian_targets(args.bins, args.sigma, device=model.device)
     trainable = [p for p in model.parameters() if p.requires_grad]
-    print(f"trainable parameters: {sum(p.numel() for p in trainable) / 1e9:.3f} B", flush=True)
+    if main:
+        print(f"trainable parameters: {sum(p.numel() for p in trainable) / 1e9:.3f} B; GPUs: {world}", flush=True)
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate, weight_decay=args.weight_decay,
                                   betas=(0.9, 0.999), eps=1e-8)
-    total = args.max_steps or max(1, int(args.epochs * len(train) / args.gradient_accumulation))
+    per_step = args.gradient_accumulation * world
+    total = args.max_steps or max(1, int(args.epochs * len(train) / per_step))
     warmup = max(1, int(args.warmup_ratio * total))
     eval_kwargs = dict(first_id=first_id, bins=args.bins, image_size=args.image_size, radius=args.radius,
                        batch_size=args.eval_batch_size, max_new_tokens=args.max_new_tokens)
-    history = {"steps": total, "train_images": len(train), "losses": [], "evaluations": []}
+    history = {"steps": total, "train_images": len(train), "world_size": world, "effective_batch": per_step,
+               "losses": [], "evaluations": []}
     if not args.skip_before_eval:
         history["before"] = evaluate(model, processor, periodic, output=output / "eval-before", **eval_kwargs)
-        print("before", json.dumps(history["before"]), flush=True)
+        if main:
+            print("before", json.dumps(history["before"]), flush=True)
 
-    started, exposure, step, window = time.time(), 0, 0, []
+    started, micro, step, window = time.time(), 0, 0, []
     stopped_early = False
     model.train()
     while step < total:
-        if args.wall_time_minutes and time.time() - started > 60 * args.wall_time_minutes:
+        if dist.any_true(bool(args.wall_time_minutes) and time.time() - started > 60 * (args.wall_time_minutes or 0)):
             stopped_early = True
             break
         for group_lr in optimizer.param_groups:
             group_lr["lr"] = lr_at(step, total, warmup, args.learning_rate)
         for _ in range(args.gradient_accumulation):
+            exposure = exposure_index(micro, rank, world)
+            micro += 1
             epoch, offset = divmod(exposure, len(train))
             row = train[epoch_order(len(train), epoch, args.seed)[offset]]
             view = random.Random(args.seed * 7919 + exposure).randrange(8) if args.augmentation == "d4" else 0
-            exposure += 1
             example = load_example(row, args.bins, view, args.image_size)
             inputs, length = encode_training_example(processor, example["image"], example["target"],
                                                      args.max_sequence_length)
@@ -125,21 +142,24 @@ def run(args):
             loss = soft_label_loss(logits, inputs["labels"][0, -length:], first_id, args.bins, kernel)
             (loss / args.gradient_accumulation).backward()
             window.append(float(finite_or_raise(loss.detach(), "loss")))
+        dist.average_gradients(trainable)
         norm = torch.nn.utils.clip_grad_norm_(trainable, args.max_grad_norm)
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)
         step += 1
         if step % 10 == 0 or step == total:
-            entry = {"step": step, "loss": sum(window) / len(window), "grad_norm": float(norm),
-                     "lr": optimizer.param_groups[0]["lr"], "epoch": round(exposure / len(train), 3),
+            entry = {"step": step, "loss": dist.mean(sum(window) / len(window)), "grad_norm": float(norm),
+                     "lr": optimizer.param_groups[0]["lr"], "epoch": round(micro * world / len(train), 3),
                      "minutes": round((time.time() - started) / 60, 1)}
             history["losses"].append(entry)
-            print(json.dumps(entry), flush=True)
+            if main:
+                print(json.dumps(entry), flush=True)
             window = []
         if args.eval_every and step % args.eval_every == 0 and step < total:
             summary = evaluate(model, processor, periodic, output=output / f"eval-step{step}", **eval_kwargs)
             history["evaluations"].append({"step": step, **summary})
-            print(f"eval step {step}", json.dumps(summary), flush=True)
+            if main:
+                print(f"eval step {step}", json.dumps(summary), flush=True)
             model.train()
         if args.save_every and step % args.save_every == 0 and step < total:
             save(model, processor, output / "checkpoints" / f"step-{step}")
@@ -148,21 +168,33 @@ def run(args):
                    training_minutes=round((time.time() - started) / 60, 1))
     save(model, processor, output / "model")
     history["after"] = evaluate(model, processor, validation, output=output / "eval-final", **eval_kwargs)
-    print("final", json.dumps(history["after"]), flush=True)
-    (output / "summary.json").write_text(json.dumps(history, indent=2) + "\n")
+    if main:
+        print("final", json.dumps(history["after"]), flush=True)
+        (output / "summary.json").write_text(json.dumps(history, indent=2) + "\n")
+    dist.teardown()
 
 
 def save(model, processor, path: Path):
+    """Rank 0 writes; other ranks wait so nobody reads a half-written model."""
+    from nucleus_rl.nunext import dist
+
+    if not dist.is_main():
+        dist.barrier()
+        return
     path.mkdir(parents=True, exist_ok=True)
     model.config.use_cache = True
     model.save_pretrained(path, safe_serialization=True)
     processor.save_pretrained(path)
     model.config.use_cache = False
+    dist.barrier()
 
 
 def main(argv=None):
+    from nucleus_rl.nunext import dist
+
     args = build_parser().parse_args(argv)
-    validate(args)
+    if dist.is_main():   # Other ranks would see rank 0's files and refuse.
+        validate(args)
     run(args)
 
 

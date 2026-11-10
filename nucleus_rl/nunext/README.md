@@ -65,6 +65,9 @@ LVGF/FGAS increments on top.
    Goal: about +0.02 F1 over the SFT start.
 4. `python -m nucleus_rl.nunext.evaluate` re-scores any saved model on a manifest.
 
+SFT also runs data-parallel on one node with `torchrun --nproc_per_node N -m nucleus_rl.nunext.sft …`; keep
+`--gradient-accumulation` × N = 16 for the same effective batch. GRPO is single-GPU.
+
 On Databricks, notebooks `scripts/dbx/10_nunext_data.py`, `11_nunext_sft.py` and `12_nunext_grpo.py` run these
 stages (1×H100).
 

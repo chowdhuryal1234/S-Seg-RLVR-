@@ -235,6 +235,10 @@ def run(args):
 
 
 def main(argv=None):
+    from nucleus_rl.nunext import dist
+
+    if dist.enabled():
+        raise SystemExit("The NuNext GRPO runner is single-GPU; launch it without torchrun")
     args = build_parser().parse_args(argv)
     validate(args)
     run(args)
