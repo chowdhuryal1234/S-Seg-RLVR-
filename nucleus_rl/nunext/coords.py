@@ -76,6 +76,31 @@ def parse_token_ids(ids: Sequence[int], first_id: int, bins: int, end_ids: Itera
     return Parsed(True, tuple(zip(values[0::2], values[1::2])))
 
 
+def salvage_token_ids(ids: Sequence[int], first_id: int, bins: int, end_ids: Iterable[int]) -> Parsed:
+    """Lenient parse for diagnostics: recover the usable prefix of a malformed or truncated output.
+
+    Takes coordinate tokens up to the first end or non-coordinate token, drops an unpaired last token,
+    then keeps points while they stay in raster order ((y, x) non-decreasing, exact repeats dropped).
+    A looping model restarts at a smaller y, so the loop is cut off. The strict format check
+    (parse_token_ids) is still what training rewards and the headline metric use.
+    """
+    end_ids = set(end_ids)
+    values = []
+    for token in ids:
+        if token in end_ids or not first_id <= token < first_id + bins:
+            break
+        values.append(int(token) - first_id)
+    pairs, previous = [], None
+    for x, y in zip(values[0::2], values[1::2]):
+        if previous is not None and (y, x) <= previous:
+            if (y, x) == previous:
+                continue
+            break
+        pairs.append((x, y))
+        previous = (y, x)
+    return Parsed(True, tuple(pairs))
+
+
 def parse_text(text: str, bins: int) -> Parsed:
     """Format check on decoded text (special tokens kept, end token already stripped)."""
     stripped = text.strip()

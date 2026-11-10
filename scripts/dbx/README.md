@@ -27,6 +27,7 @@ and cache paths. `tests/test_dbx_notebooks.py` checks that the SFT arguments mat
 | `10_nunext_data` | any | NuNext reproduction: downloads PanNuke folds 1–3 and builds centroid manifests (`scripts/prepare_pannuke.py`). See [`nucleus_rl/nunext/README.md`](../../nucleus_rl/nunext/README.md). |
 | `11_nunext_sft` | GPU (H100) | NuNext SFT of Qwen2.5-VL-3B with coordinate tokens: `nsft` and `sass` arms, detection F1 on fold 3. |
 | `12_nunext_grpo` | GPU (H100) | NuNext GRPO from an SFT run: plain and LVGF+FGAS arms. |
+| `13_nunext_eval` | GPU (H100) | Re-evaluates a saved NuNext run on fold 3 across all GPUs: strict F1 plus diagnostic salvaged F1 for truncated/looping outputs. |
 
 Run 03 and 04 as notebook **jobs** for full runs, so a closed browser tab does not stop training. Sessions are limited
 to two days. Each notebook downloads its inputs (dataset, SAM checkpoint, Qwen, SFT adapter) to local disk if this

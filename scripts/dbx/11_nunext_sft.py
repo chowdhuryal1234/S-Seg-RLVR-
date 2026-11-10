@@ -1,7 +1,6 @@
 # Databricks notebook source
 # /// script
 # [tool.databricks.environment]
-# base_environment = "databricks_ai_v6"
 # environment_version = "6"
 # ///
 # MAGIC %md
@@ -110,13 +109,18 @@ if "main" in STAGES:
 
 # COMMAND ----------
 
-import sys, json, collections
-sys.path.insert(0, "/Workspace/Users/xukan_zhang@dfci.harvard.edu/S-Seg-RLVR-/scripts/dbx")
+import os, sys, json
+sys.path.insert(0, os.getcwd())
 import dbx_common as dbx
+dbx.configure_environment()
+import nunext_common as nx
+import collections
 rows = [json.loads(l) for l in dbx.volume().read_text(
-    dbx.remote("runs", "nunext-sft-nsft-20261110-051921", "eval-step500", "predictions.jsonl")).splitlines()]
+    dbx.remote("runs", "nunext-sft-nsft-20261110-060748", "eval-final", "predictions.jsonl")).splitlines()]
 print(collections.Counter(r["error"] for r in rows))
-print([len(r["pred"]) for r in rows if r["valid"]][:20])
+import statistics
+bad = [r["fn"] for r in rows if not r["valid"]]; good = [r["tp"] + r["fn"] for r in rows if r["valid"]]
+print("nuclei per invalid image:", statistics.mean(bad), " per valid image:", statistics.mean(good))
 
 # COMMAND ----------
 

@@ -50,6 +50,17 @@ class CoordinateTokens(unittest.TestCase):
         self.assertFalse(coords.parse_token_ids([1000, 1001], first, bins, [end]).valid)  # truncated
         self.assertFalse(coords.parse_token_ids([1016, 1000, end], first, bins, [end]).valid)  # out of range
 
+    def test_salvage_cuts_loops_and_truncation(self):
+        first, bins, end = 1000, 16, 7
+        c = lambda x, y: [first + x, first + y]
+        looping = c(1, 1) + c(5, 1) + c(2, 3) + c(2, 3) + c(9, 4) + c(1, 1) + c(5, 1) + c(2, 3) + [first + 3]
+        salvaged = coords.salvage_token_ids(looping, first, bins, [end])
+        self.assertEqual(salvaged.bins, ((1, 1), (5, 1), (2, 3), (9, 4)))   # repeat dropped, loop cut
+        self.assertFalse(coords.parse_token_ids(looping, first, bins, [end]).valid)
+        valid = c(1, 1) + c(2, 3) + [end]
+        self.assertEqual(coords.salvage_token_ids(valid, first, bins, [end]).bins,
+                         coords.parse_token_ids(valid, first, bins, [end]).bins)
+
     def test_parse_text_rejects_extra_text(self):
         self.assertFalse(coords.parse_text("<|coord_1|><|coord_2|> nucleus", 256).valid)
 
