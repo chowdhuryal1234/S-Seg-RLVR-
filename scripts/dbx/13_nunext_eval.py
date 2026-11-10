@@ -56,3 +56,25 @@ summary = json.loads((local / "summary.json").read_text())
 for key in ("images", "micro_f1", "micro_precision", "micro_recall", "invalid", "errors",
             "salvaged_micro_f1", "salvaged_micro_precision", "salvaged_micro_recall", "seconds"):
     print(f"{key:26} {summary[key]}")
+
+# COMMAND ----------
+
+import numpy as np
+rows = {json.loads(l)["id"]: json.loads(l) for l in (nx.dataset_dir() / "fold3.jsonl").read_text().splitlines()}
+preds = [json.loads(l) for l in (local / "predictions.jsonl").read_text().splitlines()]
+offsets, nearest = [], []
+for p in preds:
+    gt = np.array(rows[p["id"]]["centroids"]).reshape(-1, 2)
+    if not p["valid"] or len(gt) == 0:
+        continue
+    for x, y in p["pred"]:
+        d = np.linalg.norm(gt - [x, y], axis=1); j = d.argmin()
+        nearest.append(d[j])
+        if d[j] < 30:
+            offsets.append(gt[j] - [x, y])
+offsets, nearest = np.array(offsets), np.array(nearest)
+print("mean offset (gt - pred) dx, dy:", offsets.mean(0).round(2), " median |offset|:", np.median(np.abs(offsets), 0).round(2))
+print("nearest-GT distance percentiles 25/50/75/90:", np.percentile(nearest, [25, 50, 75, 90]).round(1))
+
+# COMMAND ----------
+
