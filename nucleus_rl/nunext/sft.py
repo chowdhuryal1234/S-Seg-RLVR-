@@ -45,6 +45,7 @@ def build_parser():
     p.add_argument("--train-limit", type=int, help="Canary-only training subset")
     p.add_argument("--final-eval-limit", type=int, help="Canary-only final validation subset")
     p.add_argument("--skip-before-eval", action="store_true")
+    p.add_argument("--skip-save", action="store_true", help="Do not write the final model (canaries)")
     p.add_argument("--save-every", type=int, default=0, help="Optimizer steps between full checkpoints; 0 = only final")
     p.add_argument("--wall-time-minutes", type=float, help="Stop training after this, then evaluate and save")
     p.add_argument("--seed", type=int, default=42)
@@ -166,7 +167,8 @@ def run(args):
 
     history.update(completed_steps=step, stopped_early=stopped_early,
                    training_minutes=round((time.time() - started) / 60, 1))
-    save(model, processor, output / "model")
+    if not args.skip_save:
+        save(model, processor, output / "model")
     history["after"] = evaluate(model, processor, validation, output=output / "eval-final", **eval_kwargs)
     if main:
         print("final", json.dumps(history["after"]), flush=True)
@@ -181,11 +183,22 @@ def save(model, processor, path: Path):
     if not dist.is_main():
         dist.barrier()
         return
+    import torch
+
     path.mkdir(parents=True, exist_ok=True)
+    # bf16 copy on the CPU in <=2 GB shards: Databricks Files API uploads fail for files over 5 GB, and an
+    # fp32 3B model is ~15 GB. Tied tensors stay shared so they are written once.
+    copies, state = {}, {}
+    for name, tensor in model.state_dict().items():
+        key = (tensor.data_ptr(), tensor.dtype, tuple(tensor.shape))
+        if key not in copies:
+            copies[key] = tensor.detach().to("cpu", dtype=torch.bfloat16 if tensor.is_floating_point() else tensor.dtype)
+        state[name] = copies[key]
     model.config.use_cache = True
-    model.save_pretrained(path, safe_serialization=True)
+    model.save_pretrained(path, state_dict=state, safe_serialization=True, max_shard_size="2GB")
     processor.save_pretrained(path)
     model.config.use_cache = False
+    del copies, state
     dist.barrier()
 
 

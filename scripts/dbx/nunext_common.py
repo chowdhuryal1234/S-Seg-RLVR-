@@ -34,7 +34,7 @@ SFT_SETTINGS = {"bins": 256, "image_size": 448, "augmentation": "d4", "epochs": 
                 "eval_limit": 512, "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}
 SFT_ARMS = {"nsft": {"sigma": 0.0}, "sass": {"sigma": 1.0}}
 SFT_CANARY = {"max_steps": 20, "gradient_accumulation": 2, "train_limit": 64, "final_eval_limit": 32,
-              "eval_every": 0, "skip_before_eval": True}
+              "eval_every": 0, "skip_before_eval": True, "skip_save": True}
 
 GRPO_SETTINGS = {"bins": 256, "image_size": 448, "augmentation": "d4", "radius": 12, "group_size": 8,
                  "prompts_per_step": 4, "rollout_batch": 4, "temperature": 1.0, "learning_rate": 1e-6,
@@ -44,7 +44,7 @@ GRPO_ARMS = {"grpo": {"delta": 0.0, "fgas_decay": 1.0},
              "grpo-lvgf": {"delta": 0.02, "fgas_decay": 1.0},
              "grpo-lvgf-fgas": {"delta": 0.02, "fgas_decay": 0.5}}
 GRPO_CANARY = {"max_steps": 5, "prompts_per_step": 2, "train_limit": 16, "final_eval_limit": 16,
-               "eval_every": 0, "skip_before_eval": True}
+               "eval_every": 0, "skip_before_eval": True, "skip_save": True}
 
 
 def flags(settings: dict) -> list[str]:

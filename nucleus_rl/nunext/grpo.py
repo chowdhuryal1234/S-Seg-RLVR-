@@ -84,6 +84,7 @@ def build_parser():
     p.add_argument("--eval-batch-size", type=int, default=16)
     p.add_argument("--train-limit", type=int)
     p.add_argument("--skip-before-eval", action="store_true")
+    p.add_argument("--skip-save", action="store_true", help="Do not write the final model (canaries)")
     p.add_argument("--save-every", type=int, default=0)
     p.add_argument("--wall-time-minutes", type=float)
     p.add_argument("--seed", type=int, default=42)
@@ -228,7 +229,8 @@ def run(args):
 
     history.update(completed_steps=step, stopped_early=stopped_early,
                    training_minutes=round((time.time() - started) / 60, 1))
-    save(policy, processor, output / "model")
+    if not args.skip_save:
+        save(policy, processor, output / "model")
     history["after"] = evaluate(policy, processor, validation, output=output / "eval-final", **eval_kwargs)
     print("final", json.dumps(history["after"]), flush=True)
     (output / "summary.json").write_text(json.dumps(history, indent=2) + "\n")
