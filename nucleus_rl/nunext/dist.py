@@ -1,4 +1,4 @@
-"""Minimal single-node data parallelism for the NuNext runners (launched with torchrun).
+"""Minimal single-node data parallelism for the NuNext runners (launched with nucleus_rl.nunext.launch or torchrun).
 
 Gradients are averaged by hand after each accumulation cycle instead of wrapping the model in
 DistributedDataParallel: no extra gradient buckets (memory is tight with fp32 full fine-tuning
@@ -44,7 +44,10 @@ def setup() -> str | None:
 
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank())
-    torch_dist.init_process_group("nccl" if torch.cuda.is_available() else "gloo")
+    # nucleus_rl.nunext.launch sets a file:// rendezvous (no TCP store); torchrun leaves env:// usable.
+    torch_dist.init_process_group("nccl" if torch.cuda.is_available() else "gloo",
+                                  init_method=os.environ.get("NUNEXT_DIST_INIT", "env://"),
+                                  rank=rank(), world_size=world_size())
     return _device()
 
 

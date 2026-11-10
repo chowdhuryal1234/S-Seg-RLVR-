@@ -13,7 +13,7 @@
 # MAGIC Run the canary first, then the arms as a notebook **job**. Outputs go to `<artifacts>/runs/nunext-sft-<arm>-<time>/`.
 # MAGIC An A10 (24 GB) does not fit full fine-tuning.
 # MAGIC
-# MAGIC **Multi-GPU:** with several visible GPUs the runner is launched with `torchrun` (one process per GPU, gradients
+# MAGIC **Multi-GPU:** with several visible GPUs the runner is started by `nucleus_rl.nunext.launch` (one process per GPU, gradients
 # MAGIC averaged, validation sharded). The effective batch stays 16: per-GPU accumulation = 16 / GPUs. A CPU test showed
 # MAGIC a 2-process run reproduces the single-process losses exactly. If the notebook sees only one GPU it runs as before.
 
@@ -62,7 +62,8 @@ def argv(arm, output, canary=False):
     settings["gradient_accumulation"] = max(1, EFFECTIVE_BATCH // gpus)
     if canary:
         settings.update(nx.SFT_CANARY, gradient_accumulation=max(1, nx.SFT_CANARY["gradient_accumulation"] // gpus))
-    launcher = (["-m", "torch.distributed.run", "--standalone", "--nproc_per_node", str(gpus)] if gpus > 1 else [])
+    # Own launcher: torchrun --standalone's TCP rendezvous times out on Serverless GPU (file rendezvous instead).
+    launcher = (["-m", "nucleus_rl.nunext.launch", "--nproc", str(gpus), "--"] if gpus > 1 else [])
     return [*launcher, "-m", "nucleus_rl.nunext.sft", "--model", base, "--revision", "main", "--output", output,
             *[a for m in nx.manifests(nx.TRAIN_FOLDS) for a in ("--train-manifest", m)],
             *[a for m in nx.manifests(nx.VALIDATION_FOLDS) for a in ("--eval-manifest", m)],

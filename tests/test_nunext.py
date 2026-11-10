@@ -244,6 +244,20 @@ class CommandLines(unittest.TestCase):
         self.assertEqual(dist.mean(3.5), 3.5)
         self.assertTrue(dist.any_true(True))
 
+    def test_launcher_sets_ranks_and_stops_on_failure(self):
+        import subprocess, sys
+        ok = subprocess.run([sys.executable, "-m", "nucleus_rl.nunext.launch", "--nproc", "2", "--", "-c",
+                             "import os; assert os.environ['WORLD_SIZE'] == '2'; "
+                             "assert os.environ['NUNEXT_DIST_INIT'].startswith('file://')"],
+                            capture_output=True, text=True, timeout=120)
+        self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+        failing = subprocess.run([sys.executable, "-m", "nucleus_rl.nunext.launch", "--nproc", "2", "--", "-c",
+                                  "import os, sys, time; r = int(os.environ['RANK']); "
+                                  "sys.exit(5) if r == 1 else time.sleep(60)"],
+                                 capture_output=True, text=True, timeout=120)
+        self.assertEqual(failing.returncode, 5)
+        self.assertIn("rank 1 exited with code 5", failing.stdout)
+
     def test_lr_schedule(self):
         from nucleus_rl.nunext.sft import lr_at
         self.assertAlmostEqual(lr_at(0, 100, 10, 1.0), 0.1)
