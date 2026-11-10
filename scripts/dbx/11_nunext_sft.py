@@ -1,4 +1,9 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# base_environment = "databricks_ai_v6"
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # 11 · NuNext reproduction: supervised fine-tuning
 # MAGIC

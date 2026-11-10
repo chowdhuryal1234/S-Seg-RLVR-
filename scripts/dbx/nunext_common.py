@@ -189,32 +189,62 @@ def prepare_dataset(rebuild: bool = False, store_raw: bool = False, source: str 
         print(json.dumps(report[-1]), flush=True)
     (out / "report.json").write_text(json.dumps({"folds": report}, indent=2) + "\n")
     index = _upload_parts(out)
+    if not _localize_and_check(out):
+        (out / COMPLETE_MARKER).write_text("ok\n")
     return {"folds": report, "volume": dbx.remote("data", DATASET_NAME), "parts": len(index["parts"])}
 
 
-def ensure_dataset() -> dict:
-    """Local dataset; manifests are rewritten so image paths point at this machine's copy."""
-    out = dataset_dir()
-    if not (out / "report.json").is_file():
-        remote_dir = dbx.remote("data", DATASET_NAME)
-        if not dbx.volume().is_file(f"{remote_dir}/index.json"):
-            raise FileNotFoundError(f"{remote_dir}/index.json not found; run 10_nunext_data first")
-        index = json.loads(dbx.volume().read_text(f"{remote_dir}/index.json"))
-        staging = dbx.local_root() / "data" / (DATASET_NAME + "-download")
-        staging.mkdir(parents=True, exist_ok=True)
-        for part in index["parts"]:
-            local = staging / part["name"]
-            retry(lambda: dbx.volume().download(f"{remote_dir}/{part['name']}", local), f"Volume download {part['name']}")
-            with zipfile.ZipFile(local) as handle:
-                handle.extractall(out.parent)
-        if not (out / "report.json").is_file():
-            raise RuntimeError("Dataset parts did not contain report.json")
+COMPLETE_MARKER = ".nunext-complete"
+
+
+def _localize_and_check(out: Path) -> int:
+    """Point manifest image paths at this machine's copy; return how many images are missing."""
+    missing = 0
     for manifest in out.glob("fold*.jsonl"):
         rows = [json.loads(line) for line in manifest.read_text().splitlines() if line.strip()]
         for row in rows:
             row["image_path"] = str(out / "images" / Path(row["image_path"]).name)
+            missing += not Path(row["image_path"]).is_file()
         manifest.write_text("".join(json.dumps(row) + "\n" for row in rows))
-    return json.loads((out / "report.json").read_text())
+    return missing
+
+
+def _download_parts(out: Path) -> None:
+    remote_dir = dbx.remote("data", DATASET_NAME)
+    if not dbx.volume().is_file(f"{remote_dir}/index.json"):
+        raise FileNotFoundError(f"{remote_dir}/index.json not found; run 10_nunext_data first")
+    index = json.loads(dbx.volume().read_text(f"{remote_dir}/index.json"))
+    staging = dbx.local_root() / "data" / (DATASET_NAME + "-download")
+    staging.mkdir(parents=True, exist_ok=True)
+    for part in index["parts"]:
+        local = staging / part["name"]
+        retry(lambda: dbx.volume().download(f"{remote_dir}/{part['name']}", local), f"Volume download {part['name']}")
+        with zipfile.ZipFile(local) as handle:
+            handle.extractall(out.parent)
+        local.unlink()   # keep local disk use to one copy
+    print(f"extracted {len(index['parts'])} dataset parts into {out}", flush=True)
+
+
+def ensure_dataset() -> dict:
+    """Complete local dataset with every manifest image present; re-downloads a partial copy.
+
+    Completeness is a marker written after all parts are extracted and every image is checked:
+    report.json alone is not enough, because it arrives in the first part.
+    """
+    out = dataset_dir()
+    for attempt in range(2):
+        if not (out / COMPLETE_MARKER).is_file():
+            if out.exists():
+                shutil.rmtree(out)
+            _download_parts(out)
+        missing = _localize_and_check(out)
+        if not missing:
+            (out / COMPLETE_MARKER).write_text("ok\n")
+            return json.loads((out / "report.json").read_text())
+        print(f"[{missing} manifest images missing in {out}; downloading again]", flush=True)
+        (out / COMPLETE_MARKER).unlink(missing_ok=True)
+    free = shutil.disk_usage(out.parent).free / 1e9
+    raise RuntimeError(f"{missing} images still missing after a fresh download ({free:.1f} GB free on {out.parent})")
 
 
 def ensure_base_model() -> str:
