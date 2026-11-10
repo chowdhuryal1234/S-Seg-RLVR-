@@ -72,20 +72,80 @@ def convert_fold(fold_dir: Path, fold: int, out: Path, limit: int | None = None)
     return {"fold": fold, "images": count, "nuclei": nuclei, "manifest": str(manifest)}
 
 
+def mask_centroid(png: bytes) -> tuple[float, float] | None:
+    """Centroid (pixel centres) of one binary instance mask stored as an image."""
+    import io
+    from PIL import Image
+
+    ys, xs = np.nonzero(np.asarray(Image.open(io.BytesIO(png)).convert("L")) > 0)
+    if len(xs) == 0:
+        return None
+    return float(xs.mean() + 0.5), float(ys.mean() + 0.5)
+
+
+def convert_parquet(path: Path, fold: int, out: Path, limit: int | None = None) -> dict:
+    """Same output as convert_fold, from the Hugging Face RationAI/PanNuke parquet layout.
+
+    That dataset stores each image with one binary mask per instance (``instances``) and its class
+    index (``categories``), made from the official masks.npy by splitting every class channel into
+    its non-zero instance IDs, i.e. the same instances convert_fold uses.
+    """
+    import io
+    import pyarrow.parquet as pq
+    from PIL import Image
+
+    (out / "images").mkdir(parents=True, exist_ok=True)
+    manifest = out / f"fold{fold}.jsonl"
+    count = nuclei = empty_masks = 0
+    with manifest.open("w") as stream:
+        for batch in pq.ParquetFile(path).iter_batches(batch_size=64, columns=["image", "instances", "categories"]):
+            for record in batch.to_pylist():
+                if limit is not None and count >= limit:
+                    break
+                identifier = f"fold{fold}_{count:04d}"
+                image = Image.open(io.BytesIO(record["image"]["bytes"])).convert("RGB")
+                image_path = out / "images" / f"{identifier}.png"
+                image.save(image_path)
+                rows = []
+                for mask, category in zip(record["instances"] or [], record["categories"] or []):
+                    centroid = mask_centroid(mask["bytes"])
+                    if centroid is None:
+                        empty_masks += 1
+                        continue
+                    rows.append((*centroid, CLASSES[int(category)]))
+                rows.sort(key=lambda row: (row[1], row[0]))
+                nuclei += len(rows)
+                stream.write(json.dumps({
+                    "id": identifier, "fold": fold, "image_path": str(image_path.resolve()),
+                    "width": image.width, "height": image.height,
+                    "centroids": [[round(x, 2), round(y, 2)] for x, y, _ in rows],
+                    "classes": [name for _, _, name in rows],
+                }) + "\n")
+                count += 1
+            if limit is not None and count >= limit:
+                break
+    return {"fold": fold, "images": count, "nuclei": nuclei, "empty_masks": empty_masks,
+            "manifest": str(manifest), "source": str(path)}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--fold", action="append", required=True, metavar="K=DIR",
-                        help="Fold number and its extracted directory, e.g. 1=/data/pannuke/Fold1 (repeatable)")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--fold", action="append", metavar="K=DIR",
+                        help="Fold number and its extracted official directory, e.g. 1=/data/pannuke/Fold1 (repeatable)")
+    source.add_argument("--parquet", action="append", metavar="K=FILE",
+                        help="Fold number and its RationAI/PanNuke parquet file (repeatable)")
     parser.add_argument("--out", required=True)
     parser.add_argument("--limit", type=int, help="Only the first N images per fold (smoke tests)")
     args = parser.parse_args(argv)
     out = Path(args.out)
     report = []
-    for spec in args.fold:
-        number, _, directory = spec.partition("=")
-        if not number.isdigit() or not directory:
-            raise SystemExit(f"--fold must be K=DIR, got {spec!r}")
-        report.append(convert_fold(Path(directory), int(number), out, args.limit))
+    for spec in args.fold or args.parquet:
+        number, _, location = spec.partition("=")
+        if not number.isdigit() or not location:
+            raise SystemExit(f"Expected K=PATH, got {spec!r}")
+        convert = convert_fold if args.fold else convert_parquet
+        report.append(convert(Path(location), int(number), out, args.limit))
         print(json.dumps(report[-1]), flush=True)
     (out / "report.json").write_text(json.dumps({"folds": report}, indent=2) + "\n")
 

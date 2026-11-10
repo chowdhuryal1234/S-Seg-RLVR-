@@ -185,6 +185,46 @@ class PanNukePreparation(unittest.TestCase):
         self.assertEqual([len(r["centroids"]) for r in rows], [3, 0])
 
 
+@unittest.skipUnless(importlib.util.find_spec("pyarrow") is not None, "pyarrow required")
+class PanNukeParquet(unittest.TestCase):
+    def test_parquet_matches_npy_conversion(self):
+        import io
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        from PIL import Image
+        from scripts.prepare_pannuke import convert_fold, convert_parquet
+
+        mask = np.zeros((16, 16, 6))
+        mask[2:4, 2:4, 0] = 1
+        mask[10:12, 6:9, 4] = 7
+        mask[10:11, 12:13, 1] = 3
+
+        def png(array, mode):
+            buffer = io.BytesIO()
+            Image.fromarray(array).convert(mode).save(buffer, format="PNG")
+            return {"bytes": buffer.getvalue(), "path": None}
+
+        instances, categories = [], []
+        for channel in range(5):  # same split as RationAI's gen_script.py
+            for value in np.unique(mask[..., channel])[1:]:
+                instances.append(png((mask[..., channel] == value).astype(np.uint8) * 255, "1"))
+                categories.append(channel)
+        table = pa.table({"image": [png(np.zeros((16, 16, 3), np.uint8), "RGB")],
+                          "instances": [instances], "categories": [categories], "tissue": [0]})
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pq.write_table(table, root / "fold1.parquet")
+            (root / "npy" / "f").mkdir(parents=True)
+            np.save(root / "npy" / "f" / "images.npy", np.zeros((1, 16, 16, 3)))
+            np.save(root / "npy" / "f" / "masks.npy", mask[None])
+            convert_parquet(root / "fold1.parquet", 1, root / "a")
+            convert_fold(root / "npy", 1, root / "b")
+            a = json.loads((root / "a" / "fold1.jsonl").read_text())
+            b = json.loads((root / "b" / "fold1.jsonl").read_text())
+        self.assertEqual(a["centroids"], b["centroids"])
+        self.assertEqual(a["classes"], b["classes"])
+
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

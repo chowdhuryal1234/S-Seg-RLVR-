@@ -1,8 +1,9 @@
 """Shared settings and inputs for the NuNext reproduction notebooks (10-12).
 
 Builds on dbx_common (Volume access through the Files API, local disk, run_cli). The prepared
-PanNuke dataset is stored on the Volume as one zip, because uploading ~8k PNGs one by one
-through the Files API is slow.
+PanNuke dataset is stored on the Volume as ~20 small zips plus index.json under
+<artifacts>/data/pannuke_nunext_v1/: uploading ~8k PNGs one by one is slow, and one large
+PUT can be cut off ("RemoteDisconnected"). Downloads and uploads retry with backoff.
 """
 from __future__ import annotations
 
@@ -18,6 +19,11 @@ import dbx_common as dbx
 MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 REVISION = "66285546d2b821cf421d4f5eb2576359d3770cd3"   # Hugging Face main on 2025-04-06
 PANNUKE_URL = "https://warwick.ac.uk/fac/cross_fac/tia/data/pannuke/fold_{}.zip"
+# Hugging Face copy of the official folds (parquet). Checked against the Warwick fold 3: identical images,
+# nucleus counts, centroids and classes after conversion.
+HF_DATASET = "RationAI/PanNuke"
+HF_REVISION = "1f498f7bd6a85ef5f204c592b41ac881eab61005"
+HF_FILE = "data/fold{}-00000-of-00001.parquet"
 DATASET_NAME = "pannuke_nunext_v1"
 TRAIN_FOLDS = (1, 2)          # Paper: folds 1 and 2 train, fold 3 internal validation
 VALIDATION_FOLDS = (3,)
@@ -60,59 +66,149 @@ def manifests(folds) -> list[str]:
     return [str(dataset_dir() / f"fold{k}.jsonl") for k in folds]
 
 
-def ensure_pannuke_zip(fold: int) -> Path:
-    """Official fold zip on local disk: from <artifacts>/raw/pannuke/ if present, else downloaded (and stored)."""
+PART_IMAGES = 400            # Images per dataset part zip (~50-80 MB), small enough for one Files API PUT
+
+
+def retry(action, what: str, attempts: int = 5):
+    """Run action(); on a dropped connection or other transient error, wait and try again."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return action()
+        except Exception as error:  # Connection resets surface as several exception types.
+            if attempt == attempts:
+                raise
+            wait = 10 * 2 ** (attempt - 1)
+            print(f"[{what}: {type(error).__name__}: {error}; retry {attempt}/{attempts - 1} in {wait}s]", flush=True)
+            time.sleep(wait)
+
+
+def http_download(url: str, destination: Path, chunk: int = 1 << 20) -> None:
+    """Download with a browser-like User-Agent, resuming a partial file after a dropped connection."""
+    partial = destination.with_name(destination.name + ".partial")
+
+    def attempt():
+        offset = partial.stat().st_size if partial.exists() else 0
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)", "Accept": "*/*"}
+        if offset:
+            headers["Range"] = f"bytes={offset}-"
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120) as response:
+            if offset and response.status != 206:   # Server ignored Range: start over.
+                offset = 0
+            with partial.open("ab" if offset else "wb") as output:
+                shutil.copyfileobj(response, output, chunk)
+
+    retry(attempt, f"download {url}", attempts=8)
+    partial.replace(destination)
+
+
+def ensure_pannuke_zip(fold: int, store_raw: bool = False) -> Path:
+    """Official fold zip on local disk: from <artifacts>/raw/pannuke/ if present, else downloaded.
+
+    The 700 MB zips are copied to the Volume only with store_raw=True (a single large PUT can be cut off).
+    """
     local = dbx.local_root() / "source" / "pannuke" / f"fold_{fold}.zip"
     stored = dbx.remote("raw", "pannuke", f"fold_{fold}.zip")
     if local.is_file():
         return local
     local.parent.mkdir(parents=True, exist_ok=True)
     if dbx.volume().is_file(stored):
-        dbx.volume().download(stored, local)
+        retry(lambda: dbx.volume().download(stored, local), f"Volume download {stored}")
     else:
         started = time.time()
-        urllib.request.urlretrieve(PANNUKE_URL.format(fold), local)
-        print(f"downloaded fold {fold} ({local.stat().st_size / 1e6:.0f} MB) in {time.time() - started:.0f}s")
-        dbx.volume().upload(local, stored)
+        http_download(PANNUKE_URL.format(fold), local)
+        print(f"downloaded fold {fold} ({local.stat().st_size / 1e6:.0f} MB) in {time.time() - started:.0f}s", flush=True)
+        if store_raw:
+            try:
+                retry(lambda: dbx.volume().upload(local, stored), f"Volume upload {stored}", attempts=3)
+            except Exception as error:
+                print(f"[raw zip not stored on the Volume: {type(error).__name__}: {error}]", flush=True)
     return local
 
 
-def prepare_dataset(rebuild: bool = False) -> dict:
-    """Extract the three folds and convert them with scripts/prepare_pannuke.py; store one zip on the Volume."""
-    stored = dbx.remote("data", DATASET_NAME + ".zip")
+def _upload_parts(out: Path) -> dict:
+    """Store the dataset as several small zips plus index.json under <artifacts>/data/<name>/."""
+    remote_dir = dbx.remote("data", DATASET_NAME)
+    files = sorted(p for p in out.rglob("*") if p.is_file())
+    metadata = [p for p in files if p.parent == out]                      # manifests, report
+    images = [p for p in files if p.parent != out]
+    groups = [metadata] + [images[i:i + PART_IMAGES] for i in range(0, len(images), PART_IMAGES)]
+    parts = []
+    staging = out.parent / (DATASET_NAME + "-parts")
+    staging.mkdir(exist_ok=True)
+    for index, group in enumerate(groups):
+        name = f"part-{index:03d}.zip"
+        path = staging / name
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as archive:  # PNGs are already compressed
+            for file in group:
+                archive.write(file, file.relative_to(out.parent).as_posix())
+        retry(lambda: dbx.volume().upload(path, f"{remote_dir}/{name}"), f"Volume upload {name}")
+        parts.append({"name": name, "files": len(group), "bytes": path.stat().st_size})
+        print(f"uploaded {name}: {len(group)} files, {path.stat().st_size / 1e6:.0f} MB", flush=True)
+    index = {"dataset": DATASET_NAME, "parts": parts}
+    # index.json is written last, so a half-uploaded dataset is never treated as complete.
+    retry(lambda: dbx.volume().write_text(f"{remote_dir}/index.json", json.dumps(index, indent=2)), "index.json")
+    return index
+
+
+def ensure_pannuke_parquet(fold: int) -> Path:
+    """One fold's parquet from the pinned Hugging Face dataset revision, on local disk."""
+    from huggingface_hub import hf_hub_download
+
+    cache = dbx.local_root() / "source" / "pannuke_hf"
+    return Path(retry(lambda: hf_hub_download(HF_DATASET, HF_FILE.format(fold), repo_type="dataset",
+                                              revision=HF_REVISION, cache_dir=str(cache)),
+                      f"Hugging Face download fold {fold}"))
+
+
+def prepare_dataset(rebuild: bool = False, store_raw: bool = False, source: str = "huggingface") -> dict:
+    """Convert the three folds with scripts/prepare_pannuke.py and store small zips on the Volume.
+
+    source="huggingface" reads RationAI/PanNuke parquet files; source="warwick" uses the official zips.
+    """
+    if source not in ("huggingface", "warwick"):
+        raise ValueError("source must be 'huggingface' or 'warwick'")
+    stored = dbx.remote("data", DATASET_NAME, "index.json")
     if dbx.volume().is_file(stored) and not rebuild:
         return ensure_dataset()
-    from scripts.prepare_pannuke import convert_fold
+    from scripts.prepare_pannuke import convert_fold, convert_parquet
 
     out = dataset_dir()
     if out.exists():
         shutil.rmtree(out)
     report = []
     for fold in (*TRAIN_FOLDS, *VALIDATION_FOLDS):
-        extracted = dbx.local_root() / "source" / "pannuke" / f"fold_{fold}"
-        if not extracted.is_dir():
-            with zipfile.ZipFile(ensure_pannuke_zip(fold)) as archive:
-                archive.extractall(extracted)
-        report.append(convert_fold(extracted, fold, out))
+        if source == "huggingface":
+            report.append(convert_parquet(ensure_pannuke_parquet(fold), fold, out))
+        else:
+            extracted = dbx.local_root() / "source" / "pannuke" / f"fold_{fold}"
+            if not (extracted / ".extracted").is_file():
+                with zipfile.ZipFile(ensure_pannuke_zip(fold, store_raw)) as archive:
+                    archive.extractall(extracted)
+                (extracted / ".extracted").write_text("ok\n")
+            report.append(convert_fold(extracted, fold, out))
         print(json.dumps(report[-1]), flush=True)
     (out / "report.json").write_text(json.dumps({"folds": report}, indent=2) + "\n")
-    archive = shutil.make_archive(str(out), "zip", root_dir=out.parent, base_dir=out.name)
-    dbx.volume().upload(Path(archive), stored)
-    return {"folds": report, "volume": stored}
+    index = _upload_parts(out)
+    return {"folds": report, "volume": dbx.remote("data", DATASET_NAME), "parts": len(index["parts"])}
 
 
 def ensure_dataset() -> dict:
     """Local dataset; manifests are rewritten so image paths point at this machine's copy."""
     out = dataset_dir()
     if not (out / "report.json").is_file():
-        archive = dbx.local_root() / "data" / (DATASET_NAME + ".zip")
-        archive.parent.mkdir(parents=True, exist_ok=True)
-        stored = dbx.remote("data", DATASET_NAME + ".zip")
-        if not dbx.volume().is_file(stored):
-            raise FileNotFoundError(f"{stored} not found; run 10_nunext_data first")
-        dbx.volume().download(stored, archive)
-        with zipfile.ZipFile(archive) as handle:
-            handle.extractall(archive.parent)
+        remote_dir = dbx.remote("data", DATASET_NAME)
+        if not dbx.volume().is_file(f"{remote_dir}/index.json"):
+            raise FileNotFoundError(f"{remote_dir}/index.json not found; run 10_nunext_data first")
+        index = json.loads(dbx.volume().read_text(f"{remote_dir}/index.json"))
+        staging = dbx.local_root() / "data" / (DATASET_NAME + "-download")
+        staging.mkdir(parents=True, exist_ok=True)
+        for part in index["parts"]:
+            local = staging / part["name"]
+            retry(lambda: dbx.volume().download(f"{remote_dir}/{part['name']}", local), f"Volume download {part['name']}")
+            with zipfile.ZipFile(local) as handle:
+                handle.extractall(out.parent)
+        if not (out / "report.json").is_file():
+            raise RuntimeError("Dataset parts did not contain report.json")
     for manifest in out.glob("fold*.jsonl"):
         rows = [json.loads(line) for line in manifest.read_text().splitlines() if line.strip()]
         for row in rows:
