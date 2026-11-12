@@ -31,7 +31,8 @@ VALIDATION_FOLDS = (3,)
 # Defaults for the reproduction; see nucleus_rl/nunext/README.md for which are assumptions.
 # 896 px: on PanNuke fold 3, 3-epoch SFT gave F1 0.332 at 448 px and 0.592 at 896 px; GRPO must use
 # the same input size as the SFT model it starts from.
-SFT_SETTINGS = {"bins": 256, "image_size": 896, "augmentation": "d4", "epochs": 3, "gradient_accumulation": 16,
+# train_vision: at 896 px and 3 epochs, training the vision tower raised F1 from 0.592 to 0.790.
+SFT_SETTINGS = {"bins": 256, "image_size": 896, "train_vision": True, "augmentation": "d4", "epochs": 3, "gradient_accumulation": 16,
                 "learning_rate": 1e-5, "warmup_ratio": 0.03, "radius": 12, "eval_every": 250,
                 "eval_limit": 512, "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}
 SFT_ARMS = {"nsft": {"sigma": 0.0}, "sass": {"sigma": 1.0}}
@@ -253,6 +254,41 @@ def ensure_base_model() -> str:
     """Local path of the pinned Qwen2.5-VL-3B snapshot."""
     info = dbx.ensure_model(MODEL, REVISION)
     return info["path"]
+
+
+def run_parallel(jobs: list[tuple[list, Path, str]], gpus: int) -> dict:
+    """Run single-GPU jobs (argv, local_output, remote_output) side by side, one GPU each.
+
+    Uses nucleus_rl.nunext.on_gpu to pin each job to its GPU and dbx.run_cli for logging and Volume uploads.
+    More jobs than GPUs run in waves. Their notebook output is interleaved; each job keeps its own log
+    (<remote>.log). Returns {remote_output: None or the error}; raises after all finish if any failed.
+    """
+    import threading
+
+    results = {}
+
+    def work(argv, local, remote, gpu):
+        try:
+            dbx.run_cli(["-m", "nucleus_rl.nunext.on_gpu", "--gpu", str(gpu), "--", *argv], local, remote)
+            results[remote] = None
+        except Exception as error:  # keep the other jobs running
+            results[remote] = error
+
+    for start in range(0, len(jobs), gpus):
+        wave = jobs[start:start + gpus]
+        threads = [threading.Thread(target=work, args=(argv, local, remote, gpu))
+                   for gpu, (argv, local, remote) in enumerate(wave)]
+        for thread in threads:
+            thread.start()
+            time.sleep(5)   # stagger model loading
+        for thread in threads:
+            thread.join()
+    failed = {remote: error for remote, error in results.items() if error is not None}
+    for remote, error in failed.items():
+        print(f"FAILED {remote}: {error}", flush=True)
+    if failed:
+        raise RuntimeError(f"{len(failed)} of {len(jobs)} parallel jobs failed; see their logs")
+    return results
 
 
 def ensure_run_model(remote_run: str) -> Path:

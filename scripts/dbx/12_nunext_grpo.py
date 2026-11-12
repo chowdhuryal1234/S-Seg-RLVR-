@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # 12 · NuNext reproduction: GRPO
 # MAGIC
-# MAGIC Serverless GPU **1×H100 (80 GB)**. Starts from a finished NuNext SFT run (notebook 11) and trains with the
+# MAGIC Serverless GPU **1×H100 or 8×H100**. Starts from a finished NuNext SFT run (notebook 11) and trains with the
 # MAGIC distribution-matching F1 reward (`nucleus_rl.nunext.grpo`). Arms:
 # MAGIC - `grpo`: plain GRPO. Paper: NSFT+GRPO 0.830; SASS+CoVT+GRPO 0.835.
 # MAGIC - `grpo-lvgf`: + low-variance group filtering. Paper: 0.837 (with SASS+CoVT).
@@ -10,6 +10,9 @@
 # MAGIC
 # MAGIC The paper's arms all include CoVT, which this reproduction does not implement, so compare the GRPO gain over
 # MAGIC its own SFT start rather than the absolute numbers. Watch `filtered_groups` in the log to tune `delta`.
+# MAGIC
+# MAGIC Each GRPO run uses one GPU. On 8×H100 the arm × seed runs in `ARMS` and `SEEDS` run side by side, one per GPU
+# MAGIC (more than 8 run in waves); their output is interleaved here and each keeps its own log on the Volume.
 
 # COMMAND ----------
 
@@ -37,10 +40,15 @@ dbx.configure_environment()
 import nunext_common as nx
 
 SFT_ARM = "nsft"                 # Key in runs/nunext-sft-latest.json written by notebook 11
-SFT_RUN = None                   # Or an explicit Volume run folder (string)
-STAGES = ["canary", "main"]
-ARMS = ["grpo", "grpo-lvgf-fgas"]
+SFT_RUN = "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/segrlvr/runs/nunext-sft-nsft-20261112-060031"
+STAGES = ["main"]
+ARMS = ["grpo", "grpo-lvgf", "grpo-lvgf-fgas"]
+SEEDS = [42, 43]                    # e.g. [42, 43] repeats every arm to see run-to-run noise
 SETTINGS = {}                    # Overrides of nx.GRPO_SETTINGS
+
+import torch
+GPUS = max(torch.cuda.device_count(), 1)
+print("visible GPUs:", GPUS)
 
 nx.ensure_dataset()
 sft_run = SFT_RUN or dbx.read_json_remote(dbx.remote("runs", "nunext-sft-latest.json"))[SFT_ARM]
@@ -48,8 +56,10 @@ init = nx.ensure_run_model(sft_run)
 print("init model:", sft_run)
 
 
-def argv(arm, output, canary=False):
+def argv(arm, output, canary=False, seed=None):
     settings = {**nx.GRPO_SETTINGS, **SETTINGS, **nx.GRPO_ARMS[arm], **(nx.GRPO_CANARY if canary else {})}
+    if seed is not None:
+        settings["seed"] = seed
     return ["-m", "nucleus_rl.nunext.grpo", "--init-model", init, "--output", output,
             *[a for m in nx.manifests(nx.TRAIN_FOLDS) for a in ("--train-manifest", m)],
             *[a for m in nx.manifests(nx.VALIDATION_FOLDS) for a in ("--eval-manifest", m)],
@@ -80,8 +90,18 @@ if "canary" in STAGES:
 # COMMAND ----------
 
 if "main" in STAGES:
+    tag = sft_run.rstrip("/").split("/")[-1].replace("nunext-sft-", "")
+    jobs = []
     for arm in ARMS:
-        local, remote = dbx.new_run_dirs(f"nunext-{arm}-from-{SFT_ARM}")
-        dbx.run_cli(argv(arm, local), local, remote)
+        for seed in SEEDS:
+            local, remote = dbx.new_run_dirs(f"nunext-{arm}-s{seed}-from-{tag}")
+            jobs.append((argv(arm, local, seed=seed), local, remote))
+    print(f"{len(jobs)} GRPO runs on {GPUS} GPU(s)")
+    if GPUS > 1 and len(jobs) > 1:
+        nx.run_parallel(jobs, GPUS)
+    else:
+        for job_argv, local, remote in jobs:
+            dbx.run_cli(job_argv, local, remote)
+    for _, local, remote in jobs:
+        print("==", remote)
         show(local)
-        print("Volume:", remote)

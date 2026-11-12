@@ -246,6 +246,34 @@ class PanNukeParquet(unittest.TestCase):
         self.assertEqual(a["classes"], b["classes"])
 
 
+class ParallelRuns(unittest.TestCase):
+    def test_on_gpu_sets_visible_devices(self):
+        import subprocess, sys
+        out = subprocess.run([sys.executable, "-m", "nucleus_rl.nunext.on_gpu", "--gpu", "5", "--", "-c",
+                              "import os; print(os.environ['CUDA_VISIBLE_DEVICES'])"],
+                             capture_output=True, text=True, timeout=60)
+        self.assertEqual(out.stdout.strip(), "5")
+
+    def test_run_parallel_assigns_gpus_in_waves_and_reports_failures(self):
+        import sys
+        from unittest import mock
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts" / "dbx"))
+        import nunext_common as nx
+        calls = []
+
+        def fake_run_cli(argv, local, remote):
+            calls.append((argv[argv.index("--gpu") + 1], remote))
+            if remote == "r3":
+                raise RuntimeError("boom")
+
+        jobs = [(["-m", "x"], Path(f"l{i}"), f"r{i}") for i in range(5)]
+        with mock.patch.object(nx.dbx, "run_cli", fake_run_cli), mock.patch.object(nx.time, "sleep", lambda s: None):
+            with self.assertRaises(RuntimeError):
+                nx.run_parallel(jobs, gpus=2)
+        self.assertEqual(sorted(calls, key=lambda c: c[1]),
+                         [("0", "r0"), ("1", "r1"), ("0", "r2"), ("1", "r3"), ("0", "r4")])
+
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

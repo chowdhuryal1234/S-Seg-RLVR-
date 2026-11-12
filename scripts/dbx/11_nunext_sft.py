@@ -1,6 +1,7 @@
 # Databricks notebook source
 # /// script
 # [tool.databricks.environment]
+# base_environment = "databricks_ai_v6"
 # environment_version = "6"
 # ///
 # MAGIC %md
@@ -48,7 +49,7 @@ import nunext_common as nx
 
 STAGES = ["main"]      # Drop "canary" once it has passed here.
 ARMS = ["nsft"]          # Run one after another; "nsft" alone answers the first question.
-SETTINGS = {"image_size": 896, "epochs": 10, "eval_every": 500}               # Overrides of nx.SFT_SETTINGS, e.g. {"epochs": 1}
+SETTINGS = {"image_size": 896, "train_vision": True, "epochs": 10, "eval_every": 500}              # Overrides of nx.SFT_SETTINGS, e.g. {"epochs": 1}
 
 EFFECTIVE_BATCH = 16           # Images per optimizer step across all GPUs
 
