@@ -29,14 +29,16 @@ TRAIN_FOLDS = (1, 2)          # Paper: folds 1 and 2 train, fold 3 internal vali
 VALIDATION_FOLDS = (3,)
 
 # Defaults for the reproduction; see nucleus_rl/nunext/README.md for which are assumptions.
-SFT_SETTINGS = {"bins": 256, "image_size": 448, "augmentation": "d4", "epochs": 3, "gradient_accumulation": 16,
+# 896 px: on PanNuke fold 3, 3-epoch SFT gave F1 0.332 at 448 px and 0.592 at 896 px; GRPO must use
+# the same input size as the SFT model it starts from.
+SFT_SETTINGS = {"bins": 256, "image_size": 896, "augmentation": "d4", "epochs": 3, "gradient_accumulation": 16,
                 "learning_rate": 1e-5, "warmup_ratio": 0.03, "radius": 12, "eval_every": 250,
                 "eval_limit": 512, "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}
 SFT_ARMS = {"nsft": {"sigma": 0.0}, "sass": {"sigma": 1.0}}
 SFT_CANARY = {"max_steps": 20, "gradient_accumulation": 2, "train_limit": 64, "final_eval_limit": 32,
               "eval_every": 0, "skip_before_eval": True, "skip_save": True}
 
-GRPO_SETTINGS = {"bins": 256, "image_size": 448, "augmentation": "d4", "radius": 12, "group_size": 8,
+GRPO_SETTINGS = {"bins": 256, "image_size": 896, "augmentation": "d4", "radius": 12, "group_size": 8,
                  "prompts_per_step": 4, "rollout_batch": 4, "temperature": 1.0, "learning_rate": 1e-6,
                  "warmup_steps": 10, "beta": 0.04, "max_steps": 500, "eval_every": 100, "eval_limit": 512,
                  "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}

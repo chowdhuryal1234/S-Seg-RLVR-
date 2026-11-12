@@ -40,6 +40,8 @@ def build_parser():
     p.add_argument("--weight-decay", type=float, default=0.0)
     p.add_argument("--max-grad-norm", type=float, default=1.0)
     p.add_argument("--train-merger", action="store_true", help="Also train the vision-language merger")
+    p.add_argument("--train-vision", action="store_true",
+                   help="Train the whole vision tower (encoder and merger) as well; frozen by default")
     p.add_argument("--max-sequence-length", type=int, default=2048)
     p.add_argument("--radius", type=float, default=12.0, help="Detection match threshold in pixels")
     p.add_argument("--eval-every", type=int, default=250, help="Optimizer steps; 0 = only before/after")
@@ -103,7 +105,8 @@ def run(args):
     periodic = validation[:args.eval_limit] if args.eval_limit else validation
 
     model, processor, first_id = load_policy(args.model, args.revision, bins=args.bins, dtype="float32",
-                                             device=device, train_merger=args.train_merger, coord_init=args.coord_init)
+                                             device=device, train_merger=args.train_merger, coord_init=args.coord_init,
+                                             freeze_vision=not args.train_vision)
     dist.broadcast_parameters(model)
     kernel = gaussian_targets(args.bins, args.sigma, device=model.device)
     trainable = [p for p in model.parameters() if p.requires_grad]
