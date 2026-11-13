@@ -136,8 +136,17 @@ class MixedManifestTests(unittest.TestCase):
             self.run_main(dense_train, dense_val, "--max-objects", "8")
         captured, _ = self.run_main(dense_train, dense_val, "--max-objects", "32")
         self.assertEqual(len(captured["rows"]), 4)
+        captured, _ = self.run_main(sparse_train, dense_val, "--max-objects", "176")
+        self.assertEqual(captured["args"].max_objects, 176)
         with self.assertRaises(ValueError):
-            self.run_main(sparse_train, dense_val, "--max-objects", "33")
+            self.run_main(sparse_train, dense_val, "--max-objects", "257")
+
+    def test_validation_denser_than_the_answer_cap_is_scored_not_rejected(self):
+        # 20 GT nuclei with an answer cap of 8: the validation crop is kept (GT is never dropped).
+        dense_val = self.write("val.jsonl", [self.monuseg("dense-val", self.sources[1], "validation", count=20,
+                                                          color=(1, 2, 3))])
+        captured, _ = self.run_main(self.mixed_train(), dense_val, "--max-objects", "8")
+        self.assertEqual(len(captured["validation"]), 1)
 
 
 class DatasetCountTests(unittest.TestCase):
