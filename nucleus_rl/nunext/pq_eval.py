@@ -15,6 +15,11 @@ Inference-only variants for point prompts: --negatives K adds the K nearest othe
 --mask-choice smallest keeps the smallest non-empty of SAM's three candidate masks instead of the
 highest-scoring one (a single point is ambiguous between a nucleus, a cluster and the tissue).
 
+--pseudo-box turns each point into a box + point prompt without any box prediction: a square around
+the point with half-side clip(scale x distance to the nearest other point, min, max), clipped to the
+image (min = max gives a fixed size). On PanNuke fold 3 the true half-extent from the centroid has
+median 13.8 px (10th-90th percentile 7.6-22.5) and the nearest-neighbour distance median 27 px.
+
 Reported: dataset-level PQ = sum of matched IoU / (TP + FP/2 + FN/2) over all images (with DQ and
 SQ), and the mean per-image PQ over images that have at least one annotated nucleus.
 Runs sharded over GPUs when started by nucleus_rl.nunext.launch.
@@ -77,6 +82,20 @@ def oracle_boxes(reference: np.ndarray, count: int) -> list[tuple[float, float, 
     return boxes
 
 
+def pseudo_boxes(points, width: int, height: int, scale: float, low: float, high: float):
+    """Square box per point, half-side clip(scale * nearest-neighbour distance, low, high), inside the image."""
+    if not 0 < low <= high:
+        raise ValueError("Need 0 < pseudo-box min <= max")
+    array = np.asarray(points, dtype=float).reshape(-1, 2)
+    boxes = []
+    for index, (x, y) in enumerate(array):
+        distances = np.hypot(*(array - (x, y)).T)
+        distances[index] = np.inf
+        half = float(np.clip(scale * distances.min(), low, high)) if np.isfinite(distances.min()) else high
+        boxes.append((max(0.0, x - half), max(0.0, y - half), min(float(width), x + half), min(float(height), y + half)))
+    return boxes
+
+
 def prompts_for(row: dict, mode: str, predictions: dict | None, reference: np.ndarray):
     if mode == "pred-point":
         if row["id"] not in predictions:
@@ -86,7 +105,8 @@ def prompts_for(row: dict, mode: str, predictions: dict | None, reference: np.nd
     return points, (oracle_boxes(reference, len(points)) if mode == "oracle-box" else None)
 
 
-def score_image(row: dict, mode: str, predictions, segment, negatives: int = 0, radius: float = 32.0) -> dict:
+def score_image(row: dict, mode: str, predictions, segment, negatives: int = 0, radius: float = 32.0,
+                pseudo_box: tuple[float, float, float] | None = None) -> dict:
     """segment(image (H,W,3) uint8, points [(x,y)], boxes or None, negatives or None) -> (masks (N,H,W), scores (N,))."""
     from PIL import Image
     from nucleus_rl.rewards import instance_metrics, masks_to_instances
@@ -95,6 +115,8 @@ def score_image(row: dict, mode: str, predictions, segment, negatives: int = 0, 
     reference = np.asarray(Image.open(row["mask_path"])).astype(np.int64)
     points, boxes = prompts_for(row, mode, predictions, reference)
     height, width = reference.shape
+    if pseudo_box is not None and boxes is None and points:
+        boxes = pseudo_boxes(points, width, height, *pseudo_box)
     if points:
         masks, scores = segment(image, points, boxes, negative_points(points, negatives, radius))
         instances = masks_to_instances(np.asarray(masks, dtype=np.float32), scores=np.asarray(scores))
@@ -165,8 +187,8 @@ def prompt_arrays(points, negatives=None):
     return coords, labels
 
 
-def run(rows, mode, predictions, segment, rank=0, world=1, negatives=0, radius=32.0) -> list[dict]:
-    return [score_image(row, mode, predictions, segment, negatives, radius) for row in rows[rank::world]]
+def run(rows, mode, predictions, segment, rank=0, world=1, negatives=0, radius=32.0, pseudo_box=None) -> list[dict]:
+    return [score_image(row, mode, predictions, segment, negatives, radius, pseudo_box) for row in rows[rank::world]]
 
 
 def main(argv=None):
@@ -185,6 +207,10 @@ def main(argv=None):
     parser.add_argument("--negatives", type=int, default=0, help="Nearest other points sent as negative prompts")
     parser.add_argument("--negative-radius", type=float, default=32.0, help="Only neighbours within this many px")
     parser.add_argument("--mask-choice", choices=MASK_CHOICES, default="score")
+    parser.add_argument("--pseudo-box", action="store_true", help="Add a box built from the point (point modes)")
+    parser.add_argument("--pseudo-box-scale", type=float, default=0.7, help="Half-side = scale x nearest-neighbour distance")
+    parser.add_argument("--pseudo-box-min", type=float, default=8.0, help="Smallest half-side, px")
+    parser.add_argument("--pseudo-box-max", type=float, default=22.0, help="Largest half-side, px")
     args = parser.parse_args(argv)
     if args.mode == "pred-point" and not args.predictions:
         parser.error("--predictions is required for pred-point")
@@ -199,14 +225,16 @@ def main(argv=None):
         predictions = {r["id"]: r["pred"] if r.get("valid", True) else [] for r in records}
     started = time.time()
     segment = SAMSegmenter(args.sam_checkpoint, args.sam_config, device, args.chunk, args.mask_choice)
+    pseudo = (args.pseudo_box_scale, args.pseudo_box_min, args.pseudo_box_max) if args.pseudo_box else None
     records = dist.gather_objects(run(rows, args.mode, predictions, segment, dist.rank(), dist.world_size(),
-                                      args.negatives, args.negative_radius))
+                                      args.negatives, args.negative_radius, pseudo))
     if dist.is_main():
         order = {row["id"]: i for i, row in enumerate(rows)}
         records.sort(key=lambda r: order[r["id"]])
         summary = {"mode": args.mode, "sam_checkpoint": args.sam_checkpoint, "sam_config": args.sam_config,
                    "predictions": args.predictions, "negatives": args.negatives,
-                   "negative_radius": args.negative_radius, "mask_choice": args.mask_choice, **summarize(records),
+                   "negative_radius": args.negative_radius, "mask_choice": args.mask_choice,
+                   "pseudo_box": list(pseudo) if pseudo else None, **summarize(records),
                    "seconds": round(time.time() - started, 1)}
         output = Path(args.output)
         output.mkdir(parents=True, exist_ok=True)

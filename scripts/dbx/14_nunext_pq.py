@@ -12,6 +12,7 @@
 # MAGIC
 # MAGIC `VARIANTS` are inference-only fixes for point prompts: `negatives` sends the nearest other points (within 32 px)
 # MAGIC as negative prompts; `mask_choice: smallest` keeps SAM's smallest candidate mask instead of its top-scored one.
+# MAGIC `pseudo_box` adds a square box around each point, sized from the distance to the nearest other point.
 # MAGIC Box prompts always run as the baseline. First result (2026-11-13, no variants): oracle-point PQ 0.51,
 # MAGIC oracle-box 0.82, pred-point 0.50–0.52, tiny and large within 0.01.
 # MAGIC
@@ -48,10 +49,12 @@ import torch
 RUN = dbx.remote("runs", "nunext-sft-nsft-20261112-060031")   # whose eval-final/predictions.jsonl to segment
 MODES = ["oracle-point", "pred-point"]                         # add "oracle-box" for the box ceiling
 SAM_SIZES = ["tiny"]                                           # large was within 0.01 of tiny
-VARIANTS = {"baseline": {},
-            "smallest": {"mask_choice": "smallest"},
-            "neg4": {"negatives": 4},
-            "neg4-smallest": {"negatives": 4, "mask_choice": "smallest"}}
+# Second round (2026-11-13): best point-only variant so far + pseudo boxes built from the points.
+# First round on fold 3: baseline 0.506 / 0.502 (oracle / predicted points), neg4-smallest 0.631 / 0.558.
+VARIANTS = {"neg4-smallest": {"negatives": 4, "mask_choice": "smallest"},
+            "pbox-fixed14": {"pseudo_box": True, "pseudo_box_min": 14, "pseudo_box_max": 14},
+            "pbox-nn": {"pseudo_box": True},
+            "pbox-nn-neg4": {"pseudo_box": True, "negatives": 4}}
 LIMIT = None                                                   # e.g. 256 for a quick check
 
 GPUS = max(torch.cuda.device_count(), 1)

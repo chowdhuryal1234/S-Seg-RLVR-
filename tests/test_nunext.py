@@ -306,6 +306,15 @@ class PanopticQuality(unittest.TestCase):
         self.assertIsNone(negative_points(points, 0, 12))
         self.assertEqual(prompt_arrays(points, None)[1].shape, (4, 1))
 
+    def test_pseudo_boxes(self):
+        from nucleus_rl.nunext.pq_eval import pseudo_boxes
+        boxes = pseudo_boxes([(20, 20), (40, 20), (250, 250)], 256, 256, 0.7, 8, 12)
+        self.assertEqual(boxes[0], (8.0, 8.0, 32.0, 32.0))          # 0.7 x 20 = 14 -> capped at 12
+        self.assertEqual(boxes[2], (238.0, 238.0, 256.0, 256.0))    # clipped to the image
+        tight = pseudo_boxes([(20, 20), (30, 20)], 256, 256, 0.7, 8, 12)
+        self.assertEqual(tight[0], (12.0, 12.0, 28.0, 28.0))        # 0.7 x 10 = 7 -> raised to 8
+        self.assertEqual(pseudo_boxes([(5, 5)], 64, 64, 0.7, 8, 12), [(0.0, 0.0, 17.0, 17.0)])  # alone: max
+
     def test_point_prompts_to_pq(self):
         from PIL import Image
         from nucleus_rl.nunext.pq_eval import score_image, summarize
