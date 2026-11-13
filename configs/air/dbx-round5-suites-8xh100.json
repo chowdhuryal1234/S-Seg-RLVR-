@@ -1,0 +1,21 @@
+{
+  "name": "dbx-round5-suites-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 600,
+  "sync_minutes": 10,
+  "stagger_seconds": 30,
+  "prefetch_models": true,
+  "purpose": "Round 5: per-dataset sparse suites (170 tiles) for 8 Databricks GRPO finals, so seed replicates can be compared over MoNuSeg+CoNSeP+PUMA.",
+  "lanes": [
+    "configs/air/dbx5-suite-g5s43-wpq.json",
+    "configs/air/dbx5-suite-g6s43-g16.json",
+    "configs/air/dbx5-suite-g6s44-g16.json",
+    "configs/air/dbx5-suite-g6wpq-g16-wpq.json",
+    "configs/air/dbx5-suite-g6clean-g16-clean.json",
+    "configs/air/dbx5-suite-g6i4-g16.json",
+    "configs/air/dbx5-suite-g5clean-wpq.json",
+    "configs/air/dbx5-suite-g5w46-wpq04-06.json"
+  ]
+}

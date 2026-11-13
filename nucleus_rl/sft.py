@@ -34,6 +34,9 @@ def build_parser():
     parser.add_argument("--coordinate-frame", choices=("processed", "normalized1000"), default="processed")
     parser.add_argument("--augmentation", choices=("none", "d4", "d4_stain"), default="none",
                         help="d4_stain adds seeded H&E colour jitter to every training view")
+    parser.add_argument("--d4-schedule", choices=("epoch", "rotating"), default="epoch",
+                        help="epoch: every tile uses view epoch%%8 (needs >=8 epochs to see all views); "
+                             "rotating: tile i uses view (epoch+i)%%8, so views stay balanced in short schedules")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-steps", type=int, default=512)
     parser.add_argument("--eval-every", type=int, default=128)
@@ -51,6 +54,8 @@ def build_parser():
     parser.add_argument("--max-pixels", type=int, default=448 * 448)
     parser.add_argument("--train-limit", type=int, help="Explicit canary-only training subset size")
     parser.add_argument("--eval-limit", type=int, help="Explicit canary-only validation subset size")
+    parser.add_argument("--skip-before-eval", action="store_true",
+                        help="Skip the initial validation pass (as in grpo.py); summary 'before' is then null")
     parser.add_argument("--fixed-loss-examples", type=int, default=4)
     parser.add_argument("--wall-time-minutes", type=float, help="Training-stage soft limit; reserve time for final evaluation")
     parser.add_argument("--resume-from-checkpoint")
@@ -79,14 +84,22 @@ def validate_args(args):
         raise ValueError("SFT runner is single-process, single-GPU")
 
 
-def exposure_for_index(index, row_count, seed, augmentation):
-    """Paired base-image order, with each D4 view seen once per eight epochs."""
-    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain"):
+def exposure_for_index(index, row_count, seed, augmentation, schedule="epoch"):
+    """Paired base-image order, with each D4 view seen once per eight epochs.
+
+    schedule="epoch" keeps the original contract (view = epoch % 8). schedule="rotating" offsets the view by the
+    row index, so every epoch already covers all eight views evenly and each row still cycles through all eight.
+    """
+    if index < 0 or row_count <= 0 or augmentation not in ("none", "d4", "d4_stain") \
+            or schedule not in ("epoch", "rotating"):
         raise ValueError("Invalid exposure schedule")
     epoch, offset = divmod(index, row_count)
     order = list(range(row_count))
     random.Random(seed + epoch).shuffle(order)
-    return order[offset], (epoch % 8 if augmentation != "none" else 0)
+    row = order[offset]
+    if augmentation == "none":
+        return row, 0
+    return row, ((epoch + row) % 8 if schedule == "rotating" else epoch % 8)
 
 
 def stain_seed(index, seed, augmentation):
@@ -321,6 +334,24 @@ def evaluate_policy(model, processor, rows, segmenter, directory, args):
     return summary
 
 
+def before_evaluation(model, processor, validation, segmenter, output, args):
+    """Initial validation pass, or (None, 0.0) with --skip-before-eval, matching grpo.py."""
+    if args.skip_before_eval:
+        return None, 0.0
+    started = time.monotonic()
+    summary = evaluate_policy(model, processor, validation, segmenter, Path(output) / "before", args)
+    return summary, time.monotonic() - started
+
+
+def dataset_counts(rows):
+    """Rows per source dataset; MoNuSeg manifests predate the `dataset` field."""
+    counts = {}
+    for row in rows:
+        name = row.get("dataset", "monuseg")
+        counts[name] = counts.get(name, 0) + 1
+    return dict(sorted(counts.items()))
+
+
 def fixed_training_loss(model, processor, rows, args):
     import torch
     from nucleus_rl.sft_data import prepare_example
@@ -356,7 +387,10 @@ def run(args, rows, validation, audit, output):
                      "warmup_steps", "lora_rank", "lora_alpha", "lora_dropout", "coordinate_frame",
                      "augmentation", "max_sequence_length", "max_completion_length", "max_objects",
                      "min_pixels", "max_pixels", "eval_every", "save_steps", "train_limit", "eval_limit")
-    contract = {"config": {key: getattr(args, key) for key in contract_keys},
+    config = {key: getattr(args, key) for key in contract_keys}
+    if getattr(args, "d4_schedule", "epoch") != "epoch":
+        config["d4_schedule"] = args.d4_schedule  # absent for the original schedule, so old contracts stay identical
+    contract = {"config": config,
                 "train_data": dataset_identity(rows), "validation_data": dataset_identity(validation),
                 "data_audit": audit, "sam_checkpoint_sha256": file_digest(args.sam_checkpoint),
                 "sam_config": args.sam_config, "packages": _package_versions(),
@@ -407,7 +441,9 @@ def run(args, rows, validation, audit, output):
                 "loss": "per-example mean assistant-answer-and-end-token cross entropy",
                 "optimizer": "AdamW", "scheduler": "linear warmup then constant LR", "thinking": False,
                 "scope": "canary" if args.train_limit or args.eval_limit else "main",
-                "before_is_resume_checkpoint": bool(args.resume_from_checkpoint)}
+                "before_is_resume_checkpoint": bool(args.resume_from_checkpoint),
+                "before_evaluation_skipped": bool(args.skip_before_eval),
+                "train_datasets": dataset_counts(rows), "validation_datasets": dataset_counts(validation)}
     json_write(output / "metadata.json", metadata)
     json_write(output / "contract.json", contract)
     json_write(output / "arguments.json", vars(args))
@@ -424,9 +460,7 @@ def run(args, rows, validation, audit, output):
     json_write(output / "d4_collator_audit.json", d4_collator_audit)
     # SAM stays frozen. CPU mode leaves its parameters off the training GPU.
     segmenter = FrozenSAM2(args.sam_checkpoint, args.sam_config, device=args.sam_device)
-    eval_started = time.monotonic()
-    before = evaluate_policy(model, processor, validation, segmenter, output / "before", args)
-    before_seconds = time.monotonic() - eval_started
+    before, before_seconds = before_evaluation(model, processor, validation, segmenter, output, args)
     fixed_before = fixed_training_loss(model, processor, rows, args)
     json_write(output / "fixed_training_loss_before.json", fixed_before)
     if not args.resume_from_checkpoint:
@@ -454,7 +488,7 @@ def run(args, rows, validation, audit, output):
         losses, tokens, exposures = [], [], []
         for micro in range(args.gradient_accumulation):
             index = step_index * args.gradient_accumulation + micro
-            row_index, transform = exposure_for_index(index, len(rows), args.seed, args.augmentation)
+            row_index, transform = exposure_for_index(index, len(rows), args.seed, args.augmentation, args.d4_schedule)
             row = rows[row_index]
             example = prepare_example(row, processor, augmentation_id=transform,
                                       coordinate_frame=args.coordinate_frame, max_objects=args.max_objects,
@@ -544,6 +578,7 @@ def run(args, rows, validation, audit, output):
               "mean_optimizer_step_seconds": sum(step_seconds) / len(step_seconds),
               "peak_gpu_allocated_bytes": peak_allocated, "peak_gpu_reserved_bytes": peak_reserved,
               "before_evaluation_seconds": before_seconds, "after_evaluation_seconds": after_seconds,
+              "before_evaluation_skipped": bool(args.skip_before_eval),
               "adapter_changed": True, "adapter_sha256_before": initial_adapter_hash,
               "adapter_sha256_after": final_adapter_hash, "vision_sha256_before": initial_visual_hash,
               "vision_sha256_after": final_visual_hash, "frozen_base_versions_unchanged": True,
@@ -590,7 +625,10 @@ def main(argv=None):
         output.mkdir(parents=True, exist_ok=True)
         owns_output = True
         json_write(output / "preflight.json", {"status": "passed_before_gpu_load", "audit": audit,
-                                               "selected_train": len(rows), "selected_validation": len(validation)})
+                                               "selected_train": len(rows), "selected_validation": len(validation),
+                                               "train_datasets": dataset_counts(rows),
+                                               "validation_datasets": dataset_counts(validation),
+                                               "skip_before_eval": args.skip_before_eval})
         return run(args, rows, validation, audit, output)
     except Exception as error:
         if owns_output:

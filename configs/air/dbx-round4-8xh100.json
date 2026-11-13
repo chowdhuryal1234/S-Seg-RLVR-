@@ -1,0 +1,19 @@
+{
+  "name": "dbx-round4-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 1200,
+  "sync_minutes": 10,
+  "stagger_seconds": 60,
+  "prefetch_models": true,
+  "purpose": "Round 4: stain-augmentation replicates (dense s43/s44, sparse s42/s43) and per-dataset suites of dense SFT finals.",
+  "lanes": [
+    "configs/air/dbx4-s3dense-stain-s43.json",
+    "configs/air/dbx4-s3dense-stain-s44.json",
+    "configs/air/dbx4-s2sparse-stain-s42.json",
+    "configs/air/dbx4-s2sparse-stain-s43.json",
+    "configs/air/dbx4-suite-s3dense-stain-s42.json",
+    "configs/air/dbx4-suite-s3dense-s43.json"
+  ]
+}

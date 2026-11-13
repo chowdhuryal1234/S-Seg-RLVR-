@@ -1,0 +1,19 @@
+{
+  "name": "dbx-round3-8xh100",
+  "volume": "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/conny",
+  "accelerator": "GPU_8xH100",
+  "num_accelerators": 8,
+  "timeout_minutes": 1200,
+  "sync_minutes": 10,
+  "stagger_seconds": 60,
+  "prefetch_models": true,
+  "purpose": "Round 3: dense trusted-mix SFT (cap 32) x3 seeds, 1024 steps, d4_stain; dense suite for G5 final.",
+  "lanes": [
+    "configs/air/dbx3-s3dense-s42.json",
+    "configs/air/dbx3-s3dense-s43.json",
+    "configs/air/dbx3-s3dense-s44.json",
+    "configs/air/dbx3-s3dense-1024-s42.json",
+    "configs/air/dbx3-s3dense-stain-s42.json",
+    "configs/air/dbx3-suite-g5final-dense.json"
+  ]
+}

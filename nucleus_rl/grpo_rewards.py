@@ -3,6 +3,10 @@
 Every component lies in [0, 1] and is zero for an unparsable completion. The
 training reward is a weighted sum chosen on the command line, e.g.
 ``format=1,pq=1``. Instance maps and raw masks are in original crop pixels.
+
+``wpq`` is PQ with its false-positive and false-negative weights exposed:
+sum of matched IoU / (TP + w_fp*FP + w_fn*FN), same IoU > 0.5 matching. At
+w_fp = w_fn = 0.5 it equals ``pq`` exactly; w_fn > w_fp favours recall.
 """
 from __future__ import annotations
 
@@ -14,7 +18,8 @@ import numpy as np
 from nucleus_rl.ablation_metrics import duplicate_metrics
 from nucleus_rl.rewards import foreground_iou, instance_metrics
 
-COMPONENTS = ("format", "fg_iou", "pq", "count", "separation")
+COMPONENTS = ("format", "fg_iou", "pq", "count", "separation", "wpq")
+PQ_ERROR_WEIGHT = 0.5  # the FP and FN weight inside standard PQ
 
 
 def parse_reward_spec(spec: str) -> dict[str, float]:
@@ -62,9 +67,35 @@ def merge_extras(raw_masks: Any, reference: Any, coverage: float = 0.5) -> int:
     return extras
 
 
+def check_wpq_weights(fp_weight: float, fn_weight: float) -> None:
+    for name, weight in (("wpq FP weight", fp_weight), ("wpq FN weight", fn_weight)):
+        if isinstance(weight, bool) or not math.isfinite(weight) or weight <= 0:
+            raise ValueError(f"{name} must be finite and positive: {weight!r}")
+
+
+def weighted_pq(metrics: Mapping[str, Any], fp_weight: float = PQ_ERROR_WEIGHT,
+                fn_weight: float = PQ_ERROR_WEIGHT) -> float:
+    """Re-weight ``instance_metrics`` PQ: matched IoU / (TP + fp_weight*FP + fn_weight*FN).
+
+    Matched IoU sum = pq * standard denominator, so the result is pq rescaled by
+    the ratio of denominators; the ratio is exactly 1.0 at the standard weights.
+    Both denominators are zero only when prediction and reference are both
+    empty, where PQ is 1 and so is this.
+    """
+    check_wpq_weights(fp_weight, fn_weight)
+    tp, fp, fn = metrics["tp"], metrics["fp"], metrics["fn"]
+    standard = tp + PQ_ERROR_WEIGHT * fp + PQ_ERROR_WEIGHT * fn
+    weighted = tp + fp_weight * fp + fn_weight * fn
+    if not weighted:
+        return float(metrics["pq"])
+    return float(metrics["pq"]) * (standard / weighted)
+
+
 def reward_components(valid: bool, object_count: int, instances: Any, raw_masks: Any,
-                      reference: Any) -> dict[str, float]:
+                      reference: Any, wpq_fp_weight: float = PQ_ERROR_WEIGHT,
+                      wpq_fn_weight: float = PQ_ERROR_WEIGHT) -> dict[str, float]:
     """All components for one completion; invalid or empty answers earn nothing."""
+    check_wpq_weights(wpq_fp_weight, wpq_fn_weight)
     if not valid or object_count == 0:
         return {name: (1.0 if name == "format" and valid else 0.0) for name in COMPONENTS}
     metrics = instance_metrics(instances, reference)
@@ -78,6 +109,7 @@ def reward_components(valid: bool, object_count: int, instances: Any, raw_masks:
         "pq": float(metrics["pq"]),
         "count": 1.0 - min(abs(metrics["pred_count"] - gt_count) / max(gt_count, 1), 1.0),
         "separation": max(0.0, 1.0 - mistakes / raw_count),
+        "wpq": weighted_pq(metrics, wpq_fp_weight, wpq_fn_weight),
     }
 
 

@@ -110,5 +110,99 @@ class GRPOBatchTests(unittest.TestCase):
             self.assertTrue(torch.allclose(values, expected.expand(1, 2)), values)
 
 
+class GroundTruthGuidanceTests(unittest.TestCase):
+    def args(self, *flags):
+        return GRPOArgumentTests.args(self, *flags)
+
+    def test_flags(self):
+        args = self.args("--gt-members", "1")
+        validate_args(args)
+        self.assertEqual((args.gt_members, args.gt_shaping, args.gt_gamma), (1, "luffy", 0.1))
+        for flags in (("--gt-members", "-1"), ("--gt-gamma", "0"),
+                      ("--gt-members", "1", "--objective", "sft", "--group-size", "1")):
+            with self.subTest(flags=flags), self.assertRaises(ValueError):
+                validate_args(self.args(*flags))
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "needs torch")
+    def test_terms(self):
+        import torch
+        from types import SimpleNamespace
+        from nucleus_rl.grpo import group_terms
+        args = SimpleNamespace(beta=0.04, gt_shaping="luffy", gt_gamma=0.1)
+        logp = torch.log(torch.tensor([[0.5, 0.2], [0.9, 0.01]])).requires_grad_(True)
+        ref = torch.log(torch.tensor([[0.4, 0.3], [0.5, 0.5]]))
+        adv = torch.tensor([[1.0], [2.0]])
+        # Without off-policy rows the terms equal the original GRPO expression.
+        plain, kl = group_terms(logp, ref, adv, None, args)
+        delta = ref - logp
+        expected = -torch.exp(logp - logp.detach()) * adv + 0.04 * (torch.exp(delta) - delta - 1)
+        self.assertTrue(torch.allclose(plain, expected))
+        self.assertTrue(torch.allclose(group_terms(logp, ref, adv, [False, False], args)[0], expected))
+        # Row 1 is a ground-truth answer: value -A * p/(p+gamma), no KL, gradient A*gamma*p/(p+gamma)^2 wrt logp.
+        terms, kl = group_terms(logp, ref, adv, [False, True], args)
+        p = torch.tensor([0.9, 0.01])
+        self.assertTrue(torch.allclose(terms[0], expected[0]))
+        self.assertTrue(torch.allclose(terms[1], -2.0 * p / (p + 0.1)))
+        self.assertTrue(torch.equal(kl[1], torch.zeros(2)))
+        terms[1].sum().backward()
+        self.assertTrue(torch.allclose(logp.grad[1], -2.0 * 0.1 * p / (p + 0.1) ** 2))
+        # shaping=none: plain policy gradient on the ground-truth row, still without KL.
+        logp.grad = None
+        args.gt_shaping = "none"
+        terms, kl = group_terms(logp, ref, adv, [False, True], args)
+        terms[1].sum().backward()
+        self.assertTrue(torch.allclose(logp.grad[1], torch.tensor([-2.0, -2.0])))
+        self.assertTrue(torch.equal(kl[1], torch.zeros(2)))
+
+    @unittest.skipUnless(TORCH_AVAILABLE, "needs torch")
+    def test_chunked_backward_matches_single_pass_with_gt_rows(self):
+        import torch
+        from types import SimpleNamespace
+        from nucleus_rl.grpo import group_backward
+
+        class Toy(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                torch.manual_seed(0)
+                self.embed = torch.nn.Embedding(12, 6)
+                self.head = torch.nn.Linear(6, 12)
+                self.device = torch.device("cpu")
+                self.adapter_on = True
+
+            def forward(self, input_ids, use_cache=False, logits_to_keep=None, **_):
+                logits = self.head(self.embed(input_ids)) * (1.0 if self.adapter_on else 0.5)
+                return type("Output", (), {"logits": logits})()
+
+            def disable_adapter(self):
+                model = self
+
+                class Context:
+                    def __enter__(self):
+                        model.adapter_on = False
+
+                    def __exit__(self, *exc):
+                        model.adapter_on = True
+                return Context()
+
+        inputs = {"input_ids": torch.tensor([[1, 2, 3]]), "attention_mask": torch.ones(1, 3, dtype=torch.long)}
+        rows = [[4, 5], [6], [7, 8, 9], [4, 10]]
+        advantages = [0.5, -1.0, 0.2, 1.3]
+        offpolicy = [False, False, False, True]
+        grads = []
+        for chunk in (None, 2, 1):
+            model = Toy()
+            args = SimpleNamespace(backward_chunk=chunk, temperature=1.0, beta=0.04, prompts_per_step=1,
+                                   gt_shaping="luffy", gt_gamma=0.1)
+            loss, kl = group_backward(model, inputs, rows, advantages, 0, False, args, offpolicy=offpolicy)
+            grads.append(torch.cat([p.grad.flatten() for p in model.parameters()]))
+            if chunk is None:
+                first = (loss, kl)
+            else:
+                self.assertAlmostEqual(loss, first[0], places=5)
+                self.assertAlmostEqual(kl, first[1], places=5)
+        for other in grads[1:]:
+            self.assertTrue(torch.allclose(grads[0], other, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
