@@ -125,3 +125,61 @@ def validate_training_rows(rows: list[dict[str, Any]], cohort: dict[str, Any] | 
             "selected_patient_ids": sorted({r["patient_id"] for r in rows}),
             "all_rows_train": True,
             "scope": "Source identity and split metadata only; no validation/test rows, pixel-content verification, or performance claim."}
+
+
+EXTERNAL_DATASETS = {
+    # dataset: (source_image_id pattern, pattern a source member must not match)
+    "consep": (re.compile(r"consep_train_\d+"), re.compile(r"(^|/)Test/", re.IGNORECASE)),
+    "puma": (re.compile(r"puma_(primary|metastatic)_roi_\d+"), re.compile(r"test", re.IGNORECASE)),
+}
+
+
+def validate_external_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Rows built by scripts/prepare_external.py: known dataset, training-release source, consistent group.
+
+    CoNSeP rows must come from the official Train folder; PUMA rows from the training release (held-out groups are
+    never written by the builder, so they cannot appear here). Like validate_training_rows, this checks identity
+    metadata only, never pixels or labels.
+    """
+    if not rows:
+        raise ValueError("External dataset check requires nonempty rows")
+    row_ids = set()
+    for row in rows:
+        dataset = row.get("dataset")
+        if dataset not in EXTERNAL_DATASETS:
+            raise ValueError(f"Unknown external dataset: {dataset!r}")
+        pattern, forbidden = EXTERNAL_DATASETS[dataset]
+        source_id = row.get("source_image_id")
+        if not isinstance(source_id, str) or not pattern.fullmatch(source_id):
+            raise ValueError(f"Unexpected {dataset} source_image_id: {source_id!r}")
+        if forbidden.search(str(row.get("source_image_member", ""))):
+            raise ValueError(f"Refusing a test-set source: {row.get('source_image_member')}")
+        if not isinstance(row.get("patient_id"), str) or not row["patient_id"].startswith(dataset + "_"):
+            raise ValueError(f"Missing or foreign group ID for {source_id}")
+        row_id = row.get("id")
+        if not isinstance(row_id, str) or not row_id or row_id in row_ids:
+            raise ValueError("Row IDs must be nonempty and unique")
+        row_ids.add(row_id)
+    return {"status": "external_training_release_verified",
+            "datasets": sorted({r["dataset"] for r in rows}), "selected_rows": len(rows),
+            "selected_source_image_ids": sorted({r["source_image_id"] for r in rows}),
+            "selected_patient_ids": sorted({r["patient_id"] for r in rows})}
+
+
+def validate_source_rows(rows: list[dict[str, Any]], cohort: dict[str, Any] | None = None) -> dict[str, Any]:
+    """MoNuSeg rows (no `dataset` field, or dataset == "monuseg") go through validate_training_rows; rows from
+    prepare_external.py through validate_external_rows. Mixed manifests are allowed."""
+    monuseg = [r for r in rows if r.get("dataset", "monuseg") == "monuseg"]
+    external = [r for r in rows if r.get("dataset", "monuseg") != "monuseg"]
+    if not rows:
+        raise ValueError("Source check requires nonempty rows")
+    if any(r.get("split") != "train" for r in rows):
+        raise ValueError("Source check accepts only rows with split=train")
+    audits = {}
+    if monuseg:
+        audits["monuseg"] = validate_training_rows(monuseg, cohort)
+    if external:
+        audits["external"] = validate_external_rows(external)
+    return {"status": "source_membership_verified", "selected_rows": len(rows),
+            "selected_source_image_ids": sorted({r["source_image_id"] for r in rows}),
+            "selected_patient_ids": sorted({r["patient_id"] for r in rows}), "parts": audits}
