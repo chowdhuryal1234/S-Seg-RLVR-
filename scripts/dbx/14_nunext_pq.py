@@ -9,6 +9,12 @@
 # MAGIC - `oracle-box`: ground-truth tight box + centroid, the prompt style of the project's earlier branches
 # MAGIC - `pred-point`: the detector's points, read from an SFT/GRPO run's `eval-final/predictions.jsonl` (no Qwen here)
 # MAGIC
+# MAGIC
+# MAGIC `VARIANTS` are inference-only fixes for point prompts: `negatives` sends the nearest other points (within 32 px)
+# MAGIC as negative prompts; `mask_choice: smallest` keeps SAM's smallest candidate mask instead of its top-scored one.
+# MAGIC Box prompts always run as the baseline. First result (2026-11-13, no variants): oracle-point PQ 0.51,
+# MAGIC oracle-box 0.82, pred-point 0.50–0.52, tiny and large within 0.01.
+# MAGIC
 # MAGIC Needs dataset v2 (instance masks): run `10_nunext_data` once first. Serverless GPU, 8×H100 or 1×H100.
 # MAGIC SAM2 here is the general model, not fine-tuned on nuclei, so these PQs are not comparable with pipelines
 # MAGIC that use a nucleus-trained SAM.
@@ -40,8 +46,12 @@ import nunext_common as nx
 import torch
 
 RUN = dbx.remote("runs", "nunext-sft-nsft-20261112-060031")   # whose eval-final/predictions.jsonl to segment
-MODES = ["oracle-point", "oracle-box", "pred-point"]
-SAM_SIZES = ["tiny", "large"]
+MODES = ["oracle-point", "pred-point"]                         # add "oracle-box" for the box ceiling
+SAM_SIZES = ["tiny"]                                           # large was within 0.01 of tiny
+VARIANTS = {"baseline": {},
+            "smallest": {"mask_choice": "smallest"},
+            "neg4": {"negatives": 4},
+            "neg4-smallest": {"negatives": 4, "mask_choice": "smallest"}}
 LIMIT = None                                                   # e.g. 256 for a quick check
 
 GPUS = max(torch.cuda.device_count(), 1)
@@ -66,21 +76,23 @@ tag = RUN.rstrip("/").split("/")[-1].replace("nunext-sft-", "").replace("nunext-
 for size in SAM_SIZES:
     checkpoint, config = sams[size]
     for mode in MODES:
-        local, remote = dbx.new_run_dirs(f"nunext-pq-{size}-{mode}" + (f"-{tag}" if mode == "pred-point" else ""))
-        launcher = ["-m", "nucleus_rl.nunext.launch", "--nproc", str(GPUS), "--"] if GPUS > 1 else []
-        argv = [*launcher, "-m", "nucleus_rl.nunext.pq_eval", "--mode", mode, "--output", local,
-                "--sam-checkpoint", checkpoint, "--sam-config", config,
-                *[a for m in nx.manifests(nx.VALIDATION_FOLDS) for a in ("--manifest", m)]]
-        if mode == "pred-point":
-            argv += ["--predictions", str(predictions)]
-        if LIMIT:
-            argv += ["--limit", str(LIMIT)]
-        dbx.run_cli(argv, local, remote)
-        results[(size, mode)] = json.loads((local / "summary.json").read_text())
+        for variant, options in (VARIANTS.items() if mode != "oracle-box" else [("baseline", {})]):
+            name = f"nunext-pq-{size}-{mode}-{variant}" + (f"-{tag}" if mode == "pred-point" else "")
+            local, remote = dbx.new_run_dirs(name)
+            launcher = ["-m", "nucleus_rl.nunext.launch", "--nproc", str(GPUS), "--"] if GPUS > 1 else []
+            argv = [*launcher, "-m", "nucleus_rl.nunext.pq_eval", "--mode", mode, "--output", local,
+                    "--sam-checkpoint", checkpoint, "--sam-config", config,
+                    *[a for m in nx.manifests(nx.VALIDATION_FOLDS) for a in ("--manifest", m)], *nx.flags(options)]
+            if mode == "pred-point":
+                argv += ["--predictions", str(predictions)]
+            if LIMIT:
+                argv += ["--limit", str(LIMIT)]
+            dbx.run_cli(argv, local, remote)
+            results[(size, mode, variant)] = json.loads((local / "summary.json").read_text())
 
 # COMMAND ----------
 
-print(f"{'SAM':6} {'prompts':13} {'PQ':>6} {'DQ':>6} {'SQ':>6} {'mean img PQ':>11} {'TP':>7} {'FP':>7} {'FN':>7}")
-for (size, mode), s in results.items():
-    print(f"{size:6} {mode:13} {s['pq']:6.3f} {s['dq']:6.3f} {s['sq']:6.3f} {s['mean_image_pq']:11.3f} "
+print(f"{'SAM':6} {'prompts':13} {'variant':14} {'PQ':>6} {'DQ':>6} {'SQ':>6} {'mean img PQ':>11} {'TP':>7} {'FP':>7} {'FN':>7}")
+for (size, mode, variant), s in results.items():
+    print(f"{size:6} {mode:13} {variant:14} {s['pq']:6.3f} {s['dq']:6.3f} {s['sq']:6.3f} {s['mean_image_pq']:11.3f} "
           f"{s['tp']:7d} {s['fp']:7d} {s['fn']:7d}")

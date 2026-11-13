@@ -10,6 +10,11 @@ Modes:
   oracle-box    ground-truth tight box + centroid: the prompt style of the project's earlier branches
   pred-point    the detector's predicted points, read from an evaluate run's predictions.jsonl
 
+Inference-only variants for point prompts: --negatives K adds the K nearest other prompt points
+(within --negative-radius px) as negative points, so SAM is told where the neighbouring nuclei are;
+--mask-choice smallest keeps the smallest non-empty of SAM's three candidate masks instead of the
+highest-scoring one (a single point is ambiguous between a nucleus, a cluster and the tissue).
+
 Reported: dataset-level PQ = sum of matched IoU / (TP + FP/2 + FN/2) over all images (with DQ and
 SQ), and the mean per-image PQ over images that have at least one annotated nucleus.
 Runs sharded over GPUs when started by nucleus_rl.nunext.launch.
@@ -24,16 +29,42 @@ import time
 import numpy as np
 
 MODES = ("oracle-point", "oracle-box", "pred-point")
+MASK_CHOICES = ("score", "smallest")
 
 
-def best_masks(masks: np.ndarray, scores: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """(N, C, H, W) masks + (N, C) scores -> the best mask per prompt; a squeezed batch of one is restored."""
-    masks, scores = np.asarray(masks), np.asarray(scores)
+def best_masks(masks: np.ndarray, scores: np.ndarray, choice: str = "score") -> tuple[np.ndarray, np.ndarray]:
+    """(N, C, H, W) masks + (N, C) scores -> one mask per prompt; a squeezed batch of one is restored.
+
+    choice "score": SAM's highest predicted IoU. "smallest": the smallest non-empty candidate
+    (falls back to the score when every candidate is empty).
+    """
+    if choice not in MASK_CHOICES:
+        raise ValueError(f"mask choice must be one of {MASK_CHOICES}")
+    masks, scores = np.asarray(masks) > 0, np.asarray(scores)
     if masks.ndim == 3:
         masks, scores = masks[None], scores.reshape(1, -1)
     pick = scores.argmax(axis=1)
+    if choice == "smallest":
+        areas = masks.reshape(masks.shape[0], masks.shape[1], -1).sum(axis=2).astype(float)
+        areas[areas == 0] = np.inf
+        smallest = areas.argmin(axis=1)
+        pick = np.where(np.isfinite(areas.min(axis=1)), smallest, pick)
     rows = np.arange(len(pick))
-    return masks[rows, pick] > 0, scores[rows, pick]
+    return masks[rows, pick], scores[rows, pick]
+
+
+def negative_points(points, count: int, radius: float) -> list[list[tuple[float, float]]] | None:
+    """For each point, its ``count`` nearest other points within ``radius`` px (nearest first)."""
+    if count <= 0:
+        return None
+    array = np.asarray(points, dtype=float).reshape(-1, 2)
+    result = []
+    for index, point in enumerate(array):
+        distances = np.hypot(*(array - point).T)
+        distances[index] = np.inf
+        order = [j for j in np.argsort(distances, kind="stable")[:count] if distances[j] <= radius]
+        result.append([tuple(array[j]) for j in order])
+    return result
 
 
 def oracle_boxes(reference: np.ndarray, count: int) -> list[tuple[float, float, float, float]]:
@@ -55,8 +86,8 @@ def prompts_for(row: dict, mode: str, predictions: dict | None, reference: np.nd
     return points, (oracle_boxes(reference, len(points)) if mode == "oracle-box" else None)
 
 
-def score_image(row: dict, mode: str, predictions, segment) -> dict:
-    """segment(image (H,W,3) uint8, points [(x,y)], boxes or None) -> (masks (N,H,W) bool, scores (N,))."""
+def score_image(row: dict, mode: str, predictions, segment, negatives: int = 0, radius: float = 32.0) -> dict:
+    """segment(image (H,W,3) uint8, points [(x,y)], boxes or None, negatives or None) -> (masks (N,H,W), scores (N,))."""
     from PIL import Image
     from nucleus_rl.rewards import instance_metrics, masks_to_instances
 
@@ -65,7 +96,7 @@ def score_image(row: dict, mode: str, predictions, segment) -> dict:
     points, boxes = prompts_for(row, mode, predictions, reference)
     height, width = reference.shape
     if points:
-        masks, scores = segment(image, points, boxes)
+        masks, scores = segment(image, points, boxes, negative_points(points, negatives, radius))
         instances = masks_to_instances(np.asarray(masks, dtype=np.float32), scores=np.asarray(scores))
     else:
         instances = np.zeros((height, width), dtype=np.int32)
@@ -94,36 +125,48 @@ def summarize(records: list[dict]) -> dict:
 class SAMSegmenter:
     """Frozen SAM2 image predictor; prompts are sent in chunks of ``chunk`` per decoder call."""
 
-    def __init__(self, checkpoint: str, config: str, device: str, chunk: int = 64):
+    def __init__(self, checkpoint: str, config: str, device: str, chunk: int = 64, mask_choice: str = "score"):
         import torch
         from sam2.build_sam import build_sam2
         from sam2.sam2_image_predictor import SAM2ImagePredictor
 
-        self.torch, self.device, self.chunk = torch, device, chunk
+        self.torch, self.device, self.chunk, self.mask_choice = torch, device, chunk, mask_choice
         model = build_sam2(config, str(Path(checkpoint).resolve()), device=device, mode="eval")
         model.requires_grad_(False)
         self.predictor = SAM2ImagePredictor(model)
 
-    def __call__(self, image, points, boxes):
+    def __call__(self, image, points, boxes, negatives=None):
         torch = self.torch
         with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16,
                                                     enabled=self.device.startswith("cuda")):
             self.predictor.set_image(image.copy())
             all_masks, all_scores = [], []
             for start in range(0, len(points), self.chunk):
-                coords = np.asarray(points[start:start + self.chunk], dtype=np.float32)[:, None, :]
-                labels = np.ones((len(coords), 1), dtype=np.int32)
+                coords, labels = prompt_arrays(points[start:start + self.chunk],
+                                               None if negatives is None else negatives[start:start + self.chunk])
                 box = None if boxes is None else np.asarray(boxes[start:start + self.chunk], dtype=np.float32)
                 masks, scores, _ = self.predictor.predict(point_coords=coords, point_labels=labels, box=box,
                                                           multimask_output=box is None, normalize_coords=True)
-                masks, scores = best_masks(masks, scores)
+                masks, scores = best_masks(masks, scores, self.mask_choice if box is None else "score")
                 all_masks.append(masks)
                 all_scores.append(scores)
         return np.concatenate(all_masks), np.concatenate(all_scores)
 
 
-def run(rows, mode, predictions, segment, rank=0, world=1) -> list[dict]:
-    return [score_image(row, mode, predictions, segment) for row in rows[rank::world]]
+def prompt_arrays(points, negatives=None):
+    """(N, 1+K, 2) coords and (N, 1+K) labels: the positive point, its negatives (0), padding (-1)."""
+    width = 1 + (max((len(n) for n in negatives), default=0) if negatives else 0)
+    coords = np.zeros((len(points), width, 2), dtype=np.float32)
+    labels = np.full((len(points), width), -1, dtype=np.int32)
+    for index, point in enumerate(points):
+        coords[index, 0], labels[index, 0] = point, 1
+        for slot, negative in enumerate(negatives[index] if negatives else [], start=1):
+            coords[index, slot], labels[index, slot] = negative, 0
+    return coords, labels
+
+
+def run(rows, mode, predictions, segment, rank=0, world=1, negatives=0, radius=32.0) -> list[dict]:
+    return [score_image(row, mode, predictions, segment, negatives, radius) for row in rows[rank::world]]
 
 
 def main(argv=None):
@@ -139,6 +182,9 @@ def main(argv=None):
     parser.add_argument("--output", required=True)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--chunk", type=int, default=64)
+    parser.add_argument("--negatives", type=int, default=0, help="Nearest other points sent as negative prompts")
+    parser.add_argument("--negative-radius", type=float, default=32.0, help="Only neighbours within this many px")
+    parser.add_argument("--mask-choice", choices=MASK_CHOICES, default="score")
     args = parser.parse_args(argv)
     if args.mode == "pred-point" and not args.predictions:
         parser.error("--predictions is required for pred-point")
@@ -152,13 +198,15 @@ def main(argv=None):
         records = [json.loads(line) for line in Path(args.predictions).read_text().splitlines() if line.strip()]
         predictions = {r["id"]: r["pred"] if r.get("valid", True) else [] for r in records}
     started = time.time()
-    segment = SAMSegmenter(args.sam_checkpoint, args.sam_config, device, args.chunk)
-    records = dist.gather_objects(run(rows, args.mode, predictions, segment, dist.rank(), dist.world_size()))
+    segment = SAMSegmenter(args.sam_checkpoint, args.sam_config, device, args.chunk, args.mask_choice)
+    records = dist.gather_objects(run(rows, args.mode, predictions, segment, dist.rank(), dist.world_size(),
+                                      args.negatives, args.negative_radius))
     if dist.is_main():
         order = {row["id"]: i for i, row in enumerate(rows)}
         records.sort(key=lambda r: order[r["id"]])
         summary = {"mode": args.mode, "sam_checkpoint": args.sam_checkpoint, "sam_config": args.sam_config,
-                   "predictions": args.predictions, **summarize(records),
+                   "predictions": args.predictions, "negatives": args.negatives,
+                   "negative_radius": args.negative_radius, "mask_choice": args.mask_choice, **summarize(records),
                    "seconds": round(time.time() - started, 1)}
         output = Path(args.output)
         output.mkdir(parents=True, exist_ok=True)

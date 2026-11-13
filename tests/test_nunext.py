@@ -283,6 +283,29 @@ class PanopticQuality(unittest.TestCase):
         self.assertTrue(picked[0, 0, 0])
         self.assertAlmostEqual(float(scores[0]), 0.9)
 
+    def test_smallest_mask_choice(self):
+        from nucleus_rl.nunext.pq_eval import best_masks
+        masks = np.zeros((1, 3, 6, 6))
+        masks[0, 0, :3, :3] = 1      # 9 px, low score
+        masks[0, 1, :, :] = 1        # whole image, highest score
+        picked, _ = best_masks(masks, np.array([[0.2, 0.9, 0.1]]), "smallest")
+        self.assertEqual(int(picked[0].sum()), 9)
+        empty, _ = best_masks(np.zeros((1, 3, 6, 6)), np.array([[0.2, 0.9, 0.1]]), "smallest")
+        self.assertEqual(int(empty[0].sum()), 0)
+
+    def test_negative_prompts(self):
+        from nucleus_rl.nunext.pq_eval import negative_points, prompt_arrays
+        points = [(0, 0), (3, 4), (10, 0), (100, 100)]
+        negatives = negative_points(points, 2, 12)
+        self.assertEqual(negatives[0], [(3.0, 4.0), (10.0, 0.0)])
+        self.assertEqual(negatives[3], [])               # nobody within 12 px
+        coords, labels = prompt_arrays(points, negatives)
+        self.assertEqual(coords.shape, (4, 3, 2))
+        self.assertEqual(labels.tolist()[0], [1, 0, 0])
+        self.assertEqual(labels.tolist()[3], [1, -1, -1])  # padded, not negatives
+        self.assertIsNone(negative_points(points, 0, 12))
+        self.assertEqual(prompt_arrays(points, None)[1].shape, (4, 1))
+
     def test_point_prompts_to_pq(self):
         from PIL import Image
         from nucleus_rl.nunext.pq_eval import score_image, summarize
@@ -297,7 +320,7 @@ class PanopticQuality(unittest.TestCase):
                    "centroids": [[4.0, 4.0], [10.5, 11.5]]}
             ref = reference.astype(np.int64)
 
-            def segment(image, points, boxes):
+            def segment(image, points, boxes, negatives=None):
                 return np.stack([ref == ref[int(y), int(x)] for x, y in points]), np.ones(len(points))
 
             exact = score_image(row, "oracle-point", None, segment)
