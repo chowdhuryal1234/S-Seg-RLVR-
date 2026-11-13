@@ -1,5 +1,7 @@
 """Single-GPU supervised warm-up of a language-LoRA nucleus-prompt policy.
 
+--vision-lora merger|all also adapts the Qwen vision side with the same LoRA recipe (default: language only).
+
 Reference masks supervise box/point answer tokens on the training split only.
 SAM2 is used for paired validation and has no role in the training loss.
 Heavy dependencies are imported lazily, so --help and safety tests run on CPU.
@@ -20,6 +22,9 @@ import time
 # nuclei (scripts/build_tiles256.py, trustmix256_v1) up to 168. Validation tiles are never capped: every GT nucleus is
 # scored, and GT beyond the answer cap is counted as unavoidable FN (evaluate.ArtifactScorer reports how many).
 MAX_OBJECTS = 256
+# Vision-side LoRA scopes (--vision-lora) and the module-name words that identify the vision side.
+VISION_LORA_SCOPES = ("none", "merger", "all")
+VISION_WORDS = ("visual", "vision", "merger")
 
 
 def build_parser():
@@ -49,6 +54,10 @@ def build_parser():
     parser.add_argument("--lora-rank", type=int, default=16)
     parser.add_argument("--lora-alpha", type=int, default=32)
     parser.add_argument("--lora-dropout", type=float, default=.05)
+    parser.add_argument("--vision-lora", choices=VISION_LORA_SCOPES, default="none",
+                        help="Also put LoRA (same rank/alpha/dropout/LR) on the vision side: 'merger' = the "
+                             "vision-to-language projector(s) only; 'all' = every Linear layer of the vision encoder "
+                             "(ViT blocks and mergers). Default 'none' keeps the language-only recipe unchanged")
     parser.add_argument("--max-sequence-length", type=int, default=2048)
     parser.add_argument("--max-completion-length", type=int, default=1024)
     parser.add_argument("--max-objects", type=int, default=8)
@@ -166,11 +175,42 @@ def language_lora_targets(model):
     return targets
 
 
-def trainable_language_adapters(model):
+def vision_encoder(model):
+    """(name, module) of the single Qwen vision encoder."""
+    found = [(name, module) for name, module in model.named_modules()
+             if name.endswith(".visual") or name.endswith(".vision_tower") or name in ("visual", "vision_tower")]
+    if len(found) != 1:
+        raise ValueError(f"Expected one vision encoder, found {[name for name, _ in found]}")
+    return found[0]
+
+
+def vision_lora_targets(model, scope):
+    """Linear layers of the vision encoder for --vision-lora: none -> [], merger -> projector(s), all -> every one."""
+    import torch
+    if scope not in VISION_LORA_SCOPES:
+        raise ValueError(f"Unknown vision LoRA scope {scope!r}")
+    if scope == "none":
+        return []
+    root, encoder = vision_encoder(model)
+    targets = [f"{root}.{name}" for name, module in encoder.named_modules()
+               if isinstance(module, torch.nn.Linear) and name and (scope == "all" or "merger" in name.lower())]
+    if not targets:
+        raise ValueError(f"No vision Linear modules found for --vision-lora {scope}")
+    return targets
+
+
+def is_vision_name(name):
+    return any(word in name.lower() for word in VISION_WORDS)
+
+
+def trainable_language_adapters(model, allow_vision=False):
+    """Names of trainable parameters: LoRA tensors only, on the language side unless allow_vision."""
     names = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
-    if not names or any("lora_" not in name or any(word in name.lower() for word in ("vision", "visual", "merger"))
-                        for name in names):
-        raise RuntimeError("Only language LoRA adapter parameters may require gradients")
+    if not names or any("lora_" not in name or (not allow_vision and is_vision_name(name)) for name in names):
+        raise RuntimeError("Only language LoRA adapter parameters may require gradients"
+                           + (" (plus vision LoRA under --vision-lora)" if allow_vision else ""))
+    if allow_vision and not any(is_vision_name(name) for name in names):
+        raise RuntimeError("--vision-lora was requested but no vision LoRA parameter is trainable")
     return names
 
 
@@ -384,7 +424,10 @@ def run(args, rows, validation, audit, output):
                                             load_training_state, restore_rng)
 
     model, processor = load_model(args)
-    targets = language_lora_targets(model)
+    vision_scope = getattr(args, "vision_lora", "none")
+    language_targets = language_lora_targets(model)
+    vision_targets = vision_lora_targets(model, vision_scope)
+    targets = language_targets + vision_targets
     contract_keys = ("model", "revision", "seed", "max_steps", "gradient_accumulation", "learning_rate",
                      "warmup_steps", "lora_rank", "lora_alpha", "lora_dropout", "coordinate_frame",
                      "augmentation", "max_sequence_length", "max_completion_length", "max_objects",
@@ -392,6 +435,8 @@ def run(args, rows, validation, audit, output):
     config = {key: getattr(args, key) for key in contract_keys}
     if getattr(args, "d4_schedule", "epoch") != "epoch":
         config["d4_schedule"] = args.d4_schedule  # absent for the original schedule, so old contracts stay identical
+    if vision_scope != "none":
+        config["vision_lora"] = vision_scope  # absent for language-only runs, so their contracts stay identical
     contract = {"config": config,
                 "train_data": dataset_identity(rows), "validation_data": dataset_identity(validation),
                 "data_audit": audit, "sam_checkpoint_sha256": file_digest(args.sam_checkpoint),
@@ -410,13 +455,17 @@ def run(args, rows, validation, audit, output):
             task_type="CAUSAL_LM", r=args.lora_rank, lora_alpha=args.lora_alpha,
             lora_dropout=args.lora_dropout, target_modules=targets, bias="none", revision=args.revision,
         ))
-    trainable_names = trainable_language_adapters(model)
-    visual_modules = [(name, module) for name, module in model.named_modules()
-                      if name.endswith(".visual") or name.endswith(".vision_tower")]
-    if len(visual_modules) != 1:
-        raise ValueError(f"Expected one vision encoder for freeze audit, found {[name for name, _ in visual_modules]}")
-    visual_name, visual = visual_modules[0]
-    initial_visual_hash = parameter_sha256(visual)
+        # PEFT matches target names by suffix: prove it adapted exactly the requested modules (scope included).
+        targeted = set(getattr(model.base_model, "targeted_module_names", targets))
+        if targeted != set(targets):
+            raise RuntimeError(f"PEFT adapted {len(targeted)} modules, not the {len(targets)} requested")
+    trainable_names = trainable_language_adapters(model, allow_vision=vision_scope != "none")
+    visual_name, visual = vision_encoder(model)
+    # Base vision weights only: under --vision-lora the encoder's LoRA tensors train, its own weights must not.
+    # Without vision LoRA this equals the plain parameter hash of the encoder.
+    initial_visual_hash = parameter_sha256(visual, exclude="lora_")
+    vision_parameters = [parameter for name, parameter in model.named_parameters()
+                         if parameter.requires_grad and is_vision_name(name)]
     initial_adapter_hash = parameter_sha256(model, trainable_only=True)
     versions = frozen_versions(model)
     model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
@@ -438,6 +487,8 @@ def run(args, rows, validation, audit, output):
                 "gpu": torch.cuda.get_device_name(), "gpu_total_bytes": torch.cuda.get_device_properties(0).total_memory,
                 "contract_sha256": contract_digest(contract), "trainable_parameters": sum(p.numel() for p in trainable_parameters),
                 "lora_targets": targets, "trainable_names": trainable_names, "vision_encoder": visual_name,
+                "vision_lora": vision_scope, "vision_lora_targets": vision_targets,
+                "vision_trainable_parameters": sum(p.numel() for p in vision_parameters),
                 "vision_sha256_before": initial_visual_hash, "adapter_sha256_before": initial_adapter_hash,
                 "microbatch": 1, "effective_batch": args.gradient_accumulation,
                 "loss": "per-example mean assistant-answer-and-end-token cross entropy",
@@ -473,8 +524,11 @@ def run(args, rows, validation, audit, output):
         # Restore only after setup and initial evaluation to continue exactly.
         restore_rng(state["rng"])
     model.train()
-    # A frozen vision encoder must also avoid training-time dropout.
-    visual.eval()
+    if vision_scope == "none":
+        # A frozen vision encoder must also avoid training-time dropout.
+        visual.eval()
+    # Under --vision-lora the encoder stays in train mode like the language side: its LoRA dropout is active and
+    # gradient checkpointing covers its blocks. Its base weights are still frozen and audited below.
     step = start_step
     checkpoint_steps = set()
     evaluations = []
@@ -510,6 +564,13 @@ def run(args, rows, validation, audit, output):
             raise RuntimeError("Missing or nonfinite LoRA gradients")
         if not any(torch.count_nonzero(g).item() for g in gradients):
             raise RuntimeError("All language-LoRA gradients are zero")
+        vision_gradient_norm = None
+        if vision_parameters:
+            vision_gradients = [p.grad for p in vision_parameters if p.grad is not None]
+            if not vision_gradients or not any(torch.count_nonzero(g).item() for g in vision_gradients):
+                raise RuntimeError("--vision-lora: no gradient reached the vision LoRA")
+            vision_gradient_norm = float(torch.linalg.vector_norm(
+                torch.stack([torch.linalg.vector_norm(g.float()) for g in vision_gradients])).cpu())
         gradient_norm = float(torch.nn.utils.clip_grad_norm_(trainable_parameters, 1.0).cpu())
         lr_used = optimizer.param_groups[0]["lr"]
         optimizer.step()
@@ -525,6 +586,8 @@ def run(args, rows, validation, audit, output):
                "learning_rate": lr_used, "gradient_norm": gradient_norm, "duration_seconds": duration,
                "training_elapsed_seconds": time.monotonic() - started, "tokens": tokens, "exposures": exposures,
                "peak_gpu_allocated_bytes": peak_allocated, "peak_gpu_reserved_bytes": peak_reserved}
+        if vision_gradient_norm is not None:
+            log["vision_gradient_norm"] = vision_gradient_norm  # pre-clipping norm of the vision LoRA gradients
         with (output / "training_log.jsonl").open("a") as stream:
             stream.write(json.dumps(log, allow_nan=False) + "\n")
         elapsed = time.monotonic() - started
@@ -563,9 +626,9 @@ def run(args, rows, validation, audit, output):
     after = evaluate_policy(model, processor, validation, segmenter, output / "after", args)
     after_seconds = time.monotonic() - eval_started
     assert_frozen(model, versions)
-    final_visual_hash = parameter_sha256(visual)
+    final_visual_hash = parameter_sha256(visual, exclude="lora_")
     if final_visual_hash != initial_visual_hash:
-        raise RuntimeError("Qwen vision encoder hash changed")
+        raise RuntimeError("Qwen vision encoder base-weight hash changed")
     final_adapter_hash = parameter_sha256(model, trainable_only=True)
     if final_adapter_hash == initial_adapter_hash:
         raise RuntimeError("SFT adapter did not change")
@@ -584,6 +647,7 @@ def run(args, rows, validation, audit, output):
               "adapter_changed": True, "adapter_sha256_before": initial_adapter_hash,
               "adapter_sha256_after": final_adapter_hash, "vision_sha256_before": initial_visual_hash,
               "vision_sha256_after": final_visual_hash, "frozen_base_versions_unchanged": True,
+              "vision_lora": vision_scope,
               "sam_freeze_verification": segmenter.verify_unchanged(),
               "fixed_training_loss_before": fixed_before, "fixed_training_loss_after": fixed_after,
               "periodic_evaluations": evaluations, "before": before, "after": after}

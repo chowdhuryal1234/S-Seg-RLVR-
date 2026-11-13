@@ -126,6 +126,87 @@ class SFTTorchTests(unittest.TestCase):
         self.assertEqual(set(language_lora_targets(model)), {
             "language_model.layers.0.q_proj", "language_model.layers.0.gate_proj", "language_model.layers.0.in_proj_qkv"})
 
+    def vision_net(self):
+        import torch
+        class Net(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.model = torch.nn.Module()
+                self.model.language_model = torch.nn.Module()
+                self.model.language_model.layers = torch.nn.ModuleList([torch.nn.ModuleDict({
+                    "q_proj": torch.nn.Linear(2, 2), "down_proj": torch.nn.Linear(2, 2)})])
+                self.model.visual = torch.nn.Module()
+                self.model.visual.patch_embed = torch.nn.Conv2d(3, 2, 1)
+                self.model.visual.blocks = torch.nn.ModuleList([torch.nn.ModuleDict({
+                    "attn": torch.nn.ModuleDict({"qkv": torch.nn.Linear(2, 6), "proj": torch.nn.Linear(2, 2)}),
+                    "mlp": torch.nn.ModuleDict({"linear_fc1": torch.nn.Linear(2, 4), "linear_fc2": torch.nn.Linear(4, 2)})})])
+                self.model.visual.merger = torch.nn.ModuleDict({"linear_fc1": torch.nn.Linear(2, 2),
+                                                                "linear_fc2": torch.nn.Linear(2, 2)})
+                self.model.visual.deepstack_merger_list = torch.nn.ModuleList([torch.nn.ModuleDict({
+                    "linear_fc1": torch.nn.Linear(2, 2)})])
+                self.lm_head = torch.nn.Linear(2, 2)
+        return Net()
+
+    def test_vision_lora_scopes_select_vision_linears_only(self):
+        from nucleus_rl.sft import vision_encoder, vision_lora_targets
+        model = self.vision_net()
+        self.assertEqual(vision_encoder(model)[0], "model.visual")
+        self.assertEqual(vision_lora_targets(model, "none"), [])
+        mergers = {"model.visual.merger.linear_fc1", "model.visual.merger.linear_fc2",
+                   "model.visual.deepstack_merger_list.0.linear_fc1"}
+        self.assertEqual(set(vision_lora_targets(model, "merger")), mergers)
+        self.assertEqual(set(vision_lora_targets(model, "all")), mergers | {
+            "model.visual.blocks.0.attn.qkv", "model.visual.blocks.0.attn.proj",
+            "model.visual.blocks.0.mlp.linear_fc1", "model.visual.blocks.0.mlp.linear_fc2"})
+        # The language targets are unchanged and disjoint from the vision targets (no conv, no lm_head).
+        language = set(language_lora_targets(model))
+        self.assertEqual(language, {"model.language_model.layers.0.q_proj", "model.language_model.layers.0.down_proj"})
+        self.assertFalse(language & set(vision_lora_targets(model, "all")))
+        with self.assertRaises(ValueError):
+            vision_lora_targets(model, "blocks")
+
+    def test_vision_lora_flag_defaults_to_language_only(self):
+        parse = lambda *flags: build_parser().parse_args(["--manifest", "t", "--eval-manifest", "v", "--output", "o",
+                                                          "--model", "m", "--sam-checkpoint", "s", *flags])
+        self.assertEqual(parse().vision_lora, "none")
+        self.assertEqual(parse("--vision-lora", "all").vision_lora, "all")
+        with self.assertRaises(SystemExit):
+            parse("--vision-lora", "blocks")
+
+    def test_vision_adapters_train_only_when_requested(self):
+        import torch
+        model = torch.nn.Module()
+        model.register_parameter("language_lora_A", torch.nn.Parameter(torch.zeros(2)))
+        model.visual = torch.nn.Module()
+        model.visual.register_parameter("base", torch.nn.Parameter(torch.ones(2), requires_grad=False))
+        model.visual.register_parameter("qkv_lora_A", torch.nn.Parameter(torch.zeros(2)))
+        with self.assertRaises(RuntimeError):
+            trainable_language_adapters(model)
+        self.assertEqual(trainable_language_adapters(model, allow_vision=True), ["language_lora_A", "visual.qkv_lora_A"])
+        model.visual.qkv_lora_A.requires_grad_(False)
+        with self.assertRaisesRegex(RuntimeError, "no vision LoRA"):
+            trainable_language_adapters(model, allow_vision=True)
+        model.visual.base.requires_grad_(True)
+        with self.assertRaises(RuntimeError):
+            trainable_language_adapters(model, allow_vision=True)
+
+    def test_vision_base_hash_ignores_lora_but_sees_base_changes(self):
+        import torch
+        from nucleus_rl.segmenter import parameter_sha256
+        visual = torch.nn.Module()
+        visual.register_parameter("base", torch.nn.Parameter(torch.ones(2), requires_grad=False))
+        plain = parameter_sha256(visual)
+        self.assertEqual(parameter_sha256(visual, exclude="lora_"), plain)  # language-only runs hash as before
+        visual.register_parameter("qkv_lora_B", torch.nn.Parameter(torch.zeros(2)))
+        before = parameter_sha256(visual, exclude="lora_")
+        self.assertEqual(before, plain)
+        with torch.no_grad():
+            visual.qkv_lora_B.add_(1)
+        self.assertEqual(parameter_sha256(visual, exclude="lora_"), before)
+        with torch.no_grad():
+            visual.base.add_(1)
+        self.assertNotEqual(parameter_sha256(visual, exclude="lora_"), before)
+
     def test_freeze_checks_detect_in_place_changes_and_reject_non_adapter_training(self):
         import torch
         model = torch.nn.Module()

@@ -16,13 +16,19 @@ def file_sha256(path):
     return digest.hexdigest()
 
 
-def parameter_sha256(model, trainable_only=False):
-    """Hash actual parameter bytes, including BF16, without dtype conversion."""
+def parameter_sha256(model, trainable_only=False, exclude=None):
+    """Hash actual parameter bytes, including BF16, without dtype conversion.
+
+    exclude skips parameters whose name contains that substring (e.g. "lora_" to hash a module's base weights
+    while its LoRA adapters train). A module without such parameters hashes exactly as without the argument.
+    """
     import torch
 
     digest = hashlib.sha256()
     for name, parameter in model.named_parameters():
         if trainable_only and not parameter.requires_grad:
+            continue
+        if exclude is not None and exclude in name:
             continue
         digest.update(name.encode())
         digest.update(str(tuple(parameter.shape)).encode())
