@@ -2,7 +2,7 @@
 
 Builds on dbx_common (Volume access through the Files API, local disk, run_cli). The prepared
 PanNuke dataset is stored on the Volume as ~20 small zips plus index.json under
-<artifacts>/data/pannuke_nunext_v1/: uploading ~8k PNGs one by one is slow, and one large
+<artifacts>/data/pannuke_nunext_v2/: uploading ~8k PNGs one by one is slow, and one large
 PUT can be cut off ("RemoteDisconnected"). Downloads and uploads retry with backoff.
 """
 from __future__ import annotations
@@ -24,7 +24,7 @@ PANNUKE_URL = "https://warwick.ac.uk/fac/cross_fac/tia/data/pannuke/fold_{}.zip"
 HF_DATASET = "RationAI/PanNuke"
 HF_REVISION = "1f498f7bd6a85ef5f204c592b41ac881eab61005"
 HF_FILE = "data/fold{}-00000-of-00001.parquet"
-DATASET_NAME = "pannuke_nunext_v1"
+DATASET_NAME = "pannuke_nunext_v2"   # v2 adds masks/ (16-bit instance maps) and mask_path
 TRAIN_FOLDS = (1, 2)          # Paper: folds 1 and 2 train, fold 3 internal validation
 VALIDATION_FOLDS = (3,)
 
@@ -208,6 +208,9 @@ def _localize_and_check(out: Path) -> int:
         for row in rows:
             row["image_path"] = str(out / "images" / Path(row["image_path"]).name)
             missing += not Path(row["image_path"]).is_file()
+            if "mask_path" in row:
+                row["mask_path"] = str(out / "masks" / Path(row["mask_path"]).name)
+                missing += not Path(row["mask_path"]).is_file()
         manifest.write_text("".join(json.dumps(row) + "\n" for row in rows))
     return missing
 

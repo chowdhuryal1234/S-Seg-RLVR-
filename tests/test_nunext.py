@@ -274,6 +274,40 @@ class ParallelRuns(unittest.TestCase):
                          [("0", "r0"), ("1", "r1"), ("0", "r2"), ("1", "r3"), ("0", "r4")])
 
 
+class PanopticQuality(unittest.TestCase):
+    def test_best_masks_restores_a_squeezed_batch_and_picks_the_top_score(self):
+        from nucleus_rl.nunext.pq_eval import best_masks
+        masks = np.zeros((3, 4, 4)); masks[1, 0, 0] = 1
+        picked, scores = best_masks(masks, np.array([0.1, 0.9, 0.5]))
+        self.assertEqual(picked.shape, (1, 4, 4))
+        self.assertTrue(picked[0, 0, 0])
+        self.assertAlmostEqual(float(scores[0]), 0.9)
+
+    def test_point_prompts_to_pq(self):
+        from PIL import Image
+        from nucleus_rl.nunext.pq_eval import score_image, summarize
+        reference = np.zeros((16, 16), dtype=np.uint16)
+        reference[2:6, 2:6] = 1
+        reference[9:14, 8:13] = 2
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.fromarray(np.zeros((16, 16, 3), np.uint8)).save(root / "i.png")
+            Image.fromarray(reference).save(root / "m.png")
+            row = {"id": "a", "image_path": str(root / "i.png"), "mask_path": str(root / "m.png"),
+                   "centroids": [[4.0, 4.0], [10.5, 11.5]]}
+            ref = reference.astype(np.int64)
+
+            def segment(image, points, boxes):
+                return np.stack([ref == ref[int(y), int(x)] for x, y in points]), np.ones(len(points))
+
+            exact = score_image(row, "oracle-point", None, segment)
+            missed = score_image(row, "pred-point", {"a": [[4.0, 4.0]]}, segment)
+        self.assertEqual((exact["tp"], exact["fp"], exact["fn"]), (2, 0, 0))
+        self.assertAlmostEqual(summarize([exact])["pq"], 1.0)
+        self.assertEqual((missed["tp"], missed["fn"]), (1, 1))
+        self.assertAlmostEqual(summarize([missed])["pq"], 1 / 1.5)
+
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

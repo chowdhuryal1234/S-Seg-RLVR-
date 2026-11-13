@@ -8,7 +8,7 @@
 # MAGIC
 # MAGIC Downloads the three PanNuke folds from Hugging Face (`RationAI/PanNuke`, pinned revision, about 1.7 GB of
 # MAGIC parquet in total), converts them with `scripts/prepare_pannuke.py` into PNG images and centroid manifests, and
-# MAGIC stores the result on the Volume as small zips plus `index.json` under `<artifacts>/data/pannuke_nunext_v1/`.
+# MAGIC stores the result on the Volume as small zips plus `index.json` under `<artifacts>/data/pannuke_nunext_v2/` (v2 adds per-image instance masks for PQ).
 # MAGIC Folds 1 and 2 are training data and fold 3 is internal validation, as in the paper.
 # MAGIC
 # MAGIC The Hugging Face copy was checked against the official Warwick fold 3: identical images, nucleus counts,
