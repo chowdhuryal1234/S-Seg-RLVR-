@@ -10,6 +10,11 @@ Reports, pooled and per dataset:
   never_found        GT hit by none of the K samples, also without edge slivers (truncated and <100 px)
   all_found          GT hit by every sample
 No SAM is involved: this measures where the policy points, not mask quality. Validation tiles only.
+
+With --eval-adapter, a finished adapter of nucleus_rl.grpo (a GRPO run or its continued-SFT control) is applied on
+top of the merged SFT model, exactly as `grpo --eval-only --eval-adapter` does; it must have been trained from the
+same --init-adapter (checked by sha256). tiles.jsonl keeps per-nucleus hit counts, so start, GRPO and control can be
+compared nucleus by nucleus.
 """
 from __future__ import annotations
 
@@ -30,6 +35,7 @@ def build_parser():
     parser.add_argument("--model", required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--init-adapter", required=True, help="SFT adapter, merged into the base before sampling")
+    parser.add_argument("--eval-adapter", help="Adapter of nucleus_rl.grpo trained from --init-adapter, applied on top")
     parser.add_argument("--coordinate-frame", choices=("processed", "normalized1000"), default="normalized1000")
     parser.add_argument("--min-pixels", type=int, required=True)
     parser.add_argument("--max-pixels", type=int, required=True)
@@ -80,6 +86,17 @@ def match(pred_boxes, gt_boxes, threshold=0.5):
             used_pred.add(i)
             used_gt.add(j)
     return used_gt
+
+
+def check_eval_adapter(path, init):
+    """A grpo-runner adapter must name the same SFT init (sha256) it is applied on top of."""
+    from nucleus_rl.training_budget import file_digest
+    path = Path(path)
+    coordinates = json.loads((path / "coordinate_config.json").read_text())
+    if coordinates.get("init_adapter_sha256") != init["adapter_sha256"]:
+        raise ValueError("--eval-adapter was trained from a different SFT adapter than --init-adapter")
+    return {"path": str(path.resolve()), "adapter_sha256": file_digest(path / "adapter_model.safetensors"),
+            "coordinate_config": coordinates}
 
 
 def tile_support(gt, sample_hits):
@@ -137,16 +154,17 @@ def main(argv=None):
     if any(row["split"] != "validation" for row in rows):
         raise ValueError("Support evaluation reads validation rows only")
     init = check_init_adapter(args)  # before any output is written
+    evaluated = check_eval_adapter(args.eval_adapter, init) if args.eval_adapter else None
     output.mkdir(parents=True, exist_ok=True)
     try:
-        return run(args, rows, init, output)
+        return run(args, rows, init, output, evaluated)
     except Exception as error:
         from nucleus_rl.sft import json_write
         json_write(output / "failure.json", {"error_type": type(error).__name__, "error": str(error)})
         raise
 
 
-def run(args, rows, init, output):
+def run(args, rows, init, output, evaluated=None):
     import numpy as np
     import torch
     from PIL import Image
@@ -163,6 +181,8 @@ def run(args, rows, init, output):
     json_write(output / "arguments.json", vars(args))
     model, processor = load_model(SimpleArgs(args))
     model = PeftModel.from_pretrained(model, args.init_adapter, is_trainable=False).merge_and_unload()
+    if evaluated:
+        model = PeftModel.from_pretrained(model, evaluated["path"], is_trainable=False)
     model.requires_grad_(False)
     model.eval()
     eos_ids = end_token_ids(model, processor)
@@ -171,7 +191,7 @@ def run(args, rows, init, output):
                                 repetition_penalty=1.0, max_new_tokens=args.max_new_tokens,
                                 eos_token_id=eos_ids, pad_token_id=pad_id, use_cache=True)
     prepared = prepare_coordinate_rows(rows, processor, args.coordinate_frame)
-    json_write(output / "metadata.json", {"init_adapter": init, "sampling": sampling.to_dict(),
+    json_write(output / "metadata.json", {"init_adapter": init, "eval_adapter": evaluated, "sampling": sampling.to_dict(),
                                           "tiles_requested": len(prepared), "gpu": torch.cuda.get_device_name()})
     started = time.monotonic()
     records, stop_reason = [], None
@@ -226,7 +246,8 @@ def run(args, rows, init, output):
                "tiles_done": len(records), "tiles_requested": len(prepared), "samples_per_tile": args.samples,
                "temperature": args.temperature, "iou_threshold": args.iou_threshold,
                "matching": "box IoU > threshold, greedy one-to-one, GT boxes from the instance mask (no SAM)",
-               "elapsed_seconds": time.monotonic() - started, "init_adapter": init, "support": aggregate(records)}
+               "elapsed_seconds": time.monotonic() - started, "init_adapter": init, "eval_adapter": evaluated,
+               "support": aggregate(records)}
     json_write(output / "summary.json", summary)
     return summary
 
