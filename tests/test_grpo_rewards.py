@@ -40,6 +40,8 @@ class RewardComponentTests(unittest.TestCase):
         self.assertEqual(set(reward_components(False, 0, empty, none, gt).values()), {0.0})
         valid_empty = reward_components(True, 0, empty, none, gt)
         self.assertEqual(valid_empty["format"], 1.0)
+        # obj credits an empty answer for the false positives it avoided: lambda*M / (G + lambda*M)
+        self.assertAlmostEqual(valid_empty.pop("obj"), 4 / 6)
         self.assertEqual(sum(valid_empty.values()), 1.0)
 
     def test_one_mask_over_two_nuclei_loses_count_and_separation(self):
