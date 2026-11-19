@@ -7,6 +7,15 @@ training reward is a weighted sum chosen on the command line, e.g.
 ``wpq`` is PQ with its false-positive and false-negative weights exposed:
 sum of matched IoU / (TP + w_fp*FP + w_fn*FN), same IoU > 0.5 matching. At
 w_fp = w_fn = 0.5 it equals ``pq`` exactly; w_fn > w_fp favours recall.
+
+``obj`` is per-object credit: sum of matched IoU minus lambda per false positive,
+(sum IoU - lambda*FP + lambda*M) / (G + lambda*M), with G ground-truth nuclei and
+M the object cap. FP is capped at M, so the value lies in [0, 1], and within one
+image (fixed G and M) it is an affine map of sum IoU - lambda*FP, which GRPO's
+group-normalized advantages do not see. An extra box therefore pays off when its
+chance of a match exceeds about lambda / (IoU + lambda); unlike PQ, a missed
+nucleus costs nothing beyond the credit it did not earn, and a valid empty answer
+scores lambda*M / (G + lambda*M), never below a box-filled answer that is all wrong.
 """
 from __future__ import annotations
 
@@ -18,8 +27,10 @@ import numpy as np
 from nucleus_rl.ablation_metrics import duplicate_metrics
 from nucleus_rl.rewards import foreground_iou, instance_metrics
 
-COMPONENTS = ("format", "fg_iou", "pq", "count", "separation", "wpq")
+COMPONENTS = ("format", "fg_iou", "pq", "count", "separation", "wpq", "obj")
 PQ_ERROR_WEIGHT = 0.5  # the FP and FN weight inside standard PQ
+OBJ_FP_WEIGHT = 0.5  # default lambda of the obj reward
+OBJ_CAP = 8  # default M of the obj reward (the runner passes --max-objects)
 
 
 def parse_reward_spec(spec: str) -> dict[str, float]:
@@ -91,13 +102,38 @@ def weighted_pq(metrics: Mapping[str, Any], fp_weight: float = PQ_ERROR_WEIGHT,
     return float(metrics["pq"]) * (standard / weighted)
 
 
+def check_obj_settings(fp_weight: float, cap: int) -> None:
+    if isinstance(fp_weight, bool) or not math.isfinite(fp_weight) or fp_weight <= 0:
+        raise ValueError(f"obj FP weight (lambda) must be finite and positive: {fp_weight!r}")
+    if isinstance(cap, bool) or int(cap) != cap or cap < 1:
+        raise ValueError(f"obj object cap must be a positive integer: {cap!r}")
+
+
+def object_credit(metrics: Mapping[str, Any], fp_weight: float = OBJ_FP_WEIGHT, cap: int = OBJ_CAP) -> float:
+    """(sum matched IoU - lambda*min(FP, M) + lambda*M) / (G + lambda*M), in [0, 1]."""
+    check_obj_settings(fp_weight, cap)
+    tp, fp, fn = metrics["tp"], metrics["fp"], metrics["fn"]
+    standard = tp + PQ_ERROR_WEIGHT * fp + PQ_ERROR_WEIGHT * fn
+    matched_iou = float(metrics["pq"]) * standard if standard else 0.0
+    offset = fp_weight * cap
+    return (matched_iou - fp_weight * min(fp, cap) + offset) / (metrics["gt_count"] + offset)
+
+
 def reward_components(valid: bool, object_count: int, instances: Any, raw_masks: Any,
                       reference: Any, wpq_fp_weight: float = PQ_ERROR_WEIGHT,
-                      wpq_fn_weight: float = PQ_ERROR_WEIGHT) -> dict[str, float]:
-    """All components for one completion; invalid or empty answers earn nothing."""
+                      wpq_fn_weight: float = PQ_ERROR_WEIGHT, obj_fp_weight: float = OBJ_FP_WEIGHT,
+                      obj_cap: int = OBJ_CAP) -> dict[str, float]:
+    """All components for one completion. Invalid answers earn nothing; a valid empty answer
+    earns only format and the obj credit of an answer with no boxes."""
     check_wpq_weights(wpq_fp_weight, wpq_fn_weight)
+    check_obj_settings(obj_fp_weight, obj_cap)
     if not valid or object_count == 0:
-        return {name: (1.0 if name == "format" and valid else 0.0) for name in COMPONENTS}
+        out = {name: (1.0 if name == "format" and valid else 0.0) for name in COMPONENTS}
+        if valid:
+            gt_count = int(np.count_nonzero(np.unique(np.asarray(reference))))
+            out["obj"] = object_credit({"tp": 0, "fp": 0, "fn": gt_count, "pq": 0.0, "gt_count": gt_count},
+                                       obj_fp_weight, obj_cap)
+        return out
     metrics = instance_metrics(instances, reference)
     duplicates = duplicate_metrics(raw_masks, reference)["same_gt_duplicate_count"]
     mistakes = duplicates + merge_extras(raw_masks, reference)
@@ -110,6 +146,7 @@ def reward_components(valid: bool, object_count: int, instances: Any, raw_masks:
         "count": 1.0 - min(abs(metrics["pred_count"] - gt_count) / max(gt_count, 1), 1.0),
         "separation": max(0.0, 1.0 - mistakes / raw_count),
         "wpq": weighted_pq(metrics, wpq_fp_weight, wpq_fn_weight),
+        "obj": object_credit(metrics, obj_fp_weight, obj_cap),
     }
 
 
