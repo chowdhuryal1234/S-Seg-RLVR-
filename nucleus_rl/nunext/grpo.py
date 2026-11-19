@@ -79,6 +79,8 @@ def build_parser():
     p.add_argument("--delta", type=float, default=0.0, help="LVGF threshold on group reward std; 0 = off")
     p.add_argument("--fgas-decay", type=float, default=1.0, help="FGAS decay in (0,1]; 1 = off")
     p.add_argument("--box-tokens", action="store_true", help="The SFT model outputs x y w h per nucleus")
+    p.add_argument("--capped-matching", action="store_true",
+                   help="Reward and FGAS labels from capped matching (pairs beyond --radius unassignable)")
     p.add_argument("--max-steps", type=int, default=500)
     p.add_argument("--eval-every", type=int, default=100)
     p.add_argument("--eval-limit", type=int)
@@ -166,7 +168,8 @@ def run(args):
         work = []  # (example, completions, token advantages)
         for index, (example, row) in enumerate(zip(examples, rows)):
             group = sequences[index * args.group_size:(index + 1) * args.group_size]
-            scored = [score_completion(ids, row, first_id, args.bins, stop_ids, args.radius, per_object)
+            scored = [score_completion(ids, row, first_id, args.bins, stop_ids, args.radius, per_object,
+                                       args.capped_matching)
                       for ids in group]
             rewards = [match.f1 if parsed.valid else 0.0 for parsed, _, match in scored]
             stats["rewards"].extend(rewards)

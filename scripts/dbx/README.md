@@ -29,6 +29,7 @@ and cache paths. `tests/test_dbx_notebooks.py` checks that the SFT arguments mat
 | `12_nunext_grpo` | GPU (H100) | NuNext GRPO from an SFT run: plain and LVGF+FGAS arms. |
 | `13_nunext_eval` | GPU (H100) | Re-evaluates a saved NuNext run on fold 3 across all GPUs: strict F1 plus diagnostic salvaged F1 for truncated/looping outputs. |
 | `14_nunext_pq` | GPU (H100) | Panoptic quality of NuNext points: point prompts to frozen SAM2.1 tiny/large, PQ on fold 3 against oracle-point and oracle-box ceilings. Needs dataset v2 from `10_nunext_data`. |
+| `15_nunext_rescore_tta` | GPU (H100) | Re-scores finished NuNext runs with paper and capped matching (no GPU needed), then D4 test-time augmentation of the box model with a vote-threshold sweep, and PQ of the TTA predictions. |
 
 Run 03 and 04 as notebook **jobs** for full runs, so a closed browser tab does not stop training. Sessions are limited
 to two days. Each notebook downloads its inputs (dataset, SAM checkpoint, Qwen, SFT adapter) to local disk if this

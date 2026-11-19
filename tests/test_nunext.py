@@ -437,6 +437,112 @@ class BoxTokens(unittest.TestCase):
             with self.assertRaises(ValueError):
                 score_image(row, "pred-box", {"a": [[4, 4]]}, segment)   # a point-only run
 
+
+@unittest.skipUnless(HAS_SCIPY, "scipy required")
+class CappedMatching(unittest.TestCase):
+    PRED = [[16.0, 21.0], [6.0, 11.0]]
+    GT = [[17.0, 19.0], [32.0, 26.0]]
+
+    def test_paper_matching_loses_a_close_pair(self):
+        from nucleus_rl.nunext.matching import match_points
+        # Raw-distance optimum pairs (16,21)-(32,26) and (6,11)-(17,19), both > 12 px,
+        # although (16,21) is 2.2 px from (17,19).
+        self.assertEqual(match_points(self.PRED, self.GT, 12).tp, 0)
+        capped = match_points(self.PRED, self.GT, 12, capped=True)
+        self.assertEqual((capped.tp, capped.fp, capped.fn), (1, 1, 1))
+        self.assertEqual(capped.pred_is_tp, (True, False))
+
+    def test_capped_never_finds_fewer(self):
+        from nucleus_rl.nunext.matching import match_points
+        rng = np.random.default_rng(0)
+        for _ in range(200):
+            pred, gt = rng.uniform(0, 60, (rng.integers(0, 8), 2)), rng.uniform(0, 60, (rng.integers(0, 8), 2))
+            self.assertGreaterEqual(match_points(pred, gt, 12, True).tp, match_points(pred, gt, 12).tp)
+
+    def test_rescore_reports_both(self):
+        from nucleus_rl.nunext.rescore import rescore
+        result = rescore([{"id": "a", "valid": True, "pred": self.PRED},
+                          {"id": "b", "valid": False, "pred": [[1, 1]]}],
+                         [{"id": "a", "centroids": self.GT}, {"id": "b", "centroids": [[1, 1]]}])
+        self.assertEqual(result["paper"]["tp"], 0)
+        self.assertEqual(result["capped"]["tp"], 1)
+        self.assertEqual(result["capped"]["fn"], 2)      # invalid record counts as no predictions
+        self.assertNotIn("tta_vote_sweep", result)
+
+
+@unittest.skipUnless(HAS_SCIPY, "scipy required")
+class TestTimeAugmentation(unittest.TestCase):
+    def test_inverse_undoes_every_view(self):
+        from nucleus_rl.nunext import tta
+        points = [(3.0, 7.5), (250.0, 12.0), (128.0, 200.25)]
+        for view in range(8):
+            _, moved = d4_transform(np.zeros((256, 256, 3), np.uint8), points, view)
+            np.testing.assert_allclose(tta.inverse_points(moved, view, 256.0), points, atol=1e-9)
+
+    def test_sizes_swap_on_quarter_turns(self):
+        from nucleus_rl.nunext import tta
+        self.assertEqual(tta.inverse_objects([(10, 20, 4, 9)], 1, 256)[0][2:], (9.0, 4.0))
+        self.assertEqual(tta.inverse_objects([(10, 20, 4, 9)], 4, 256)[0][2:], (4.0, 9.0))
+        self.assertEqual(len(tta.inverse_objects([(10, 20)], 3, 256)[0]), 2)
+
+    def test_merge_votes(self):
+        from nucleus_rl.nunext import tta
+        views = [[(50 + 0.5 * v, 50.0, 10.0, 12.0), (100.0, 100.0, 8.0, 8.0)] for v in range(8)]
+        views[2].append((200.0, 30.0, 6.0, 6.0))                 # found in one view only
+        views[5] = [(50.0, 50.0, 10.0, 12.0), (52.0, 50.0, 10.0, 12.0)]   # two points near one nucleus
+        merged = tta.merge_views(views, radius=8.0)
+        votes = {tuple(round(v) for v in m["point"]): m["votes"] for m in merged}
+        self.assertEqual(votes[(30, 200)[::-1]], 1)
+        self.assertEqual(votes[(100, 100)], 7)
+        big = [m for m in merged if abs(m["point"][1] - 50) < 1]
+        self.assertEqual(len(big), 1)                            # one member per view per cluster
+        self.assertEqual((big[0]["votes"], big[0]["size"]), (8, (10.0, 12.0)))
+        self.assertEqual(sum(m["votes"] for m in merged), sum(len(v) for v in views) - 1)   # duplicate dropped
+        points, boxes = tta.select(merged, 4, 256, 256)
+        self.assertEqual(len(points), 2)
+        self.assertEqual(boxes[1], (96.0, 96.0, 104.0, 104.0))
+        self.assertEqual(tta.select(tta.merge_views([[(5.0, 5.0)]], 8.0), 1, 256, 256), ([(5.0, 5.0)], None))
+
+    def test_tta_record_recovers_every_view(self):
+        from PIL import Image
+        from nucleus_rl.nunext.data import load_example
+        from nucleus_rl.nunext.evaluate import tta_record
+        from nucleus_rl.nunext.pq_eval import prediction_entry
+        labels = np.zeros((64, 64), dtype=np.uint16)
+        labels[4:10, 6:20] = 1
+        labels[40:60, 44:50] = 2
+        bins, first, end = 256, 1000, 5000
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.fromarray(np.zeros((64, 64, 3), np.uint8)).save(root / "i.png")
+            Image.fromarray(labels).save(root / "m.png")
+            row = {"id": "a", "image_path": str(root / "i.png"), "mask_path": str(root / "m.png"),
+                   "width": 64, "height": 64, "centroids": [[13.0, 7.0], [47.0, 50.0]]}
+            view_ids = []
+            for view in range(8):
+                target = load_example(row, bins, view, boxes=True)["target"]
+                view_ids.append([first + int(v) for v in coords._TOKEN_PATTERN.findall(target)] + [end])
+            view_ids[6] = [first]                                # one truncated view
+            record = tta_record(row, view_ids, first, bins, [end], 12.0, 4, 8.0, 4)
+        self.assertEqual((record["tp"], record["fp"], record["fn"]), (2, 0, 0))
+        self.assertEqual(record["valid_views"], 7)
+        self.assertEqual(record["tta"]["votes"], [7, 7])
+        np.testing.assert_allclose(record["pred"], row["centroids"], atol=0.6)
+        np.testing.assert_allclose(record["tta"]["sizes"], [[14, 6], [6, 20]], atol=0.6)
+        entry = prediction_entry(record, min_votes=7)
+        self.assertEqual(len(entry["boxes"]), 2)
+        self.assertEqual(prediction_entry(record, min_votes=8)["points"], [])
+        with self.assertRaises(ValueError):
+            prediction_entry({"pred": [], "valid": True}, min_votes=2)
+
+    def test_vote_sweep(self):
+        from nucleus_rl.nunext.rescore import vote_sweep
+        records = [{"id": "a", "tta": {"points": [[10, 10], [40, 40]], "votes": [8, 2]}}]
+        sweep = vote_sweep(records, [{"id": "a", "centroids": [[10, 10]]}])
+        self.assertEqual(sweep["1"]["paper"]["fp"], 1)
+        self.assertEqual(sweep["3"]["capped"]["micro_f1"], 1.0)
+        self.assertEqual(sweep["8"]["paper"]["tp"], 1)
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

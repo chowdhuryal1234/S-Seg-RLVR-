@@ -11,6 +11,10 @@ from typing import Sequence
 import numpy as np
 
 
+# Larger than any sum of in-radius distances, so the solver first maximizes the number of in-radius pairs.
+_UNASSIGNABLE = 1e9
+
+
 @dataclass(frozen=True)
 class Match:
     tp: int
@@ -33,10 +37,15 @@ class Match:
         return 2 * self.tp / denominator if denominator else 1.0
 
 
-def match_points(pred: Sequence[Sequence[float]], gt: Sequence[Sequence[float]], radius: float) -> Match:
+def match_points(pred: Sequence[Sequence[float]], gt: Sequence[Sequence[float]], radius: float,
+                 capped: bool = False) -> Match:
     """Minimum-cost one-to-one assignment, then accept pairs with distance <= radius.
 
-    This follows the paper: solve the assignment on raw distances first, then threshold.
+    ``capped=False`` follows the paper: solve the assignment on raw distances first, then threshold.
+    On dense images with misses and false positives, the global optimum can pair a correct point with
+    a distant reference to shorten other pairs, so a point a few pixels off is lost as FP + FN.
+    ``capped=True`` makes pairs farther than ``radius`` unassignable before solving, which gives the
+    largest number of pairs within the radius (ties broken by total distance).
     """
     from scipy.optimize import linear_sum_assignment
 
@@ -47,7 +56,8 @@ def match_points(pred: Sequence[Sequence[float]], gt: Sequence[Sequence[float]],
     if len(pred_array) == 0 or len(gt_array) == 0:
         return Match(0, len(pred_array), len(gt_array), (False,) * len(pred_array))
     distances = np.linalg.norm(pred_array[:, None, :] - gt_array[None, :, :], axis=-1)
-    rows, cols = linear_sum_assignment(distances)
+    cost = np.where(distances <= radius, distances, _UNASSIGNABLE) if capped else distances
+    rows, cols = linear_sum_assignment(cost)
     accepted = distances[rows, cols] <= radius
     is_tp = np.zeros(len(pred_array), dtype=bool)
     is_tp[rows[accepted]] = True

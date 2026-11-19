@@ -97,6 +97,30 @@ def pseudo_boxes(points, width: int, height: int, scale: float, low: float, high
     return boxes
 
 
+def prediction_entry(record: dict, min_votes: int | None = None) -> dict:
+    """{"points", "boxes" (None for a point model)} of one predictions.jsonl record.
+
+    With ``min_votes`` the record must come from a TTA run (evaluate --tta d4); its merged nuclei
+    with at least that many votes are used instead of the ones selected at evaluation time.
+    """
+    if min_votes is None:
+        valid = record.get("valid", True)
+        boxes = (record["pred_boxes"] if valid else []) if "pred_boxes" in record else None
+        return {"points": record["pred"] if valid else [], "boxes": boxes}
+    if "tta" not in record:
+        raise ValueError("--min-votes needs predictions from an evaluate --tta d4 run")
+    tta = record["tta"]
+    keep = [i for i, votes in enumerate(tta["votes"]) if votes >= min_votes]
+    points = [tta["points"][i] for i in keep]
+    if "sizes" not in tta:
+        return {"points": points, "boxes": None}
+    boxes = []
+    for i in keep:
+        (x, y), (w, h) = tta["points"][i], tta["sizes"][i]
+        boxes.append([max(0.0, x - w / 2), max(0.0, y - h / 2), x + w / 2, y + h / 2])
+    return {"points": points, "boxes": boxes}
+
+
 def prompts_for(row: dict, mode: str, predictions: dict | None, reference: np.ndarray):
     """predictions: id -> points, or id -> {"points": [...], "boxes": [...]} (needed for pred-box)."""
     if mode in ("pred-point", "pred-box"):
@@ -215,6 +239,7 @@ def main(argv=None):
     parser.add_argument("--negatives", type=int, default=0, help="Nearest other points sent as negative prompts")
     parser.add_argument("--negative-radius", type=float, default=32.0, help="Only neighbours within this many px")
     parser.add_argument("--mask-choice", choices=MASK_CHOICES, default="score")
+    parser.add_argument("--min-votes", type=int, help="TTA predictions: keep merged nuclei with at least this many votes")
     parser.add_argument("--pseudo-box", action="store_true", help="Add a box built from the point (point modes)")
     parser.add_argument("--pseudo-box-scale", type=float, default=0.7, help="Half-side = scale x nearest-neighbour distance")
     parser.add_argument("--pseudo-box-min", type=float, default=8.0, help="Smallest half-side, px")
@@ -230,9 +255,7 @@ def main(argv=None):
     predictions = None
     if args.predictions:
         records = [json.loads(line) for line in Path(args.predictions).read_text().splitlines() if line.strip()]
-        predictions = {r["id"]: {"points": r["pred"] if r.get("valid", True) else [],
-                                 "boxes": (r["pred_boxes"] if r.get("valid", True) else []) if "pred_boxes" in r else None}
-                       for r in records}
+        predictions = {r["id"]: prediction_entry(r, args.min_votes) for r in records}
     started = time.time()
     segment = SAMSegmenter(args.sam_checkpoint, args.sam_config, device, args.chunk, args.mask_choice)
     pseudo = (args.pseudo_box_scale, args.pseudo_box_min, args.pseudo_box_max) if args.pseudo_box else None
@@ -242,7 +265,7 @@ def main(argv=None):
         order = {row["id"]: i for i, row in enumerate(rows)}
         records.sort(key=lambda r: order[r["id"]])
         summary = {"mode": args.mode, "sam_checkpoint": args.sam_checkpoint, "sam_config": args.sam_config,
-                   "predictions": args.predictions, "negatives": args.negatives,
+                   "predictions": args.predictions, "min_votes": args.min_votes, "negatives": args.negatives,
                    "negative_radius": args.negative_radius, "mask_choice": args.mask_choice,
                    "pseudo_box": list(pseudo) if pseudo else None, **summarize(records),
                    "seconds": round(time.time() - started, 1)}
