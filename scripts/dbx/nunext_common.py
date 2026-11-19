@@ -35,7 +35,10 @@ VALIDATION_FOLDS = (3,)
 SFT_SETTINGS = {"bins": 256, "image_size": 896, "train_vision": True, "augmentation": "d4", "epochs": 3, "gradient_accumulation": 16,
                 "learning_rate": 1e-5, "warmup_ratio": 0.03, "radius": 12, "eval_every": 250,
                 "eval_limit": 512, "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}
-SFT_ARMS = {"nsft": {"sigma": 0.0}, "sass": {"sigma": 1.0}}
+# nsft-box: every nucleus is x y w h (centre + tight-box size from the instance masks) so SAM can be prompted
+# with a predicted box. Up to 214 nuclei per image -> up to ~860 target tokens, hence the longer limits.
+SFT_ARMS = {"nsft": {"sigma": 0.0}, "sass": {"sigma": 1.0},
+            "nsft-box": {"sigma": 0.0, "box_tokens": True, "max_sequence_length": 3072, "max_new_tokens": 1536}}
 SFT_CANARY = {"max_steps": 20, "gradient_accumulation": 2, "train_limit": 64, "final_eval_limit": 32,
               "eval_every": 0, "skip_before_eval": True, "skip_save": True}
 

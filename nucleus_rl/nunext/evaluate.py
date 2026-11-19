@@ -6,27 +6,27 @@ import json
 from pathlib import Path
 import time
 
-from nucleus_rl.nunext.coords import bins_to_points, parse_token_ids, salvage_token_ids
+from nucleus_rl.nunext.coords import bins_to_boxes, bins_to_points, parse_token_ids, salvage_token_ids
 from nucleus_rl.nunext.data import load_example, read_manifests
 from nucleus_rl.nunext.matching import aggregate, match_points
 
 
-def score_completion(ids, row, first_id, bins, stop_ids, radius):
+def score_completion(ids, row, first_id, bins, stop_ids, radius, per_object=2):
     """(parse result, match) for one generated sequence; invalid output counts as no predictions."""
-    parsed = parse_token_ids(ids, first_id, bins, stop_ids)
+    parsed = parse_token_ids(ids, first_id, bins, stop_ids, per_object)
     points = bins_to_points(parsed.bins, row["width"], row["height"], bins) if parsed.valid else []
     return parsed, points, match_points(points, row["centroids"], radius)
 
 
-def salvaged_match(ids, row, first_id, bins, stop_ids, radius):
+def salvaged_match(ids, row, first_id, bins, stop_ids, radius, per_object=2):
     """Match for the lenient parse (salvage_token_ids); used only for the diagnostic salvaged_* metrics."""
-    parsed = salvage_token_ids(ids, first_id, bins, stop_ids)
+    parsed = salvage_token_ids(ids, first_id, bins, stop_ids, per_object)
     points = bins_to_points(parsed.bins, row["width"], row["height"], bins)
     return points, match_points(points, row["centroids"], radius)
 
 
 def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batch_size, max_new_tokens,
-             output: Path | None = None, keep_predictions: bool = True) -> dict:
+             output: Path | None = None, keep_predictions: bool = True, per_object: int = 2) -> dict:
     """Under torchrun each rank scores rows[rank::world]; every rank returns the full summary, rank 0 writes."""
     from nucleus_rl.nunext import dist
     from nucleus_rl.nunext.matching import Match
@@ -43,14 +43,18 @@ def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batc
         sequences = generate(model, processor, [e["image"] for e in examples], do_sample=False,
                              temperature=1.0, max_new_tokens=max_new_tokens)
         for row, ids in zip(chunk, sequences):
-            parsed, points, match = score_completion(ids, row, first_id, bins, stop_ids, radius)
+            parsed, points, match = score_completion(ids, row, first_id, bins, stop_ids, radius, per_object)
             record = {"id": row["id"], "valid": parsed.valid, "error": parsed.error, "tokens": len(ids),
                       "pred": [[round(x, 1), round(y, 1)] for x, y in points],
                       "tp": match.tp, "fp": match.fp, "fn": match.fn}
+            if per_object == 4:
+                record["pred_boxes"] = ([[round(v, 1) for v in box] for box in
+                                         bins_to_boxes(parsed.bins, row["width"], row["height"], bins)]
+                                        if parsed.valid else [])
             if parsed.valid:
                 record["salvaged"] = {"tp": match.tp, "fp": match.fp, "fn": match.fn, "points": len(points)}
             else:
-                salvaged_points, salvaged = salvaged_match(ids, row, first_id, bins, stop_ids, radius)
+                salvaged_points, salvaged = salvaged_match(ids, row, first_id, bins, stop_ids, radius, per_object)
                 record["salvaged"] = {"tp": salvaged.tp, "fp": salvaged.fp, "fn": salvaged.fn,
                                       "points": len(salvaged_points)}
             records.append(record)
@@ -89,6 +93,7 @@ def main(argv=None):
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--max-new-tokens", type=int, default=1024)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--box-tokens", action="store_true", help="The model outputs x y w h per nucleus")
     args = parser.parse_args(argv)
     from nucleus_rl.nunext import dist
     from nucleus_rl.nunext.modeling import coordinate_first_id, load_policy
@@ -99,7 +104,7 @@ def main(argv=None):
     rows = read_manifests(args.manifest, args.limit)
     summary = evaluate(model, processor, rows, first_id=first_id, bins=args.bins, image_size=args.image_size,
                        radius=args.radius, batch_size=args.batch_size, max_new_tokens=args.max_new_tokens,
-                       output=Path(args.output))
+                       output=Path(args.output), per_object=4 if args.box_tokens else 2)
     if dist.is_main():
         print(json.dumps(summary, indent=2), flush=True)
     dist.teardown()

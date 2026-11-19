@@ -340,6 +340,103 @@ class PanopticQuality(unittest.TestCase):
         self.assertAlmostEqual(summarize([missed])["pq"], 1 / 1.5)
 
 
+class BoxTokens(unittest.TestCase):
+    def test_points_encode_identically(self):
+        points = [(200, 10), (10, 200), (5, 10), (5, 10)]
+        self.assertEqual(coords.encode_objects(points, 256, 256, 256), coords.encode_points(points, 256, 256, 256))
+
+    def test_boxes_sort_by_centre_and_round_trip(self):
+        objects = [(100.0, 50.0, 20.0, 10.0), (30.0, 20.0, 8.0, 16.0)]
+        text = coords.encode_objects(objects, 256, 256, 256)
+        values = [int(v) for v in coords._TOKEN_PATTERN.findall(text)]
+        self.assertEqual(len(values), 8)
+        first = 1000
+        end = 2000
+        parsed = coords.parse_token_ids([first + v for v in values] + [end], first, 256, [end], per_object=4)
+        self.assertTrue(parsed.valid)
+        self.assertEqual(len(parsed.bins), 2)
+        self.assertEqual(parsed.bins[0][:2], (coords.quantize(30, 256, 256), coords.quantize(20, 256, 256)))
+        (x0, y0, x1, y1), _ = coords.bins_to_boxes(parsed.bins, 256, 256, 256)
+        self.assertAlmostEqual(x1 - x0, 8.0, delta=1.1)
+        self.assertAlmostEqual(y1 - y0, 16.0, delta=1.1)
+        self.assertAlmostEqual((x0 + x1) / 2, 30.0, delta=0.6)
+        points = coords.bins_to_points(parsed.bins, 256, 256, 256)
+        self.assertAlmostEqual(points[1][0], 100.0, delta=0.6)
+
+    def test_parse_requires_whole_boxes(self):
+        first, end = 1000, 2000
+        self.assertFalse(coords.parse_token_ids([1001, 1002, 1003, 1004, 1005, 1006, end], first, 256, [end],
+                                                per_object=4).valid)
+        salvaged = coords.salvage_token_ids([1001, 1002, 1003, 1004, 1005, 1006], first, 256, [end], per_object=4)
+        self.assertEqual(salvaged.bins, ((1, 2, 3, 4),))
+
+    def test_boxes_are_clipped_to_the_image(self):
+        self.assertEqual(coords.bins_to_boxes([(0, 0, 10, 10)], 255, 255, 256), [(0.0, 0.0, 5.0, 5.0)])
+        with self.assertRaises(ValueError):
+            coords.bins_to_boxes([(0, 0)], 255, 255, 256)
+
+    def test_fgas_groups_four_tokens_per_nucleus(self):
+        shaped = fgas_token_advantages(2.0, 9, True, [True, False], 0.5, per_object=4)
+        np.testing.assert_allclose(shaped, [2, 2, 2, 2, 1, 1, 1, 1, 2])
+
+    @unittest.skipUnless(HAS_SCIPY, "scipy required")
+    def test_box_sizes(self):
+        from nucleus_rl.nunext.data import box_sizes
+        labels = np.zeros((20, 20), dtype=np.uint16)
+        labels[2:5, 3:10] = 1           # 7 wide, 3 high
+        self.assertEqual(box_sizes(labels, 2), [(7.0, 3.0), (2.0, 2.0)])
+
+    @unittest.skipUnless(HAS_SCIPY, "scipy required")
+    def test_box_targets_follow_every_d4_view(self):
+        from PIL import Image
+        from nucleus_rl.nunext.data import load_example
+        labels = np.zeros((32, 32), dtype=np.uint16)
+        labels[2:6, 4:16] = 1            # 12 wide, 4 high, centre (10, 4)
+        labels[20:30, 22:25] = 2         # 3 wide, 10 high, centre (23.5, 25)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.fromarray(np.zeros((32, 32, 3), np.uint8)).save(root / "i.png")
+            Image.fromarray(labels).save(root / "m.png")
+            row = {"id": "a", "image_path": str(root / "i.png"), "mask_path": str(root / "m.png"),
+                   "width": 32, "height": 32, "centroids": [[10.0, 4.0], [23.5, 25.0]]}
+            for view in range(8):
+                example = load_example(row, 256, view, boxes=True)
+                for x, y, w, h in example["objects"]:
+                    # Each box, centred on its transformed centroid, must cover the matching transformed nucleus.
+                    self.assertIn((round(w), round(h)), {(12, 4), (4, 12), (3, 10), (10, 3)})
+                swapped = view % 2 == 1
+                sizes = sorted((round(w), round(h)) for _, _, w, h in example["objects"])
+                self.assertEqual(sizes, sorted([(4, 12), (10, 3)] if swapped else [(12, 4), (3, 10)]))
+                self.assertEqual(len(coords._TOKEN_PATTERN.findall(example["target"])), 8)
+            with self.assertRaises(ValueError):
+                load_example({k: v for k, v in row.items() if k != "mask_path"}, 256, 0, boxes=True)
+
+    def test_pred_box_prompts(self):
+        from PIL import Image
+        from nucleus_rl.nunext.pq_eval import score_image
+        reference = np.zeros((16, 16), dtype=np.uint16)
+        reference[2:6, 2:6] = 1
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            Image.fromarray(np.zeros((16, 16, 3), np.uint8)).save(root / "i.png")
+            Image.fromarray(reference).save(root / "m.png")
+            row = {"id": "a", "image_path": str(root / "i.png"), "mask_path": str(root / "m.png"),
+                   "centroids": [[4.0, 4.0]]}
+            seen = []
+
+            def segment(image, points, boxes, negatives=None):
+                seen.append(boxes)
+                mask = np.zeros((1, 16, 16), bool)
+                x0, y0, x1, y1 = (int(v) for v in boxes[0])
+                mask[0, y0:y1, x0:x1] = True
+                return mask, np.ones(1)
+
+            result = score_image(row, "pred-box", {"a": {"points": [[4, 4]], "boxes": [[2, 2, 6, 6]]}}, segment)
+            self.assertEqual(seen, [[(2, 2, 6, 6)]])
+            self.assertEqual((result["tp"], result["fp"], result["fn"]), (1, 0, 0))
+            with self.assertRaises(ValueError):
+                score_image(row, "pred-box", {"a": [[4, 4]]}, segment)   # a point-only run
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

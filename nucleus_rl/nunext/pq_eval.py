@@ -9,6 +9,7 @@ Modes:
   oracle-point  ground-truth centroids as point prompts: the ceiling for this detector + this SAM
   oracle-box    ground-truth tight box + centroid: the prompt style of the project's earlier branches
   pred-point    the detector's predicted points, read from an evaluate run's predictions.jsonl
+  pred-box      a box-token detector's predicted boxes + centres (pred_boxes in predictions.jsonl)
 
 Inference-only variants for point prompts: --negatives K adds the K nearest other prompt points
 (within --negative-radius px) as negative points, so SAM is told where the neighbouring nuclei are;
@@ -33,7 +34,7 @@ import time
 
 import numpy as np
 
-MODES = ("oracle-point", "oracle-box", "pred-point")
+MODES = ("oracle-point", "oracle-box", "pred-point", "pred-box")
 MASK_CHOICES = ("score", "smallest")
 
 
@@ -97,10 +98,17 @@ def pseudo_boxes(points, width: int, height: int, scale: float, low: float, high
 
 
 def prompts_for(row: dict, mode: str, predictions: dict | None, reference: np.ndarray):
-    if mode == "pred-point":
+    """predictions: id -> points, or id -> {"points": [...], "boxes": [...]} (needed for pred-box)."""
+    if mode in ("pred-point", "pred-box"):
         if row["id"] not in predictions:
             raise KeyError(f"No prediction for {row['id']}")
-        return [tuple(p) for p in predictions[row["id"]]], None
+        entry = predictions[row["id"]]
+        points, boxes = (entry["points"], entry.get("boxes")) if isinstance(entry, dict) else (entry, None)
+        if mode == "pred-box":
+            if boxes is None or len(boxes) != len(points):
+                raise ValueError(f"pred-box needs one predicted box per point ({row['id']}); evaluate with --box-tokens")
+            return [tuple(p) for p in points], [tuple(b) for b in boxes]
+        return [tuple(p) for p in points], None
     points = [tuple(c) for c in row["centroids"]]
     return points, (oracle_boxes(reference, len(points)) if mode == "oracle-box" else None)
 
@@ -198,7 +206,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--manifest", action="append", required=True, help="Rows with mask_path (dataset v2)")
     parser.add_argument("--mode", choices=MODES, required=True)
-    parser.add_argument("--predictions", help="predictions.jsonl of an evaluate run (pred-point mode)")
+    parser.add_argument("--predictions", help="predictions.jsonl of an evaluate run (pred-* modes)")
     parser.add_argument("--sam-checkpoint", required=True)
     parser.add_argument("--sam-config", default="configs/sam2.1/sam2.1_hiera_t.yaml")
     parser.add_argument("--output", required=True)
@@ -212,8 +220,8 @@ def main(argv=None):
     parser.add_argument("--pseudo-box-min", type=float, default=8.0, help="Smallest half-side, px")
     parser.add_argument("--pseudo-box-max", type=float, default=22.0, help="Largest half-side, px")
     args = parser.parse_args(argv)
-    if args.mode == "pred-point" and not args.predictions:
-        parser.error("--predictions is required for pred-point")
+    if args.mode.startswith("pred-") and not args.predictions:
+        parser.error(f"--predictions is required for {args.mode}")
 
     device = dist.setup() or "cuda"
     rows = read_manifests(args.manifest, args.limit)
@@ -222,7 +230,9 @@ def main(argv=None):
     predictions = None
     if args.predictions:
         records = [json.loads(line) for line in Path(args.predictions).read_text().splitlines() if line.strip()]
-        predictions = {r["id"]: r["pred"] if r.get("valid", True) else [] for r in records}
+        predictions = {r["id"]: {"points": r["pred"] if r.get("valid", True) else [],
+                                 "boxes": (r["pred_boxes"] if r.get("valid", True) else []) if "pred_boxes" in r else None}
+                       for r in records}
     started = time.time()
     segment = SAMSegmenter(args.sam_checkpoint, args.sam_config, device, args.chunk, args.mask_choice)
     pseudo = (args.pseudo_box_scale, args.pseudo_box_min, args.pseudo_box_max) if args.pseudo_box else None

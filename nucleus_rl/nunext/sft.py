@@ -43,6 +43,8 @@ def build_parser():
     p.add_argument("--train-vision", action="store_true",
                    help="Train the whole vision tower (encoder and merger) as well; frozen by default")
     p.add_argument("--max-sequence-length", type=int, default=2048)
+    p.add_argument("--box-tokens", action="store_true",
+                   help="Each nucleus is x y w h (centre + tight-box size) instead of x y; needs dataset v2 masks")
     p.add_argument("--radius", type=float, default=12.0, help="Detection match threshold in pixels")
     p.add_argument("--eval-every", type=int, default=250, help="Optimizer steps; 0 = only before/after")
     p.add_argument("--eval-limit", type=int, help="Validation subset for periodic evaluation (final uses all)")
@@ -121,6 +123,7 @@ def run(args):
     total = args.max_steps or max(1, int(args.epochs * len(train) / per_step))
     warmup = max(1, int(args.warmup_ratio * total))
     eval_kwargs = dict(first_id=first_id, bins=args.bins, image_size=args.image_size, radius=args.radius,
+                       per_object=4 if args.box_tokens else 2,
                        batch_size=args.eval_batch_size, max_new_tokens=args.max_new_tokens)
     history = {"steps": total, "train_images": len(train), "world_size": world, "effective_batch": per_step,
                "losses": [], "evaluations": []}
@@ -144,7 +147,7 @@ def run(args):
             epoch, offset = divmod(exposure, len(train))
             row = train[epoch_order(len(train), epoch, args.seed)[offset]]
             view = random.Random(args.seed * 7919 + exposure).randrange(8) if args.augmentation == "d4" else 0
-            example = load_example(row, args.bins, view, args.image_size)
+            example = load_example(row, args.bins, view, args.image_size, boxes=args.box_tokens)
             inputs, length = encode_training_example(processor, example["image"], example["target"],
                                                      args.max_sequence_length)
             inputs = inputs.to(model.device)

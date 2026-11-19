@@ -34,7 +34,8 @@ import nunext_common as nx
 import torch
 
 RUN = dbx.remote("runs", "nunext-sft-nsft-20261110-060748")   # Volume run folder that contains model/
-MAX_NEW_TOKENS = 1024
+MAX_NEW_TOKENS = 1024                                          # 1536 for a box-token (nsft-box) model
+BOX_TOKENS = False                                             # True for a box-token (nsft-box) model
 LIMIT = None                                                   # e.g. 512 for a quick check
 
 GPUS = torch.cuda.device_count()
@@ -48,6 +49,8 @@ argv = [*launcher, "-m", "nucleus_rl.nunext.evaluate", "--model", model, "--outp
         "--radius", str(nx.SFT_SETTINGS["radius"]), "--max-new-tokens", str(MAX_NEW_TOKENS)]
 if LIMIT:
     argv += ["--limit", str(LIMIT)]
+if BOX_TOKENS:
+    argv += ["--box-tokens"]
 dbx.run_cli(argv, local, remote)
 
 # COMMAND ----------

@@ -44,7 +44,8 @@ SFT_RUN = "/Volumes/aistudio_dev_catalog/aios_segrlvr_dev/processed/segrlvr/runs
 STAGES = ["main"]
 ARMS = ["grpo", "grpo-lvgf", "grpo-lvgf-fgas"]
 SEEDS = [42, 43]                    # e.g. [42, 43] repeats every arm to see run-to-run noise
-SETTINGS = {}                    # Overrides of nx.GRPO_SETTINGS
+SETTINGS = {}                    # Overrides of nx.GRPO_SETTINGS; from a box-token SFT model (nsft-box):
+                                 # {"box_tokens": True, "max_new_tokens": 1536}
 
 import torch
 GPUS = max(torch.cuda.device_count(), 1)

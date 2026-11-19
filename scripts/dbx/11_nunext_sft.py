@@ -48,8 +48,8 @@ dbx.configure_environment()
 import nunext_common as nx
 
 STAGES = ["main"]      # Drop "canary" once it has passed here.
-ARMS = ["nsft"]          # Run one after another; "nsft" alone answers the first question.
-SETTINGS = {"image_size": 896, "train_vision": True, "epochs": 10, "eval_every": 500}              # Overrides of nx.SFT_SETTINGS, e.g. {"epochs": 1}
+ARMS = ["nsft-box"]
+SETTINGS = {"image_size": 896, "train_vision": True, "epochs": 10, "eval_every": 500}
 
 EFFECTIVE_BATCH = 16           # Images per optimizer step across all GPUs
 

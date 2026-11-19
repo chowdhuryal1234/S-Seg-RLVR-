@@ -36,21 +36,22 @@ def keep_group(rewards: Sequence[float], delta: float) -> bool:
 
 
 def fgas_token_advantages(advantage: float, length: int, valid: bool, pred_is_tp: Sequence[bool],
-                          decay: float) -> np.ndarray:
+                          decay: float, per_object: int = 2) -> np.ndarray:
     """Per-token advantages for one rollout of ``length`` tokens (paper Eq. 18).
 
-    Point n owns completion tokens 2n and 2n+1. With A > 0, false-positive points get decay*A;
+    Nucleus n owns completion tokens k*n .. k*n+k-1 (k = 2 for x y, 4 for x y w h; its box size is
+    credited with its centre). With A > 0, false-positive points get decay*A;
     with A < 0, true-positive points get decay*A. The end token and invalid rollouts keep A.
     decay=1 disables FGAS.
     """
     shaped = np.full(length, float(advantage))
     if not valid or decay == 1.0 or advantage == 0:
         return shaped
-    if 2 * len(pred_is_tp) > length:
+    if per_object * len(pred_is_tp) > length:
         raise ValueError("More predicted points than completion tokens")
     for index, is_tp in enumerate(pred_is_tp):
         if (advantage > 0 and not is_tp) or (advantage < 0 and is_tp):
-            shaped[2 * index:2 * index + 2] = decay * advantage
+            shaped[per_object * index:per_object * (index + 1)] = decay * advantage
     return shaped
 
 
@@ -77,6 +78,7 @@ def build_parser():
     p.add_argument("--beta", type=float, default=0.04, help="k3 KL coefficient to the SFT model")
     p.add_argument("--delta", type=float, default=0.0, help="LVGF threshold on group reward std; 0 = off")
     p.add_argument("--fgas-decay", type=float, default=1.0, help="FGAS decay in (0,1]; 1 = off")
+    p.add_argument("--box-tokens", action="store_true", help="The SFT model outputs x y w h per nucleus")
     p.add_argument("--max-steps", type=int, default=500)
     p.add_argument("--eval-every", type=int, default=100)
     p.add_argument("--eval-limit", type=int)
@@ -126,7 +128,9 @@ def run(args):
     stop_ids = end_ids(processor, policy)
     trainable = [p for p in policy.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0)
+    per_object = 4 if args.box_tokens else 2
     eval_kwargs = dict(first_id=first_id, bins=args.bins, image_size=args.image_size, radius=args.radius,
+                       per_object=per_object,
                        batch_size=args.eval_batch_size, max_new_tokens=args.max_new_tokens)
     history = {"steps": [], "evaluations": []}
     if not args.skip_before_eval:
@@ -162,7 +166,8 @@ def run(args):
         work = []  # (example, completions, token advantages)
         for index, (example, row) in enumerate(zip(examples, rows)):
             group = sequences[index * args.group_size:(index + 1) * args.group_size]
-            scored = [score_completion(ids, row, first_id, args.bins, stop_ids, args.radius) for ids in group]
+            scored = [score_completion(ids, row, first_id, args.bins, stop_ids, args.radius, per_object)
+                      for ids in group]
             rewards = [match.f1 if parsed.valid else 0.0 for parsed, _, match in scored]
             stats["rewards"].extend(rewards)
             for parsed, points, match in scored:
@@ -175,7 +180,7 @@ def run(args):
                 stats["filtered_groups"] += 1
                 continue
             advantages = group_advantages(rewards)
-            shaped = [fgas_token_advantages(a, len(ids), parsed.valid, match.pred_is_tp, args.fgas_decay)
+            shaped = [fgas_token_advantages(a, len(ids), parsed.valid, match.pred_is_tp, args.fgas_decay, per_object)
                       for a, ids, (parsed, _, match) in zip(advantages, group, scored)]
             work.append((example, group, shaped))
         # ---- update
