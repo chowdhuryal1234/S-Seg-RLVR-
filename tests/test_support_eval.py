@@ -66,6 +66,26 @@ class SupportEvalTests(unittest.TestCase):
         self.assertTrue(items[7]["sliver"])
         self.assertFalse(items[9]["sliver"])
 
+    def test_eval_adapter_must_come_from_the_same_sft_init(self):
+        import json
+        import tempfile
+        from support_eval import check_eval_adapter
+        with tempfile.TemporaryDirectory() as tmp:
+            adapter = Path(tmp)
+            (adapter / "adapter_model.safetensors").write_bytes(b"weights")
+            (adapter / "coordinate_config.json").write_text(json.dumps({"init_adapter_sha256": "abc"}))
+            record = check_eval_adapter(adapter, {"adapter_sha256": "abc"})
+            self.assertEqual(record["coordinate_config"]["init_adapter_sha256"], "abc")
+            self.assertEqual(len(record["adapter_sha256"]), 64)
+            with self.assertRaises(ValueError):
+                check_eval_adapter(adapter, {"adapter_sha256": "other"})
+
+    def test_parser_accepts_optional_eval_adapter(self):
+        base = ["--eval-manifest", "m", "--output", "o", "--model", "x", "--revision", "r", "--init-adapter", "a",
+                "--min-pixels", "1", "--max-pixels", "1", "--max-objects", "8"]
+        self.assertIsNone(build_parser().parse_args(base).eval_adapter)
+        self.assertEqual(build_parser().parse_args(base + ["--eval-adapter", "g"]).eval_adapter, "g")
+
 
 if __name__ == "__main__":
     unittest.main()
