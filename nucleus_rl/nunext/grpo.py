@@ -1,7 +1,15 @@
 """NuNext stage 2: GRPO from a NuNext SFT model (paper Sec. 3.4).
 
 Reward: distribution matching F1 (Hungarian matching within --radius pixels); malformed or
-truncated rollouts get zero. Optional low-variance group filtering (LVGF, --delta) and
+truncated rollouts get zero. Options: --capped-matching (pairs beyond the radius unassignable,
+so no correct point is lost to the global assignment), --reward-beta (F-beta; > 1 weighs recall
+more) and, for box-token models, --box-iou-weight w: reward = (1 - w) F-beta + w * mean IoU between
+each matched nucleus's predicted box and its reference box (centroid-centred tight-box size).
+Task reward: --pq-weight p mixes in panoptic quality: every valid rollout's boxes + centres prompt a
+frozen SAM2 (--sam-checkpoint), the masks are scored against the instance mask of the same D4 view,
+and reward = (1 - p) * detection reward + p * PQ (p = 1: PQ alone). --rollout-end-bias samples
+rollouts with a bias on the end token's logit; the update still uses the unbiased policy's
+log-probs, so this makes the update slightly off-policy. Optional low-variance group filtering (LVGF, --delta) and
 fine-grained advantage shaping (FGAS, --fgas-decay). One policy update per sampled batch
 (fully on-policy, so the PPO ratio is 1 and clipping is inactive), k3 KL to the frozen SFT model.
 The task-guided PQ reward is out of scope here (see README.md).
@@ -20,6 +28,48 @@ import numpy as np
 
 
 # ---------------------------------------------------------------- pure functions (CPU-tested)
+
+def box_iou(a: Sequence[float], b: Sequence[float]) -> float:
+    """IoU of two (x0, y0, x1, y1) boxes; 0 when either has no area."""
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def rollout_reward(valid: bool, match, beta: float = 1.0, iou_weight: float = 0.0,
+                   pred_boxes: Sequence | None = None, gt_boxes: Sequence | None = None) -> tuple[float, float | None]:
+    """(reward, mean matched-box IoU or None). Invalid rollouts get 0.
+
+    With iou_weight > 0: (1 - w) * F-beta + w * mean IoU over matched pairs (0 when nothing matched).
+    """
+    if not valid:
+        return 0.0, (0.0 if iou_weight else None)
+    score = match.f_beta(beta)
+    if not iou_weight:
+        return score, None
+    ious = [box_iou(pred_boxes[p], gt_boxes[g]) for p, g in match.pairs]
+    mean_iou = float(np.mean(ious)) if ious else 0.0
+    return (1 - iou_weight) * score + iou_weight * mean_iou, mean_iou
+
+
+def rollout_pq(points, boxes, reference, predict, negatives: int = 0, radius: float = 32.0) -> float:
+    """PQ of one rollout: predict(points, boxes, negatives) -> SAM masks, resolved and scored against ``reference``.
+
+    No predictions on an image without nuclei scores 1; anything else without matches scores 0.
+    """
+    from nucleus_rl.nunext.pq_eval import negative_points
+    from nucleus_rl.rewards import instance_metrics, masks_to_instances
+
+    reference = np.asarray(reference).astype(np.int64)
+    if points:
+        masks, scores = predict(list(points), list(boxes), negative_points(points, negatives, radius))
+        instances = masks_to_instances(np.asarray(masks, dtype=np.float32), scores=np.asarray(scores))
+    else:
+        instances = np.zeros(reference.shape, dtype=np.int32)
+    return float(instance_metrics(instances, reference)["pq"])
+
 
 def group_advantages(rewards: Sequence[float], eps: float = 1e-4) -> np.ndarray:
     """(r - mean) / (std + eps) within one group (unbiased std, as in TRL)."""
@@ -81,6 +131,16 @@ def build_parser():
     p.add_argument("--box-tokens", action="store_true", help="The SFT model outputs x y w h per nucleus")
     p.add_argument("--capped-matching", action="store_true",
                    help="Reward and FGAS labels from capped matching (pairs beyond --radius unassignable)")
+    p.add_argument("--reward-beta", type=float, default=1.0, help="F-beta reward; > 1 weighs recall more")
+    p.add_argument("--box-iou-weight", type=float, default=0.0,
+                   help="Box-token models: weight of the matched-box IoU term in the reward (0 = off)")
+    p.add_argument("--pq-weight", type=float, default=0.0,
+                   help="Box-token models: weight of SAM panoptic quality in the reward (1 = PQ alone, 0 = off)")
+    p.add_argument("--sam-checkpoint", help="SAM2 checkpoint for the PQ reward")
+    p.add_argument("--sam-config", default="configs/sam2.1/sam2.1_hiera_t.yaml")
+    p.add_argument("--sam-negatives", type=int, default=4, help="PQ reward: nearest other centres as negative points")
+    p.add_argument("--rollout-end-bias", type=float, default=0.0,
+                   help="Added to the end tokens' logits while sampling rollouts (negative = longer outputs)")
     p.add_argument("--max-steps", type=int, default=500)
     p.add_argument("--eval-every", type=int, default=100)
     p.add_argument("--eval-limit", type=int)
@@ -100,6 +160,14 @@ def validate(args):
         raise ValueError("Need group size >= 2 and positive batch sizes")
     if not 0 < args.fgas_decay <= 1 or args.delta < 0 or args.beta < 0 or args.temperature <= 0:
         raise ValueError("Invalid FGAS decay, delta, beta or temperature")
+    if args.reward_beta <= 0 or not 0 <= args.box_iou_weight < 1:
+        raise ValueError("Need --reward-beta > 0 and 0 <= --box-iou-weight < 1")
+    if args.box_iou_weight and not args.box_tokens:
+        raise ValueError("--box-iou-weight needs a box-token model (--box-tokens)")
+    if not 0 <= args.pq_weight <= 1:
+        raise ValueError("--pq-weight must be in [0, 1]")
+    if args.pq_weight and not (args.box_tokens and args.sam_checkpoint):
+        raise ValueError("--pq-weight needs a box-token model (--box-tokens) and --sam-checkpoint")
     if args.image_size % 28:
         raise ValueError("--image-size must be a multiple of 28")
     if Path(args.output).exists() and any(Path(args.output).iterdir()):
@@ -110,6 +178,7 @@ def run(args):
     import torch
     from transformers import set_seed
 
+    from nucleus_rl.nunext.coords import bins_to_boxes
     from nucleus_rl.nunext.data import epoch_order, load_example, read_manifests
     from nucleus_rl.nunext.evaluate import evaluate, score_completion
     from nucleus_rl.nunext.modeling import (coordinate_first_id, end_ids, finite_or_raise, generate, load_policy,
@@ -128,6 +197,10 @@ def run(args):
     reference, _, _ = load_policy(args.init_model, "main", dtype="bfloat16", trainable=False)
     first_id = coordinate_first_id(processor.tokenizer, args.bins)
     stop_ids = end_ids(processor, policy)
+    segmenter = None
+    if args.pq_weight:
+        from nucleus_rl.nunext.pq_eval import SAMSegmenter
+        segmenter = SAMSegmenter(args.sam_checkpoint, args.sam_config, str(policy.device))
     trainable = [p for p in policy.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(trainable, lr=args.learning_rate, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0)
     per_object = 4 if args.box_tokens else 2
@@ -154,24 +227,46 @@ def run(args):
             row = train[epoch_order(len(train), epoch, args.seed)[offset]]
             view = random.Random(args.seed * 7919 + exposure).randrange(8) if args.augmentation == "d4" else 0
             exposure += 1
-            example = load_example(row, args.bins, view, args.image_size)
+            example = load_example(row, args.bins, view, args.image_size, boxes=args.box_iou_weight > 0,
+                                   arrays=args.pq_weight > 0)
             # Rewards compare against the augmented centroids, in the original pixel frame.
-            rows.append({**row, "centroids": [list(p) for p in example["points"]]})
+            target = {**row, "centroids": [list(p) for p in example["points"]]}
+            if args.pq_weight:
+                target["pixels"], target["mask"] = example["pixels"], example["mask"]
+            if args.box_iou_weight:
+                target["boxes"] = [(max(0.0, x - w / 2), max(0.0, y - h / 2), min(float(row["width"]), x + w / 2),
+                                    min(float(row["height"]), y + h / 2)) for x, y, w, h in example["objects"]]
+            rows.append(target)
             examples.append(example)
         policy.eval()
         sequences = generate(policy, processor, [e["image"] for e in examples], do_sample=True,
                              temperature=args.temperature, max_new_tokens=args.max_new_tokens,
-                             num_return_sequences=args.group_size)
+                             num_return_sequences=args.group_size, end_bias=args.rollout_end_bias)
         policy.train()
         # ---- score, filter, shape advantages
-        stats = {"rewards": [], "invalid": 0, "filtered_groups": 0, "pred": 0, "tp": 0, "fp": 0, "fn": 0}
+        stats = {"rewards": [], "box_iou": [], "pq": [], "invalid": 0, "filtered_groups": 0, "pred": 0, "tp": 0, "fp": 0, "fn": 0}
         work = []  # (example, completions, token advantages)
         for index, (example, row) in enumerate(zip(examples, rows)):
             group = sequences[index * args.group_size:(index + 1) * args.group_size]
             scored = [score_completion(ids, row, first_id, args.bins, stop_ids, args.radius, per_object,
                                        args.capped_matching)
                       for ids in group]
-            rewards = [match.f1 if parsed.valid else 0.0 for parsed, _, match in scored]
+            rewards = []
+            if segmenter is not None:
+                segmenter.set_image(row["pixels"])     # one image embedding for the whole group
+            for parsed, points, match in scored:
+                pred_boxes = (bins_to_boxes(parsed.bins, row["width"], row["height"], args.bins)
+                              if (args.box_iou_weight or args.pq_weight) and parsed.valid else None)
+                reward, mean_iou = rollout_reward(parsed.valid, match, args.reward_beta, args.box_iou_weight,
+                                                  pred_boxes, row.get("boxes"))
+                if mean_iou is not None:
+                    stats["box_iou"].append(mean_iou)
+                if args.pq_weight:
+                    pq = (rollout_pq(points, pred_boxes, row["mask"], segmenter.predict, args.sam_negatives)
+                          if parsed.valid else 0.0)
+                    stats["pq"].append(pq)
+                    reward = (1 - args.pq_weight) * reward + args.pq_weight * pq
+                rewards.append(reward)
             stats["rewards"].extend(rewards)
             for parsed, points, match in scored:
                 stats["invalid"] += not parsed.valid
@@ -223,6 +318,8 @@ def run(args):
                  "filtered_groups": stats["filtered_groups"], "invalid": stats["invalid"],
                  "pred_per_image": stats["pred"] / len(stats["rewards"]), "tp": stats["tp"], "fp": stats["fp"],
                  "fn": stats["fn"], "loss": loss_total, "kl": kl_total, "grad_norm": norm,
+                 **({"box_iou": float(np.mean(stats["box_iou"]))} if stats["box_iou"] else {}),
+                 **({"pq": float(np.mean(stats["pq"]))} if stats["pq"] else {}),
                  "lr": optimizer.param_groups[0]["lr"], "minutes": round((time.time() - started) / 60, 1)}
         history["steps"].append(entry)
         print(json.dumps(entry), flush=True)

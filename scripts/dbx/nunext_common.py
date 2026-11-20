@@ -48,7 +48,25 @@ GRPO_SETTINGS = {"bins": 256, "image_size": 896, "augmentation": "d4", "radius":
                  "eval_batch_size": 16, "max_new_tokens": 1024, "seed": 42}
 GRPO_ARMS = {"grpo": {"delta": 0.0, "fgas_decay": 1.0},
              "grpo-lvgf": {"delta": 0.02, "fgas_decay": 1.0},
-             "grpo-lvgf-fgas": {"delta": 0.02, "fgas_decay": 0.5}}
+             "grpo-lvgf-fgas": {"delta": 0.02, "fgas_decay": 0.5},
+             # From the box-token SFT model (nsft-box); all with LVGF, no FGAS. The first is the old reward
+             # (paper matching, F1) as a control; then capped matching, recall-weighted F2, and F2 + box IoU.
+             "box-f1-paper": {"delta": 0.02, "fgas_decay": 1.0},
+             "box-f1-capped": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True},
+             "box-f2-capped": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True, "reward_beta": 2.0},
+             "box-f2-capped-iou": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True, "reward_beta": 2.0,
+                                   "box_iou_weight": 0.3},
+             # Round 3: task reward. Every rollout's boxes + centres prompt frozen SAM2.1-tiny (4 negative
+             # points, as in the PQ evaluation) and are scored with PQ against the instance mask.
+             "box-pq": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True, "pq_weight": 1.0},
+             "box-pq-f2": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True, "reward_beta": 2.0,
+                           "pq_weight": 0.5},
+             # Rollouts sampled with the end-token bias that removed early stopping (-2), so the signal is
+             # about missed nuclei inside the image and mask quality, not about where to stop.
+             "box-pq-endbias": {"delta": 0.02, "fgas_decay": 1.0, "capped_matching": True, "pq_weight": 1.0,
+                                "rollout_end_bias": -2.0}}
+# Box-token runs decode longer outputs (up to 214 nuclei x 4 tokens); smaller rollout micro-batches for memory.
+GRPO_BOX_SETTINGS = {"box_tokens": True, "max_new_tokens": 1536, "rollout_batch": 2}
 GRPO_CANARY = {"max_steps": 5, "prompts_per_step": 2, "train_limit": 16, "final_eval_limit": 16,
                "eval_every": 0, "skip_before_eval": True, "skip_save": True}
 

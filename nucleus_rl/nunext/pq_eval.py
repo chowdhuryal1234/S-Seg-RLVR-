@@ -189,11 +189,25 @@ class SAMSegmenter:
         model.requires_grad_(False)
         self.predictor = SAM2ImagePredictor(model)
 
-    def __call__(self, image, points, boxes, negatives=None):
+    def _context(self):
         torch = self.torch
-        with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16,
-                                                    enabled=self.device.startswith("cuda")):
+        return torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16,
+                                                      enabled=self.device.startswith("cuda"))
+
+    def set_image(self, image):
+        """Encode one image; later predict() calls reuse the embedding (GRPO scores 8 rollouts per image)."""
+        inference, autocast = self._context()
+        with inference, autocast:
             self.predictor.set_image(image.copy())
+
+    def __call__(self, image, points, boxes, negatives=None):
+        self.set_image(image)
+        return self.predict(points, boxes, negatives)
+
+    def predict(self, points, boxes, negatives=None):
+        """Masks (N, H, W) and scores (N,) for the image of the last set_image call."""
+        inference, autocast = self._context()
+        with inference, autocast:
             all_masks, all_scores = [], []
             for start in range(0, len(points), self.chunk):
                 coords, labels = prompt_arrays(points[start:start + self.chunk],

@@ -22,6 +22,7 @@ class Match:
     fn: int
     pred_is_tp: tuple[bool, ...] = field(default_factory=tuple)
     gt_is_tp: tuple[bool, ...] = field(default_factory=tuple)
+    pairs: tuple[tuple[int, int], ...] = field(default_factory=tuple)   # (prediction, reference) hits
 
     @property
     def precision(self) -> float:
@@ -30,6 +31,12 @@ class Match:
     @property
     def recall(self) -> float:
         return self.tp / (self.tp + self.fn) if self.tp + self.fn else float(self.fp == 0)
+
+    def f_beta(self, beta: float = 1.0) -> float:
+        """(1 + b^2) TP / ((1 + b^2) TP + b^2 FN + FP); beta > 1 weighs recall more. 1 when both sets are empty."""
+        b2 = beta * beta
+        denominator = (1 + b2) * self.tp + b2 * self.fn + self.fp
+        return (1 + b2) * self.tp / denominator if denominator else 1.0
 
     @property
     def f1(self) -> float:
@@ -66,7 +73,7 @@ def match_points(pred: Sequence[Sequence[float]], gt: Sequence[Sequence[float]],
     gt_hit[cols[accepted]] = True
     tp = int(accepted.sum())
     return Match(tp, len(pred_array) - tp, len(gt_array) - tp, tuple(bool(v) for v in is_tp),
-                 tuple(bool(v) for v in gt_hit))
+                 tuple(bool(v) for v in gt_hit), tuple((int(r), int(c)) for r, c in zip(rows[accepted], cols[accepted])))
 
 
 def aggregate(matches: Sequence[Match]) -> dict[str, float]:

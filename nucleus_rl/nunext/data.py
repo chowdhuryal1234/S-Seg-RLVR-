@@ -60,28 +60,33 @@ def box_sizes(labels: np.ndarray, count: int) -> list[tuple[float, float]]:
             for s in slices]
 
 
-def load_example(row: dict, bins: int, view: int = 0, image_size: int | None = None, boxes: bool = False) -> dict:
+def load_example(row: dict, bins: int, view: int = 0, image_size: int | None = None, boxes: bool = False,
+                 arrays: bool = False) -> dict:
     """Image (PIL, optionally resized to image_size square) and its target text.
 
     Coordinates are normalized by the original width/height before quantization, so
     resizing the image for the vision encoder does not change the target tokens. With
     ``boxes``, each nucleus is x y w h; the sizes come from the row's instance mask
-    (label i + 1 = centroid i), transformed with the same D4 view as the image.
+    (label i + 1 = centroid i), transformed with the same D4 view as the image. With ``arrays`` the
+    result also holds the transformed image (``pixels``, original resolution, uint8) and instance
+    mask (``mask``), which a SAM-based reward segments and scores against.
     """
     from PIL import Image
 
     pixels = np.asarray(Image.open(row["image_path"]).convert("RGB"))
     pixels, points = d4_transform(pixels, row["centroids"], view)
-    objects = points
-    if boxes:
+    objects, mask = points, None
+    if boxes or arrays:
         if "mask_path" not in row:
-            raise ValueError("Box targets need mask_path (dataset v2)")
+            raise ValueError("Box targets and mask arrays need mask_path (dataset v2)")
         mask, _ = d4_transform(np.asarray(Image.open(row["mask_path"])), [], view)
+    if boxes:
         objects = [(x, y, w, h) for (x, y), (w, h) in zip(points, box_sizes(mask, len(points)))]
+    extra = {"pixels": pixels, "mask": mask} if arrays else {}
     image = Image.fromarray(pixels)
     if image_size is not None and image.size != (image_size, image_size):
         image = image.resize((image_size, image_size), Image.BICUBIC)
-    return {"id": row["id"], "image": image, "points": points, "objects": objects,
+    return {"id": row["id"], "image": image, "points": points, "objects": objects, **extra,
             "width": row["width"], "height": row["height"],
             "target": encode_objects(objects, row["width"], row["height"], bins)}
 

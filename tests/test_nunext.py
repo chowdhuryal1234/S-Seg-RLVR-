@@ -574,6 +574,108 @@ class MissDiagnostics(unittest.TestCase):
         out = EndBias({4, 1}, -2.5)(None, scores)
         np.testing.assert_allclose(out[0], [0, -2.5, 0, 0, -2.5, 0])
 
+
+@unittest.skipUnless(HAS_SCIPY, "scipy required")
+class GrpoRewards(unittest.TestCase):
+    def test_f_beta_and_pairs(self):
+        from nucleus_rl.nunext.matching import Match, match_points
+        match = match_points([[0, 0], [50, 50], [99, 99]], [[1, 1], [49, 52]], 12)
+        self.assertEqual(match.pairs, ((0, 0), (1, 1)))
+        self.assertAlmostEqual(match.f_beta(1.0), match.f1)
+        # TP 2, FP 1, FN 0: F2 = 5*2 / (5*2 + 0 + 1)
+        self.assertAlmostEqual(match.f_beta(2.0), 10 / 11)
+        recall_heavy, precision_heavy = Match(5, 0, 5), Match(5, 5, 0)
+        self.assertGreater(precision_heavy.f_beta(2.0), recall_heavy.f_beta(2.0))   # missing costs more than FP
+        self.assertEqual(Match(0, 0, 0).f_beta(2.0), 1.0)
+
+    def test_box_iou(self):
+        from nucleus_rl.nunext.grpo import box_iou
+        self.assertAlmostEqual(box_iou((0, 0, 10, 10), (0, 0, 10, 10)), 1.0)
+        self.assertAlmostEqual(box_iou((0, 0, 10, 10), (5, 0, 15, 10)), 50 / 150)
+        self.assertEqual(box_iou((0, 0, 10, 10), (20, 20, 30, 30)), 0.0)
+        self.assertEqual(box_iou((0, 0, 0, 10), (0, 0, 0, 10)), 0.0)
+
+    def test_rollout_reward(self):
+        from nucleus_rl.nunext.grpo import rollout_reward
+        from nucleus_rl.nunext.matching import match_points
+        match = match_points([[5, 5], [50, 50]], [[5, 5], [80, 80]], 12)     # one hit, one FP, one FN
+        self.assertEqual(rollout_reward(False, match, 2.0, 0.3, [], []), (0.0, 0.0))
+        self.assertEqual(rollout_reward(True, match), (0.5, None))
+        reward, iou = rollout_reward(True, match, 1.0, 0.3, [(0, 0, 10, 10), (45, 45, 55, 55)],
+                                     [(0, 0, 10, 20), (75, 75, 85, 85)])
+        self.assertAlmostEqual(iou, 0.5)
+        self.assertAlmostEqual(reward, 0.7 * 0.5 + 0.3 * 0.5)
+        empty = match_points([], [[5, 5]], 12)
+        self.assertEqual(rollout_reward(True, empty, 1.0, 0.3, [], [(0, 0, 1, 1)]), (0.0, 0.0))
+
+    def test_parser_checks(self):
+        from nucleus_rl.nunext import grpo
+        base = ["--init-model", "m", "--train-manifest", "t", "--eval-manifest", "e", "--output", "/nonexistent/o"]
+        with self.assertRaises(ValueError):
+            grpo.validate(grpo.build_parser().parse_args(base + ["--box-iou-weight", "0.3"]))   # needs --box-tokens
+        with self.assertRaises(ValueError):
+            grpo.validate(grpo.build_parser().parse_args(base + ["--reward-beta", "0"]))
+        grpo.validate(grpo.build_parser().parse_args(base + ["--box-tokens", "--box-iou-weight", "0.3",
+                                                            "--reward-beta", "2", "--capped-matching"]))
+
+
+@unittest.skipUnless(HAS_SCIPY, "scipy required")
+class PqReward(unittest.TestCase):
+    REFERENCE = np.zeros((32, 32), dtype=np.uint16)
+    REFERENCE[2:8, 2:8] = 1
+    REFERENCE[20:30, 18:26] = 2
+
+    @staticmethod
+    def box_masks(points, boxes, negatives):
+        masks = np.zeros((len(boxes), 32, 32), bool)
+        for k, (x0, y0, x1, y1) in enumerate(boxes):
+            masks[k, int(y0):int(y1), int(x0):int(x1)] = True
+        return masks, np.ones(len(boxes))
+
+    def test_rollout_pq(self):
+        from nucleus_rl.nunext.grpo import rollout_pq
+        exact = rollout_pq([(5, 5), (22, 25)], [(2, 2, 8, 8), (18, 20, 26, 30)], self.REFERENCE, self.box_masks)
+        self.assertAlmostEqual(exact, 1.0)
+        half = rollout_pq([(5, 5)], [(2, 2, 8, 8)], self.REFERENCE, self.box_masks)
+        self.assertAlmostEqual(half, 1 / 1.5)                              # one TP, one FN
+        self.assertEqual(rollout_pq([], [], self.REFERENCE, self.box_masks), 0.0)
+        self.assertEqual(rollout_pq([], [], np.zeros((32, 32)), self.box_masks), 1.0)
+        seen = []
+        rollout_pq([(5, 5), (22, 25)], [(2, 2, 8, 8), (18, 20, 26, 30)], self.REFERENCE,
+                   lambda p, b, n: (seen.append(n), self.box_masks(p, b, n))[1], negatives=1)
+        self.assertEqual(seen[0], [[(22.0, 25.0)], [(5.0, 5.0)]])          # each other's centre as negative
+
+    def test_load_example_arrays_follow_the_view(self):
+        from PIL import Image
+        from nucleus_rl.nunext.data import load_example
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pixels = np.zeros((32, 32, 3), np.uint8)
+            pixels[2:8, 2:8] = 200
+            Image.fromarray(pixels).save(root / "i.png")
+            Image.fromarray(self.REFERENCE).save(root / "m.png")
+            row = {"id": "a", "image_path": str(root / "i.png"), "mask_path": str(root / "m.png"),
+                   "width": 32, "height": 32, "centroids": [[5.0, 5.0], [22.0, 25.0]]}
+            for view in range(8):
+                example = load_example(row, 256, view, image_size=56, arrays=True)
+                self.assertEqual(example["pixels"].shape, (32, 32, 3))       # original resolution, not 56
+                for label, (x, y) in enumerate(example["points"], start=1):
+                    self.assertEqual(example["mask"][int(y), int(x)], label)  # mask moved with the centroids
+                self.assertTrue((example["pixels"][example["mask"] == 1] == 200).all())
+            self.assertNotIn("mask", load_example(row, 256, 0))
+
+    def test_parser_requires_sam_and_boxes(self):
+        from nucleus_rl.nunext import grpo
+        base = ["--init-model", "m", "--train-manifest", "t", "--eval-manifest", "e", "--output", "/nonexistent/o"]
+        for extra in (["--pq-weight", "1"], ["--pq-weight", "1", "--box-tokens"],
+                      ["--pq-weight", "1.5", "--box-tokens", "--sam-checkpoint", "s.pt"]):
+            with self.assertRaises(ValueError):
+                grpo.validate(grpo.build_parser().parse_args(base + extra))
+        args = grpo.build_parser().parse_args(base + ["--pq-weight", "0.5", "--box-tokens", "--sam-checkpoint", "s.pt",
+                                                      "--rollout-end-bias", "-2"])
+        grpo.validate(args)
+        self.assertEqual((args.sam_negatives, args.rollout_end_bias), (4, -2.0))
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft
