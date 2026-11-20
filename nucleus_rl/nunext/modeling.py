@@ -203,8 +203,23 @@ def completion_logits(model, inputs, completion_length: int):
 
 # ---------------------------------------------------------------- generation
 
+class EndBias:
+    """Logits processor that adds ``bias`` to the end tokens' logits at every step.
+
+    A negative bias makes the model stop later: under greedy decoding the end token is chosen only when
+    it beats every other token by more than ``-bias`` nats. It does not touch any other token.
+    """
+
+    def __init__(self, token_ids, bias: float):
+        self.token_ids, self.bias = sorted(token_ids), float(bias)
+
+    def __call__(self, input_ids, scores):
+        scores[:, self.token_ids] = scores[:, self.token_ids] + self.bias
+        return scores
+
+
 def generation_kwargs(processor, model, *, do_sample: bool, temperature: float, max_new_tokens: int,
-                      num_return_sequences: int = 1) -> dict:
+                      num_return_sequences: int = 1, end_bias: float = 0.0) -> dict:
     """Plain sampling or greedy decoding: no repetition penalty, top-k or top-p.
 
     Qwen's shipped generation config sets a repetition penalty, which would discourage the
@@ -213,6 +228,9 @@ def generation_kwargs(processor, model, *, do_sample: bool, temperature: float, 
     kwargs = {"max_new_tokens": max_new_tokens, "do_sample": do_sample, "repetition_penalty": 1.0, "use_cache": True,
               "num_return_sequences": num_return_sequences, "eos_token_id": sorted(end_ids(processor, model)),
               "pad_token_id": processor.tokenizer.pad_token_id}
+    if end_bias:
+        from transformers import LogitsProcessorList
+        kwargs["logits_processor"] = LogitsProcessorList([EndBias(end_ids(processor, model), end_bias)])
     if do_sample:
         kwargs.update(temperature=temperature, top_k=0, top_p=1.0)
     else:

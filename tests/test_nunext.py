@@ -543,6 +543,37 @@ class TestTimeAugmentation(unittest.TestCase):
         self.assertEqual(sweep["3"]["capped"]["micro_f1"], 1.0)
         self.assertEqual(sweep["8"]["paper"]["tp"], 1)
 
+
+@unittest.skipUnless(HAS_SCIPY, "scipy required")
+class MissDiagnostics(unittest.TestCase):
+    def test_gt_is_tp(self):
+        from nucleus_rl.nunext.matching import match_points
+        self.assertEqual(match_points([[10, 10]], [[11, 10], [90, 90]], 12).gt_is_tp, (True, False))
+        self.assertEqual(match_points([], [[1, 1]], 12).gt_is_tp, (False,))
+
+    def test_early_stop_shows_up_as_tail_misses(self):
+        from nucleus_rl.nunext.rescore import miss_positions
+        gt = [[20.0 + 30 * (i % 8), 10.0 + 30 * (i // 8)] for i in range(64)]   # 8 x 8 grid, raster order
+        stopped = {"id": "a", "valid": True, "pred": gt[:32]}                 # stops halfway down
+        scattered = {"id": "a", "valid": True, "pred": gt[1::2]}              # misses every other nucleus
+        rows = [{"id": "a", "height": 256, "centroids": gt}]
+        early = miss_positions([stopped], rows, bands=4)
+        self.assertEqual(early["by_rank"], [1.0, 1.0, 0.0, 0.0])
+        self.assertEqual(early["by_y"][:2], [1.0, 1.0])
+        self.assertEqual(early["tail"]["after_last_prediction"], 32)
+        self.assertEqual(early["tail"]["before_it"], 0)
+        self.assertEqual(early["tail"]["after_last_if_random"], 16.0)          # 32 misses x 32/64 after the last
+        spread = miss_positions([scattered], rows, bands=4)
+        self.assertEqual(spread["by_rank"], [0.5, 0.5, 0.5, 0.5])
+        self.assertEqual(spread["tail"]["after_last_prediction"], 0)
+        self.assertEqual(early["count_ratio"]["50-100"], {"pred_over_gt": 0.5, "images": 1})
+
+    def test_end_bias_shifts_only_end_tokens(self):
+        from nucleus_rl.nunext.modeling import EndBias
+        scores = np.zeros((2, 6))
+        out = EndBias({4, 1}, -2.5)(None, scores)
+        np.testing.assert_allclose(out[0], [0, -2.5, 0, 0, -2.5, 0])
+
 class CommandLines(unittest.TestCase):
     def test_parsers_build(self):
         from nucleus_rl.nunext import grpo, sft

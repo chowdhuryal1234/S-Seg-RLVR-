@@ -111,7 +111,7 @@ def summarize(records, rows, radius, started=None) -> dict:
 
 def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batch_size, max_new_tokens,
              output: Path | None = None, keep_predictions: bool = True, per_object: int = 2,
-             tta: str | None = None, merge_radius: float = 8.0, min_votes: int = 4) -> dict:
+             tta: str | None = None, merge_radius: float = 8.0, min_votes: int = 4, end_bias: float = 0.0) -> dict:
     """Under torchrun each rank scores rows[rank::world]; every rank returns the full summary, rank 0 writes."""
     from nucleus_rl.nunext import dist
     from nucleus_rl.nunext.modeling import end_ids, generate
@@ -130,7 +130,7 @@ def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batc
         chunk = shard[start:start + step]
         examples = [load_example(row, bins, view, image_size) for row in chunk for view in views]
         sequences = generate(model, processor, [e["image"] for e in examples], do_sample=False,
-                             temperature=1.0, max_new_tokens=max_new_tokens)
+                             temperature=1.0, max_new_tokens=max_new_tokens, end_bias=end_bias)
         for index, row in enumerate(chunk):
             own = sequences[index * len(views):(index + 1) * len(views)]
             if tta:
@@ -144,6 +144,9 @@ def evaluate(model, processor, rows, *, first_id, bins, image_size, radius, batc
     summary = summarize(records, rows, radius, started)
     if tta:
         summary.update({"tta": tta, "merge_radius": merge_radius, "min_votes": min_votes})
+    if end_bias:
+        summary["end_bias"] = end_bias
+    summary["mean_tokens"] = round(sum(r["tokens"] for r in records) / max(len(records), 1), 1)
     if output is not None and dist.is_main():
         output.mkdir(parents=True, exist_ok=True)
         (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -168,6 +171,8 @@ def main(argv=None):
     parser.add_argument("--tta", choices=["d4"], help="Decode all eight D4 views and merge them by voting")
     parser.add_argument("--merge-radius", type=float, default=8.0, help="TTA: px within which views' nuclei merge")
     parser.add_argument("--min-votes", type=int, default=4, help="TTA: views that must find a nucleus (1-8)")
+    parser.add_argument("--end-bias", type=float, default=0.0,
+                        help="Added to the end tokens' logits while decoding; negative = stop later")
     args = parser.parse_args(argv)
     if not 1 <= args.min_votes <= 8:
         parser.error("--min-votes must be in 1..8")
@@ -181,7 +186,8 @@ def main(argv=None):
     summary = evaluate(model, processor, rows, first_id=first_id, bins=args.bins, image_size=args.image_size,
                        radius=args.radius, batch_size=args.batch_size, max_new_tokens=args.max_new_tokens,
                        output=Path(args.output), per_object=4 if args.box_tokens else 2,
-                       tta=args.tta, merge_radius=args.merge_radius, min_votes=args.min_votes)
+                       tta=args.tta, merge_radius=args.merge_radius, min_votes=args.min_votes,
+                       end_bias=args.end_bias)
     if dist.is_main():
         print(json.dumps(summary, indent=2), flush=True)
     dist.teardown()

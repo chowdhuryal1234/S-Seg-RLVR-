@@ -21,6 +21,7 @@ class Match:
     fp: int
     fn: int
     pred_is_tp: tuple[bool, ...] = field(default_factory=tuple)
+    gt_is_tp: tuple[bool, ...] = field(default_factory=tuple)
 
     @property
     def precision(self) -> float:
@@ -54,15 +55,18 @@ def match_points(pred: Sequence[Sequence[float]], gt: Sequence[Sequence[float]],
     pred_array = np.asarray(pred, dtype=float).reshape(-1, 2)
     gt_array = np.asarray(gt, dtype=float).reshape(-1, 2)
     if len(pred_array) == 0 or len(gt_array) == 0:
-        return Match(0, len(pred_array), len(gt_array), (False,) * len(pred_array))
+        return Match(0, len(pred_array), len(gt_array), (False,) * len(pred_array), (False,) * len(gt_array))
     distances = np.linalg.norm(pred_array[:, None, :] - gt_array[None, :, :], axis=-1)
     cost = np.where(distances <= radius, distances, _UNASSIGNABLE) if capped else distances
     rows, cols = linear_sum_assignment(cost)
     accepted = distances[rows, cols] <= radius
     is_tp = np.zeros(len(pred_array), dtype=bool)
     is_tp[rows[accepted]] = True
+    gt_hit = np.zeros(len(gt_array), dtype=bool)
+    gt_hit[cols[accepted]] = True
     tp = int(accepted.sum())
-    return Match(tp, len(pred_array) - tp, len(gt_array) - tp, tuple(bool(v) for v in is_tp))
+    return Match(tp, len(pred_array) - tp, len(gt_array) - tp, tuple(bool(v) for v in is_tp),
+                 tuple(bool(v) for v in gt_hit))
 
 
 def aggregate(matches: Sequence[Match]) -> dict[str, float]:
